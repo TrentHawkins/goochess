@@ -3,13 +3,78 @@ from re import compile, Pattern
 from typing import Self
 
 
-class Colors(int, Enum):
+class Summable:
+
+	def __radd__(self, other):
+		return self + other if other else self
+
+	def __rsub__(self, other):
+		return self - other if other else self
+
+	def __rmul__(self, other):
+		return self * other if other else self
+
+
+class Delta(Summable, int):
+
+	lower: int = -0o77
+	upper: int = +0o77
+
+
+	def __new__(cls, index: int):
+		if cls.lower <= index <= cls.upper:
+			return super().__new__(cls, index)
+
+		raise IndexError(f"{cls.__name__.lower()} too large a square difference")
+
+
+	def __add__(self, other):
+		return self.__class__(super().__add__(other))
+
+	def __sub__(self, other):
+		return self.__class__(super().__sub__(other))
+
+	def __mul__(self, other):
+		return self.__class__(super().__mul__(other))
+
+	def __pos__(self):
+		return self.__class__(super().__pos__())
+
+	def __neg__(self):
+		return self.__class__(super().__neg__())
+
+
+class Colors(Delta, Enum):
 
 	WHITE = -1
 	BLACK = +1
 
 
-class Squares(int, Enum):
+	def __repr__(self) -> str:
+		return "⬛" if self + 0b1 else "⬜"
+
+
+class Index(int):
+
+	lower: int = 0o00
+	upper: int = 0o77
+
+
+	def __new__(cls, index: int):
+		if cls.lower <= index <= cls.upper:
+			return super().__new__(cls, index)
+
+		raise IndexError(f"{cls.__name__.lower()} out of chessboard bounds")
+
+
+	def __add__(self, other: Delta):
+		return Index(super().__add__(other))
+
+	def __sub__(self, other) -> Delta:
+		return Delta(super().__sub__(other))
+
+
+class Squares(Index, Enum):
 
 	A8 = 0o00; B8 = 0o01; C8 = 0o02; D8 = 0o03; E8 = 0o04; F8 = 0o05; G8 = 0o06; H8 = 0o07
 	A7 = 0o10; B7 = 0o11; C7 = 0o12; D7 = 0o13; E7 = 0o14; F7 = 0o15; G7 = 0o16; H7 = 0o17
@@ -22,63 +87,33 @@ class Squares(int, Enum):
 
 
 	def __repr__(self):
-		return self.name.lower()  # type: ignore
+		return self.file + self.rank
 
 
-	def _missing_(self):
-		raise IndexError
+	@property
+	def _row(self) -> int:
+		return self >> 3
 
+	@property
+	def _column(self) -> int:
+		return self - (self._row << 3)
 
+	@property
+	def _diagonal(self) -> int:
+		return self._row + self._column
+
+	@property
 	def rank(self) -> str:
-		return str(8 - self // 8)
+		return str(8 - self._row)
 
+	@property
 	def file(self) -> str:
-		return chr(self % 8 + 97)
+		return chr(int(self._column) + 97)
+
+	@property
+	def color(self) -> Colors:
+		return Colors(((self._diagonal & 1) << 1) - 1)
 
 
-class Index(int):
-
-	lower: int = 0o00
-	upper: int = 0o77
-
-
-	def __new__(cls, index: int) -> Self:
-		if cls.lower <= index <= cls.upper:
-			return super().__new__(cls, index)
-
-		raise IndexError(f"{cls.__name__.lower()} out of chessboard bounds")
-
-
-	def __add__(self, other) -> Self:
-		return self.__class__(super().__add__(other))
-
-	def __sub__(self, other) -> Self:
-		return self.__class__(super().__sub__(other))
-
-
-class Summable:
-
-	def __radd__(self, other) -> Self:
-		return self + other if other else self
-
-	def __rsub__(self, other) -> Self:
-		return self - other if other else self
-
-	def __rmul__(self, other) -> Self:
-		return self * other if other else self
-
-
-class Delta(Index, Summable):
-
-	lower: int = -0o77
-	upper: int = +0o77
-
-
-	def __mul__(self, other) -> Self:
-		return self.__class__(super().__mul__(other))
-
-	def __pos__(self) -> Self:
-		return self.__class__(super().__pos__())
-
-	def __neg__(self) -> Self:
-		return self.__class__(super().__neg__())
+class Board(list[Squares]):
+	...
