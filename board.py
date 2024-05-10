@@ -1,15 +1,49 @@
+from enum import Flag
 from re import compile, Pattern
 from typing import Self
 
 
+class Colors(int, Flag):
+
+	WHITE = -1
+	BLACK = +1
+
+
+class Squares(int, Flag):
+
+	A8 = 0o00; B8 = 0o01; C8 = 0o02; D8 = 0o03; E8 = 0o04; F8 = 0o05; G8 = 0o06; H8 = 0o07
+	A7 = 0o10; B7 = 0o11; C7 = 0o12; D7 = 0o13; E7 = 0o14; F7 = 0o15; G7 = 0o16; H7 = 0o17
+	A6 = 0o20; B6 = 0o21; C6 = 0o22; D6 = 0o23; E6 = 0o24; F6 = 0o25; G6 = 0o26; H6 = 0o27
+	A5 = 0o30; B5 = 0o31; C5 = 0o32; D5 = 0o33; E5 = 0o34; F5 = 0o35; G5 = 0o36; H5 = 0o37
+	A4 = 0o40; B4 = 0o41; C4 = 0o42; D4 = 0o43; E4 = 0o44; F4 = 0o45; G4 = 0o46; H4 = 0o47
+	A3 = 0o50; B3 = 0o51; C3 = 0o52; D3 = 0o53; E3 = 0o54; F3 = 0o55; G3 = 0o56; H3 = 0o57
+	A2 = 0o60; B2 = 0o61; C2 = 0o62; D2 = 0o63; E2 = 0o64; F2 = 0o65; G2 = 0o66; H2 = 0o67
+	A1 = 0o70; B1 = 0o71; C1 = 0o72; D1 = 0o73; E1 = 0o74; F1 = 0o75; G1 = 0o76; H1 = 0o77
+
+
+	def __repr__(self):
+		return self.name.lower()  # type: ignore
+
+
+	def _missing_(self):
+		raise IndexError
+
+
+	def rank(self) -> str:
+		return str(8 - self // 8)
+
+	def file(self) -> str:
+		return chr(self % 8 + 97)
+
+
 class Index(int):
 
-	lower: int =  0
-	upper: int =  8
+	lower: int = 0o00
+	upper: int = 0o77
 
 
 	def __new__(cls, index: int) -> Self:
-		if cls.lower <= index < cls.upper:
+		if cls.lower <= index <= cls.upper:
 			return super().__new__(cls, index)
 
 		raise IndexError(f"{cls.__name__.lower()} out of chessboard bounds")
@@ -34,10 +68,10 @@ class Summable:
 		return self * other if other else self
 
 
-class BiIndex(Index, Summable):
+class Delta(Index, Summable):
 
-	lower: int = -7
-	upper: int = +8
+	lower: int = -0o77
+	upper: int = +0o77
 
 
 	def __mul__(self, other) -> Self:
@@ -48,98 +82,3 @@ class BiIndex(Index, Summable):
 
 	def __neg__(self) -> Self:
 		return self.__class__(super().__neg__())
-
-
-class Vector(Summable,
-	tuple[
-		BiIndex,
-		BiIndex,
-	]
-):
-
-	def __new__(cls, *indices) -> Self:
-		return super().__new__(cls, indices)
-
-
-	def __add__(self, other) -> Self:
-		return self.__class__(
-			self[0] + other[0],
-			self[1] + other[1],
-		)
-
-	def __sub__(self, other) -> Self:
-		return self.__class__(
-			self[0] - other[0],
-			self[1] - other[1],
-		)
-
-	def __mul__(self, other) -> Self:
-		return self.__class__(
-			self[0] * other,
-			self[1] * other,
-		)
-
-	def __pos__(self) -> Self:
-		return self.__class__(
-			+self[0],
-			+self[1],
-		)
-
-	def __neg__(self) -> Self:
-		return self.__class__(
-			-self[0],
-			-self[1],
-		)
-
-
-class Square(
-	tuple[
-		Index,
-		Index,
-	]
-):
-
-	files: str = "abcdefgh"
-	ranks: str = "12345678"
-
-	notation: Pattern = compile(f"[{files}][{ranks}]")
-
-
-	def __new__(cls, *indices: Index) -> Self:
-		return super().__new__(cls, indices)
-
-
-	def __repr__(self):
-		return self.file + self.rank
-
-	def __add__(self, other: Vector) -> Self:
-		return self.__class__(
-			self[0] - other[0],
-			self[1] + other[1],
-		)
-
-	def __sub__(self, other: Self) -> Vector:
-		return Vector(
-			BiIndex(other[0]) - self[0],
-			BiIndex(self[1]) - other[1],
-		)
-
-
-	@classmethod
-	def from_notation(cls, square: str) -> Self:
-		if cls.notation.fullmatch(square):
-			return cls(
-				Index( 8 - int(square[1])),
-				Index(ord(square[0]) - 97),
-			)
-
-		raise IndexError("invalid square")
-
-
-	@property
-	def file(self) -> str:
-		return chr(int(self[1]) + 97)
-
-	@property
-	def rank(self) -> str:
-		return str( 8 - int(self[0]))
