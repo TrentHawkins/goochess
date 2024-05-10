@@ -1,15 +1,15 @@
-from enum import Flag
+from enum import Enum
 from re import compile, Pattern
 from typing import Self
 
 
-class Colors(int, Flag):
+class Colors(int, Enum):
 
 	WHITE = -1
 	BLACK = +1
 
 
-class Squares(int, Flag):
+class Squares(int, Enum):
 
 	A8 = 0o00; B8 = 0o01; C8 = 0o02; D8 = 0o03; E8 = 0o04; F8 = 0o05; G8 = 0o06; H8 = 0o07
 	A7 = 0o10; B7 = 0o11; C7 = 0o12; D7 = 0o13; E7 = 0o14; F7 = 0o15; G7 = 0o16; H7 = 0o17
