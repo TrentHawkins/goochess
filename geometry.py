@@ -1,4 +1,5 @@
 from enum import Enum
+from functools import partial
 
 
 class Color(int, Enum):
@@ -10,15 +11,16 @@ class Color(int, Enum):
 	def __repr__(self) -> str:
 		return "⬛" if self + 1 else "⬜"
 
+	def __str__(self) -> str:
+		return "⬛" if self + 1 else "⬜"
+
 
 class Square(int):
 
-	def __init__(self, square: int):
-		self.piece = "Hello!"
 
+	def __init__(self, _: int):
+		self.piece = None
 
-	def __repr__(self):
-		return self.file + self.rank
 
 	def __add__(self, other: int):
 		return self.__class__(super().__add__(other))
@@ -62,3 +64,24 @@ class Board(Square, Enum):
 	A3 = 0o50; B3 = 0o51; C3 = 0o52; D3 = 0o53; E3 = 0o54; F3 = 0o55; G3 = 0o56; H3 = 0o57
 	A2 = 0o60; B2 = 0o61; C2 = 0o62; D2 = 0o63; E2 = 0o64; F2 = 0o65; G2 = 0o66; H2 = 0o67
 	A1 = 0o70; B1 = 0o71; C1 = 0o72; D1 = 0o73; E1 = 0o74; F1 = 0o75; G1 = 0o76; H1 = 0o77
+
+
+	def __repr__(self):
+		return self.file + self.rank
+
+
+	@staticmethod
+	def show():
+		print_item = partial(print,
+			sep = "",
+			end = "",
+		)
+
+		for square in Board:
+			if not square._column:
+				print()
+
+			print_item(square.color)
+
+		print()
+		print()
