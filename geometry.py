@@ -1,5 +1,5 @@
 from enum import Enum
-from functools import partial
+from typing import Self
 
 
 class Color(int, Enum):
@@ -12,20 +12,18 @@ class Color(int, Enum):
 		return "⬛" if self + 1 else "⬜"
 
 	def __str__(self) -> str:
-		return "⬛" if self + 1 else "⬜"
+		return repr(self)
 
 
-class Square(int):
+class Index(int):
 
+	def __repr__(self) -> str:
+		return self.file + self.rank
 
-	def __init__(self, _: int):
-		self.piece = None
-
-
-	def __add__(self, other: int):
+	def __add__(self, other: int) -> Self:
 		return self.__class__(super().__add__(other))
 
-	def __sub__(self, other: int):
+	def __sub__(self, other: int) -> Self:
 		return self.__class__(super().__sub__(other))
 
 
@@ -54,7 +52,7 @@ class Square(int):
 		return Color(((self._diagonal & 1) << 1) - 1)
 
 
-class Board(Square, Enum):
+class Indices(Index, Enum):
 
 	A8 = 0o00; B8 = 0o01; C8 = 0o02; D8 = 0o03; E8 = 0o04; F8 = 0o05; G8 = 0o06; H8 = 0o07
 	A7 = 0o10; B7 = 0o11; C7 = 0o12; D7 = 0o13; E7 = 0o14; F7 = 0o15; G7 = 0o16; H7 = 0o17
@@ -66,22 +64,27 @@ class Board(Square, Enum):
 	A1 = 0o70; B1 = 0o71; C1 = 0o72; D1 = 0o73; E1 = 0o74; F1 = 0o75; G1 = 0o76; H1 = 0o77
 
 
-	def __repr__(self):
-		return self.file + self.rank
+class Square(Index):
+
+	def __init__(self, _: int):
+		self.piece = None
 
 
-	@staticmethod
-	def show():
-		print_item = partial(print,
-			sep = "",
-			end = "",
-		)
+class Board(list[Square]):
 
-		for square in Board:
+	def __init__(self):
+		super().__init__(Square(index) for index in Indices)
+
+	def __repr__(self) -> str:
+		board = ""
+
+		for square in self:
 			if not square._column:
-				print()
+				board += "\n"
 
-			print_item(square.color)
+			board += str(square.color)
 
-		print()
-		print()
+		return board + "\n"
+
+	def __str__(self) -> str:
+		return repr(self)
