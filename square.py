@@ -15,7 +15,7 @@ class Color(int, Enum):
 		return repr(self)
 
 
-class Index(int):
+class Square(int):
 
 	def __repr__(self) -> str:
 		return self.file + self.rank
@@ -52,7 +52,7 @@ class Index(int):
 		return Color(((self._diagonal & 1) << 1) - 1)
 
 
-class Indices(Index, Enum):
+class Squares(Square, Enum):
 
 	A8 = 0o00; B8 = 0o01; C8 = 0o02; D8 = 0o03; E8 = 0o04; F8 = 0o05; G8 = 0o06; H8 = 0o07
 	A7 = 0o10; B7 = 0o11; C7 = 0o12; D7 = 0o13; E7 = 0o14; F7 = 0o15; G7 = 0o16; H7 = 0o17
@@ -62,29 +62,3 @@ class Indices(Index, Enum):
 	A3 = 0o50; B3 = 0o51; C3 = 0o52; D3 = 0o53; E3 = 0o54; F3 = 0o55; G3 = 0o56; H3 = 0o57
 	A2 = 0o60; B2 = 0o61; C2 = 0o62; D2 = 0o63; E2 = 0o64; F2 = 0o65; G2 = 0o66; H2 = 0o67
 	A1 = 0o70; B1 = 0o71; C1 = 0o72; D1 = 0o73; E1 = 0o74; F1 = 0o75; G1 = 0o76; H1 = 0o77
-
-
-class Square(Index):
-
-	def __init__(self, _: int):
-		self.piece = None
-
-
-class Board(list[Square]):
-
-	def __init__(self):
-		super().__init__(Square(index) for index in Indices)
-
-	def __repr__(self) -> str:
-		board = ""
-
-		for square in self:
-			if not square._column:
-				board += "\n"
-
-			board += str(square.color)
-
-		return board + "\n"
-
-	def __str__(self) -> str:
-		return repr(self)

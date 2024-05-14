@@ -1,4 +1,4 @@
-from geometry import Board, Color, Square
+from chess.square import Color
 
 class Piece:
 
