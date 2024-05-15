@@ -2,23 +2,7 @@ from enum import Enum
 from typing import Self
 
 
-class Color(int, Enum):
-
-	WHITE = -1
-	BLACK = +1
-
-
-	def __repr__(self) -> str:
-		return "⬛" if self + 1 else "⬜"
-
-	def __str__(self) -> str:
-		return repr(self)
-
-
-class Square(int):
-
-	def __repr__(self) -> str:
-		return self.file + self.rank
+class _int(int):
 
 	def __add__(self, other: int) -> Self:
 		return self.__class__(super().__add__(other))
@@ -26,6 +10,50 @@ class Square(int):
 	def __sub__(self, other: int) -> Self:
 		return self.__class__(super().__sub__(other))
 
+
+class Move(_int):
+
+	def __mul__(self, other: int) -> Self:
+		return self.__class__(super().__sub__(other))
+
+
+class Moves(Move, Enum):
+
+	N = -0o10
+	E = +0o01
+	S = +0o10
+	W = -0o01
+
+	NE = N + E
+	SE = S + E
+	NW = N + W
+	SW = S + W
+
+	NNE = N + NE
+	NEE = NE + E
+	SEE = SE + E
+	SSE = S + SE
+	SSW = S + SW
+	SWW = SW + W
+	NWW = NW + W
+	NNW = N + NW
+
+
+	def __repr__(self) -> str:
+		return self.name
+
+
+class Colors(_int, Enum):
+
+	WHITE = -1
+	BLACK = +1
+
+
+	def __repr__(self) -> str:
+		return self.name
+
+
+class Square(_int):
 
 	@property
 	def _row(self) -> int:
@@ -48,8 +76,8 @@ class Square(int):
 		return chr(int(self._column) + 97)
 
 	@property
-	def color(self) -> Color:
-		return Color(((self._diagonal & 1) << 1) - 1)
+	def color(self) -> Colors:
+		return Colors(((self._diagonal & 1) << 1) - 1)
 
 
 class Squares(Square, Enum):
@@ -62,3 +90,7 @@ class Squares(Square, Enum):
 	A3 = 0o50; B3 = 0o51; C3 = 0o52; D3 = 0o53; E3 = 0o54; F3 = 0o55; G3 = 0o56; H3 = 0o57
 	A2 = 0o60; B2 = 0o61; C2 = 0o62; D2 = 0o63; E2 = 0o64; F2 = 0o65; G2 = 0o66; H2 = 0o67
 	A1 = 0o70; B1 = 0o71; C1 = 0o72; D1 = 0o73; E1 = 0o74; F1 = 0o75; G1 = 0o76; H1 = 0o77
+
+
+	def __repr__(self) -> str:
+		return self.name
