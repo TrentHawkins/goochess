@@ -24,6 +24,7 @@ class Moves(Move, Enum):
 	S = +0o10
 	W = -0o01
 
+
 	NE = N + E
 	SE = S + E
 	NW = N + W
