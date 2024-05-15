@@ -46,12 +46,18 @@ class Piece:
 class Pawn(Piece):
 
 	moves = {
-		Moves.N,
+		Moves.S,
 	}
 	capts = {
-		Moves.NE,
-		Moves.NW,
+		Moves.SE,
+		Moves.SW,
 	}
+
+	def __post_init__(self) -> None:
+		super().__pre_init__()
+
+		self.moves = {move * self.color for move in self.moves}
+		self.capts = {capt * self.color for capt in self.capts}
 
 
 class Melee(Piece):

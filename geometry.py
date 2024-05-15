@@ -14,7 +14,7 @@ class _int(int):
 class Move(_int):
 
 	def __mul__(self, other: int) -> Self:
-		return self.__class__(super().__sub__(other))
+		return self.__class__(super().__mul__(other))
 
 
 class Moves(Move, Enum):
