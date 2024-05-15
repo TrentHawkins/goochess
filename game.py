@@ -1,2 +1,6 @@
-from geometry import *
-from material import *
+import material
+
+
+class Board(list[material.Piece | None]):
+
+	...
