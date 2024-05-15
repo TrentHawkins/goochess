@@ -1,12 +1,12 @@
-from geometry import Colors, Squares, Moves
+import geometry
 
 
 class Piece:
 
 	turns: int
 
-	moves: set[Moves] = set()
-	capts: set[Moves] = moves
+	moves: set[geometry.Moves] = set()
+	capts: set[geometry.Moves] = moves
 
 
 	def __init_subclass__(cls) -> None:
@@ -19,15 +19,15 @@ class Piece:
 		self.turn: int = 0
 		self.moved: bool = False
 
-	def __init__(self, color: Colors,
+	def __init__(self, color: geometry.Colors,
 		board = None,
-		square: Squares | None = None,
+		square: geometry.Squares | None = None,
 	) -> None:
 		self.__pre_init__()
 
 		self.color = color
-		self.square = square
 		self.board = board
+		self.square = square
 
 		self.__post_init__()
 
@@ -46,11 +46,11 @@ class Piece:
 class Pawn(Piece):
 
 	moves = {
-		Moves.S,
+		geometry.Moves.S,
 	}
 	capts = {
-		Moves.SE,
-		Moves.SW,
+		geometry.Moves.SE,
+		geometry.Moves.SW,
 	}
 
 	def __post_init__(self) -> None:
@@ -73,20 +73,20 @@ class Ranged(Piece):
 class Rook(Ranged, Piece):
 
 	moves = {
-		Moves.N,
-		Moves.E,
-		Moves.S,
-		Moves.W,
+		geometry.Moves.N,
+		geometry.Moves.E,
+		geometry.Moves.S,
+		geometry.Moves.W,
 	}
 	capts = moves
 
 class Bishop(Ranged, Piece):
 
 	moves = {
-		Moves.NE,
-		Moves.SE,
-		Moves.SW,
-		Moves.NW,
+		geometry.Moves.NE,
+		geometry.Moves.SE,
+		geometry.Moves.SW,
+		geometry.Moves.NW,
 	}
 	capts = moves
 
@@ -94,14 +94,14 @@ class Bishop(Ranged, Piece):
 class Knight(Melee, Piece):
 
 	moves = {
-		Moves.NNE,
-		Moves.NEE,
-		Moves.SEE,
-		Moves.SSE,
-		Moves.SSW,
-		Moves.SWW,
-		Moves.NWW,
-		Moves.NNW,
+		geometry.Moves.NNE,
+		geometry.Moves.NEE,
+		geometry.Moves.SEE,
+		geometry.Moves.SSE,
+		geometry.Moves.SSW,
+		geometry.Moves.SWW,
+		geometry.Moves.NWW,
+		geometry.Moves.NNW,
 	}
 	capts = moves
 
