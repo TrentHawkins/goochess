@@ -3,10 +3,11 @@ import geometry
 
 class Piece:
 
-	turns: int
+	turns: int = 2 ** 32  # lifespan
 
-	moves: set[geometry.Moves] = set()
-	capts: set[geometry.Moves] = moves
+	specs: set[geometry.Move] = set()  # possible special moves
+	moves: set[geometry.Move] = set()  # possible moves
+	capts: set[geometry.Move] = set()  # possible captures
 
 
 	def __init_subclass__(cls) -> None:
@@ -17,11 +18,11 @@ class Piece:
 
 	def __pre_init__(self) -> None:
 		self.turn: int = 0
-		self.moved: bool = False
+		self.moved: int = 0
 
-	def __init__(self, color: geometry.Colors,
+	def __init__(self, color: geometry.Color,
 		board = None,
-		square: geometry.Squares | None = None,
+		square: geometry.Square | None = None,
 	) -> None:
 		self.__pre_init__()
 
@@ -45,12 +46,15 @@ class Piece:
 
 class Pawn(Piece):
 
-	moves = {
-		geometry.Moves.S,
+	specs = {
+		geometry.Move.S2,
+	}
+	moves = specs | {
+		geometry.Move.S,
 	}
 	capts = {
-		geometry.Moves.SE,
-		geometry.Moves.SW,
+		geometry.Move.SE,
+		geometry.Move.SW,
 	}
 
 	def __post_init__(self) -> None:
@@ -58,6 +62,15 @@ class Pawn(Piece):
 
 		self.moves = {move * self.color for move in self.moves}
 		self.capts = {capt * self.color for capt in self.capts}
+		self.specs = {spec * self.color for spec in self.specs}
+
+	#	Pawns start with the option to leap forward:
+		self.moves.update(self.specs)
+
+
+class Ghost(Pawn):
+
+	turns: int = 1
 
 
 class Melee(Piece):
@@ -73,20 +86,20 @@ class Ranged(Piece):
 class Rook(Ranged, Piece):
 
 	moves = {
-		geometry.Moves.N,
-		geometry.Moves.E,
-		geometry.Moves.S,
-		geometry.Moves.W,
+		geometry.Move.N,
+		geometry.Move.E,
+		geometry.Move.S,
+		geometry.Move.W,
 	}
 	capts = moves
 
 class Bishop(Ranged, Piece):
 
 	moves = {
-		geometry.Moves.NE,
-		geometry.Moves.SE,
-		geometry.Moves.SW,
-		geometry.Moves.NW,
+		geometry.Move.NE,
+		geometry.Move.SE,
+		geometry.Move.SW,
+		geometry.Move.NW,
 	}
 	capts = moves
 
@@ -94,14 +107,14 @@ class Bishop(Ranged, Piece):
 class Knight(Melee, Piece):
 
 	moves = {
-		geometry.Moves.NNE,
-		geometry.Moves.NEE,
-		geometry.Moves.SEE,
-		geometry.Moves.SSE,
-		geometry.Moves.SSW,
-		geometry.Moves.SWW,
-		geometry.Moves.NWW,
-		geometry.Moves.NNW,
+		geometry.Move.N2E,
+		geometry.Move.NE2,
+		geometry.Move.SE2,
+		geometry.Move.S2E,
+		geometry.Move.S2W,
+		geometry.Move.SW2,
+		geometry.Move.NW2,
+		geometry.Move.N2W,
 	}
 	capts = moves
 
@@ -114,4 +127,8 @@ class Queen(Rook, Bishop):
 
 class King(Melee, Queen):
 
-	...
+	specs = {
+		geometry.Move.E2,
+		geometry.Move.W2,
+	}
+	moves = specs
