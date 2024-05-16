@@ -2,7 +2,7 @@ from enum import Enum
 from typing import Self
 
 
-class AddGroup(int):
+class Group(int):
 
 	def __add__(self, other: int) -> Self:
 		return self.__class__(super().__add__(other))
@@ -11,13 +11,13 @@ class AddGroup(int):
 		return self.__class__(super().__sub__(other))
 
 
-class MulSemigroup(AddGroup):
+class Ring(Group):
 
 	def __mul__(self, other: int) -> Self:
 		return self.__class__(super().__mul__(other))
 
 
-class Move(MulSemigroup, Enum):
+class Move(Ring, Enum):
 
 	N = -0o10  # king queen rook pawn (white)
 	E = +0o01  # king queen rook
@@ -57,19 +57,19 @@ class Color(int, Enum):
 
 
 	def __repr__(self) -> str:
-		return self.name.lower()
+		return "⬛" if self + 1 else "⬜"
 
 
 class File(int, Enum):
 
-	A = 0o00  # A
-	B = 0o10  # B
-	C = 0o20  # C
-	D = 0o30  # D
-	E = 0o40  # E
-	F = 0o50  # F
-	G = 0o60  # G
-	H = 0o70  # H
+	A = 0o0  # A
+	B = 0o1  # B
+	C = 0o2  # C
+	D = 0o3  # D
+	E = 0o4  # E
+	F = 0o5  # F
+	G = 0o6  # G
+	H = 0o7  # H
 
 
 	def __repr__(self) -> str:
@@ -92,7 +92,7 @@ class Rank(int, Enum):
 		return str(0o10 - self.value)
 
 
-class Square(AddGroup, Enum):
+class Square(Group, Enum):
 
 #	A          B          C          D          E          F          G          H        :
 	A8 = 0o00; B8 = 0o01; C8 = 0o02; D8 = 0o03; E8 = 0o04; F8 = 0o05; G8 = 0o06; H8 = 0o07;  # 8
@@ -110,10 +110,6 @@ class Square(AddGroup, Enum):
 
 
 	@property
-	def diagonal(self) -> int:
-		return self.rank + self.file
-
-	@property
 	def rank(self) -> Rank:
 		return Rank(self >> 3)
 
@@ -123,4 +119,4 @@ class Square(AddGroup, Enum):
 
 	@property
 	def color(self) -> Color:
-		return Color(((self.diagonal & 1) << 1) - 1)
+		return Color(((self.rank + self.file & 1) << 1) - 1)
