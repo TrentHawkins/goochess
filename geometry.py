@@ -11,45 +11,6 @@ class Group(int):
 		return self.__class__(super().__sub__(other))
 
 
-class Ring(Group):
-
-	def __mul__(self, other: int) -> Self:
-		return self.__class__(super().__mul__(other))
-
-
-class Move(Ring, Enum):
-
-	N = -0o10  # king queen rook pawn (white)
-	E = +0o01  # king queen rook
-	S = +0o10  # king queen rook pawn (black)
-	W = -0o01  # king queen rook
-
-	N2 = N * 2  # pawn (leap)
-	S2 = S * 2  # pawn (leap)
-	E2 = E * 2  # king (castle)
-	W2 = W * 2  # king (castle)
-	W3 = W * 3  # rook (castling short (kingside))
-	E4 = E * 4  # rook (castling long (queenside))
-
-	NE = N + E  # queen bishop pawn (white capture)
-	SE = S + E  # queen bishop pawn (black capture)
-	NW = N + W  # queen bishop pawn (white capture)
-	SW = S + W  # queen bishop pawn (black capture)
-
-	N2E = N + NE  # knight
-	NE2 = NE + E  # knight
-	SE2 = SE + E  # knight
-	S2E = S + SE  # knight
-	S2W = S + SW  # knight
-	SW2 = SW + W  # knight
-	NW2 = NW + W  # knight
-	N2W = N + NW  # knight
-
-
-	def __repr__(self) -> str:
-		return self.name
-
-
 class Color(int, Enum):
 
 	WHITE = -1  # ⬜
@@ -120,3 +81,42 @@ class Square(Group, Enum):
 	@property
 	def color(self) -> Color:
 		return Color(((self.rank + self.file & 1) << 1) - 1)
+
+
+class Ring(Group):
+
+	def __mul__(self, other: int) -> Self:
+		return self.__class__(super().__mul__(other))
+
+
+class Move(Ring, Enum):
+
+	N = -0o10  # king queen rook pawn (white)
+	E = +0o01  # king queen rook
+	S = +0o10  # king queen rook pawn (black)
+	W = -0o01  # king queen rook
+
+	N2 = N * 2  # pawn (leap)
+	S2 = S * 2  # pawn (leap)
+	E2 = E * 2  # king (castle)
+	W2 = W * 2  # king (castle)
+	W3 = W * 3  # rook (castling short (kingside))
+	E4 = E * 4  # rook (castling long (queenside))
+
+	NE = N + E  # queen bishop pawn (white capture)
+	SE = S + E  # queen bishop pawn (black capture)
+	NW = N + W  # queen bishop pawn (white capture)
+	SW = S + W  # queen bishop pawn (black capture)
+
+	N2E = N + NE  # knight
+	NE2 = NE + E  # knight
+	SE2 = SE + E  # knight
+	S2E = S + SE  # knight
+	S2W = S + SW  # knight
+	SW2 = SW + W  # knight
+	NW2 = NW + W  # knight
+	N2W = N + NW  # knight
+
+
+	def __repr__(self) -> str:
+		return self.name
