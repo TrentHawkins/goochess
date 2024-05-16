@@ -50,7 +50,7 @@ class Move(MulSemigroup, Enum):
 		return self.name
 
 
-class Color(AddGroup, Enum):
+class Color(int, Enum):
 
 	WHITE = -1  # ⬜
 	BLACK = +1  # ⬛
@@ -58,6 +58,38 @@ class Color(AddGroup, Enum):
 
 	def __repr__(self) -> str:
 		return self.name.lower()
+
+
+class File(int, Enum):
+
+	A = 0o00  # A
+	B = 0o10  # B
+	C = 0o20  # C
+	D = 0o30  # D
+	E = 0o40  # E
+	F = 0o50  # F
+	G = 0o60  # G
+	H = 0o70  # H
+
+
+	def __repr__(self) -> str:
+		return self.name.lower()
+
+
+class Rank(int, Enum):
+
+	_8 = 0o0  # 8
+	_7 = 0o1  # 7
+	_6 = 0o2  # 6
+	_5 = 0o3  # 5
+	_4 = 0o4  # 4
+	_3 = 0o5  # 3
+	_2 = 0o6  # 2
+	_1 = 0o7  # 1
+
+
+	def __repr__(self) -> str:
+		return str(0o10 - self.value)
 
 
 class Square(AddGroup, Enum):
@@ -78,57 +110,17 @@ class Square(AddGroup, Enum):
 
 
 	@property
-	def _row(self) -> int:
-		return self >> 3
+	def diagonal(self) -> int:
+		return self.rank + self.file
 
 	@property
-	def _column(self) -> int:
-		return self - (self._row << 3)
+	def rank(self) -> Rank:
+		return Rank(self >> 3)
 
 	@property
-	def _diagonal(self) -> int:
-		return self._row + self._column
-
-	@property
-	def rank(self) -> str:
-		return str(0o10 - self._row)
-
-	@property
-	def file(self) -> str:
-		return chr(int(self._column) + 97)
+	def file(self) -> File:
+		return File(self - (self.rank << 3))
 
 	@property
 	def color(self) -> Color:
-		return Color(((self._diagonal & 1) << 1) - 1)
-
-
-class Rank(AddGroup, Enum):
-
-	A = 0o00  # A
-	B = 0o10  # B
-	C = 0o20  # C
-	D = 0o30  # D
-	E = 0o40  # E
-	F = 0o50  # F
-	G = 0o60  # G
-	H = 0o70  # H
-
-
-	def __repr__(self) -> str:
-		return self.name.lower()
-
-
-class File(AddGroup, Enum):
-
-	_8 = 0o0  # 8
-	_7 = 0o1  # 7
-	_6 = 0o2  # 6
-	_5 = 0o3  # 5
-	_4 = 0o4  # 4
-	_3 = 0o5  # 3
-	_2 = 0o6  # 2
-	_1 = 0o7  # 1
-
-
-	def __repr__(self) -> str:
-		return str(0o10 - self.value)
+		return Color(((self.diagonal & 1) << 1) - 1)
