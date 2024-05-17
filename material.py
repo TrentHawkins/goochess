@@ -1,13 +1,15 @@
-import geometry
+from typing import Callable, Container
+
+from chess import Color, Move, Square
 
 
 class Piece:
 
 	turns: int = 2 ** 32  # lifespan
 
-	specs: set[geometry.Move] = set()  # possible special moves
-	moves: set[geometry.Move] = set()  # possible moves
-	capts: set[geometry.Move] = set()  # possible captures
+	specs: set[Move] = set()  # possible special moves
+	moves: set[Move] = set()  # possible moves
+	capts: set[Move] = set()  # possible captures
 
 
 	def __init_subclass__(cls) -> None:
@@ -20,9 +22,9 @@ class Piece:
 		self.turn: int = 0
 		self.moved: int = 0
 
-	def __init__(self, color: geometry.Color,
+	def __init__(self, color: Color,
 		board = None,
-		square: geometry.Square | None = None,
+		square: Square | None = None,
 	) -> None:
 		self.__pre_init__()
 
@@ -35,7 +37,7 @@ class Piece:
 	def __post_init__(self) -> None:
 		...
 
-	def __bool__(self) -> bool:
+	def alive(self) -> bool:
 		return self.turn < self.turns
 
 
@@ -47,14 +49,14 @@ class Piece:
 class Pawn(Piece):
 
 	specs = {
-		geometry.Move.S2,
+		Move.S2,
 	}
 	moves = specs | {
-		geometry.Move.S,
+		Move.S,
 	}
 	capts = {
-		geometry.Move.SE,
-		geometry.Move.SW,
+		Move.SE,
+		Move.SW,
 	}
 
 	def __post_init__(self) -> None:
@@ -75,7 +77,33 @@ class Ghost(Pawn):
 
 class Melee(Piece):
 
-	...
+	def squares(self, condition: Callable[[Square], bool]) -> Container[Square]:
+		squares: set[Square] = set()
+
+		if self.square is not None:
+			for move in self.moves:
+				try:
+					squares.add(self.square + move)
+
+				except ValueError:
+					continue
+
+			for capt in self.capts:
+				try:
+					squares.add(self.square + capt)
+
+				except ValueError:
+					continue
+
+			if not self.moved:
+				for spec in self.specs:
+					try:
+						squares.add(self.square + spec)
+
+					except ValueError:
+						continue
+
+		return squares
 
 
 class Ranged(Piece):
@@ -86,20 +114,20 @@ class Ranged(Piece):
 class Rook(Ranged, Piece):
 
 	moves = {
-		geometry.Move.N,
-		geometry.Move.E,
-		geometry.Move.S,
-		geometry.Move.W,
+		Move.N,
+		Move.E,
+		Move.S,
+		Move.W,
 	}
 	capts = moves
 
 class Bishop(Ranged, Piece):
 
 	moves = {
-		geometry.Move.NE,
-		geometry.Move.SE,
-		geometry.Move.SW,
-		geometry.Move.NW,
+		Move.NE,
+		Move.SE,
+		Move.SW,
+		Move.NW,
 	}
 	capts = moves
 
@@ -107,14 +135,14 @@ class Bishop(Ranged, Piece):
 class Knight(Melee, Piece):
 
 	moves = {
-		geometry.Move.N2E,
-		geometry.Move.NE2,
-		geometry.Move.SE2,
-		geometry.Move.S2E,
-		geometry.Move.S2W,
-		geometry.Move.SW2,
-		geometry.Move.NW2,
-		geometry.Move.N2W,
+		Move.N2E,
+		Move.NE2,
+		Move.SE2,
+		Move.S2E,
+		Move.S2W,
+		Move.SW2,
+		Move.NW2,
+		Move.N2W,
 	}
 	capts = moves
 
@@ -128,7 +156,7 @@ class Queen(Rook, Bishop):
 class King(Melee, Queen):
 
 	specs = {
-		geometry.Move.E2,
-		geometry.Move.W2,
+		Move.E2,
+		Move.W2,
 	}
 	moves = specs

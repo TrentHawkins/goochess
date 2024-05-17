@@ -1,5 +1,8 @@
 from enum import Enum
+from re import findall
 from typing import Self
+
+from chess import Color
 
 
 class Group(int):
@@ -11,30 +14,20 @@ class Group(int):
 		return self.__class__(super().__sub__(other))
 
 
-class Color(int, Enum):
-
-	WHITE = -1  # ⬜
-	BLACK = +1  # ⬛
-
-
-	def __repr__(self) -> str:
-		return "⬛" if self + 1 else "⬜"
-
-
 class File(int, Enum):
 
-	A = 0o0  # A
-	B = 0o1  # B
-	C = 0o2  # C
-	D = 0o3  # D
-	E = 0o4  # E
-	F = 0o5  # F
-	G = 0o6  # G
-	H = 0o7  # H
+	A_ = 0o0  # A
+	B_ = 0o1  # B
+	C_ = 0o2  # C
+	D_ = 0o3  # D
+	E_ = 0o4  # E
+	F_ = 0o5  # F
+	G_ = 0o6  # G
+	H_ = 0o7  # H
 
 
 	def __repr__(self) -> str:
-		return self.name.lower()
+		return self.name.strip("_").lower()
 
 
 class Rank(int, Enum):
@@ -50,7 +43,7 @@ class Rank(int, Enum):
 
 
 	def __repr__(self) -> str:
-		return str(0o10 - self.value)
+		return self.name.strip("_").lower()
 
 
 class Square(Group, Enum):
@@ -119,4 +112,6 @@ class Move(Ring, Enum):
 
 
 	def __repr__(self) -> str:
-		return self.name
+		result = "".join(char * (int(num) if num else 1) for char, num in findall(r'([A-Za-z])([0-9]*)', self.name))
+
+		return result.replace("N", "▲").replace("E", "▶").replace("S", "▼").replace("W", "◀")

@@ -1,17 +1,4 @@
-from chess.geometry import (
-	Color,
-	Square,
-	Rank,
-	File,
-)
-from chess.material import (
-	Pawn,
-	Rook,
-	Bishop,
-	Queen,
-	King,
-	Knight,
-)
-from chess.game import (
-	Board,
-)
+from chess.base import Color
+from chess.geometry import File, Move, Rank, Square
+from chess.material import  Bishop, Ghost, King, Knight, Pawn, Piece, Queen, Rook
+from chess.game import Board
