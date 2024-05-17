@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from functools import total_ordering
 from typing import Container, TYPE_CHECKING
 
@@ -38,8 +40,8 @@ class Piece:
 		self.moved: int = 0
 
 	def __init__(self, color: chess.base.Color,
-		board: "chess.game.Board | None" = None,
-		square: "chess.geometry.Square | None" = None,
+		board: chess.game.Board | None = None,
+		square: chess.geometry.Square | None = None,
 	) -> None:
 		self.__pre_init__()
 
@@ -59,8 +61,8 @@ class Piece:
 
 
 	def add(self,
-		board: "chess.game.Board | None" = None,
-		square: "chess.geometry.Square | None" = None,
+		board: chess.game.Board | None = None,
+		square: chess.geometry.Square | None = None,
 	) -> None:
 		self.board = board
 		self.square = square
