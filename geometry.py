@@ -2,7 +2,7 @@ from enum import Enum
 from re import findall
 from typing import Self
 
-import base
+import chess.base
 
 
 class Group(int):
@@ -72,8 +72,8 @@ class Square(Group, Enum):
 		return File(self - (self.rank << 3))
 
 	@property
-	def color(self) -> base.Color:
-		return base.Color(((self.rank + self.file & 1) << 1) - 1)
+	def color(self) -> chess.base.Color:
+		return chess.base.Color(((self.rank + self.file & 1) << 1) - 1)
 
 
 class Ring(Group):

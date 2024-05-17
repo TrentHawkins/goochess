@@ -1,32 +1,45 @@
-from typing import Container
+from functools import total_ordering
+from typing import Container, TYPE_CHECKING
 
-import base
-import geometry
-import game
+import chess.base
+import chess.geometry
+
+if TYPE_CHECKING:
+	import chess.game
+
+
+@total_ordering
+class Life(int):
+
+	def __eq__(self, other: int | None) -> bool:
+		return other is None or self == other
+
+	def __le__(self, other: int | None) -> bool:
+		return other is None or self <= other
 
 
 class Piece:
 
 	turns: int = 2 ** 32  # lifespan
 
-	specs: set[geometry.Move] = set()  # possible special moves
-	moves: set[geometry.Move] = set()  # possible moves
-	capts: set[geometry.Move] = set()  # possible captures
+	specs: set[chess.geometry.Move] = set()  # possible special moves
+	moves: set[chess.geometry.Move] = set()  # possible moves
+	capts: set[chess.geometry.Move] = set()  # possible captures
 
 
 	def __init_subclass__(cls) -> None:
 		super().__init_subclass__()
 
-		cls.moves = cls.moves.union(*(base.moves for base in cls.__bases__))
-		cls.capts = cls.capts.union(*(base.capts for base in cls.__bases__))
+		cls.moves = cls.moves.union(*(chess.base.moves for chess.base in cls.__bases__))
+		cls.capts = cls.capts.union(*(chess.base.capts for chess.base in cls.__bases__))
 
 	def __pre_init__(self) -> None:
 		self.turn: int = 0
 		self.moved: int = 0
 
-	def __init__(self, color: base.Color,
-		board: game.Board | None = None,
-		square: geometry.Square | None = None,
+	def __init__(self, color: chess.base.Color,
+		board: "chess.game.Board | None" = None,
+		square: "chess.geometry.Square | None" = None,
 	) -> None:
 		self.__pre_init__()
 
@@ -46,8 +59,8 @@ class Piece:
 
 
 	def add(self,
-		board: game.Board | None = None,
-		square: geometry.Square | None = None,
+		board: "chess.game.Board | None" = None,
+		square: "chess.geometry.Square | None" = None,
 	) -> None:
 		self.board = board
 		self.square = square
@@ -60,14 +73,14 @@ class Piece:
 class Pawn(Piece):
 
 	specs = {
-		geometry.Move.S2,
+		chess.geometry.Move.S2,
 	}
 	moves = specs | {
-		geometry.Move.S,
+		chess.geometry.Move.S,
 	}
 	capts = {
-		geometry.Move.SE,
-		geometry.Move.SW,
+		chess.geometry.Move.SE,
+		chess.geometry.Move.SW,
 	}
 
 	def __post_init__(self) -> None:
@@ -88,8 +101,8 @@ class Ghost(Pawn):
 
 class Melee(Piece):
 
-	def squares(self, ) -> Container[geometry.Square]:
-		squares: set[geometry.Square] = set()
+	def squares(self, ) -> Container[chess.geometry.Square]:
+		squares: set[chess.geometry.Square] = set()
 
 		if self.square is not None:
 			for move in self.moves:
@@ -125,20 +138,20 @@ class Ranged(Piece):
 class Rook(Ranged, Piece):
 
 	moves = {
-		geometry.Move.N,
-		geometry.Move.E,
-		geometry.Move.S,
-		geometry.Move.W,
+		chess.geometry.Move.N,
+		chess.geometry.Move.E,
+		chess.geometry.Move.S,
+		chess.geometry.Move.W,
 	}
 	capts = moves
 
 class Bishop(Ranged, Piece):
 
 	moves = {
-		geometry.Move.NE,
-		geometry.Move.SE,
-		geometry.Move.SW,
-		geometry.Move.NW,
+		chess.geometry.Move.NE,
+		chess.geometry.Move.SE,
+		chess.geometry.Move.SW,
+		chess.geometry.Move.NW,
 	}
 	capts = moves
 
@@ -146,14 +159,14 @@ class Bishop(Ranged, Piece):
 class Knight(Melee, Piece):
 
 	moves = {
-		geometry.Move.N2E,
-		geometry.Move.NE2,
-		geometry.Move.SE2,
-		geometry.Move.S2E,
-		geometry.Move.S2W,
-		geometry.Move.SW2,
-		geometry.Move.NW2,
-		geometry.Move.N2W,
+		chess.geometry.Move.N2E,
+		chess.geometry.Move.NE2,
+		chess.geometry.Move.SE2,
+		chess.geometry.Move.S2E,
+		chess.geometry.Move.S2W,
+		chess.geometry.Move.SW2,
+		chess.geometry.Move.NW2,
+		chess.geometry.Move.N2W,
 	}
 	capts = moves
 
@@ -167,7 +180,7 @@ class Queen(Rook, Bishop):
 class King(Melee, Queen):
 
 	specs = {
-		geometry.Move.E2,
-		geometry.Move.W2,
+		chess.geometry.Move.E2,
+		chess.geometry.Move.W2,
 	}
 	moves = specs

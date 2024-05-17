@@ -1,13 +1,13 @@
-import geometry
-import material
+import chess.geometry
+import chess.material
 
 
-class Board(list[material.Piece | None]):
+class Board(list[chess.material.Piece | None]):
 
 	def __init__(self):
-		super().__init__(None for _ in geometry.Square)
+		super().__init__(None for _ in chess.geometry.Square)
 
-	def __setitem__(self, square: geometry.Square, new_piece: material.Piece | None) -> None:
+	def __setitem__(self, square: chess.geometry.Square, new_piece: chess.material.Piece | None) -> None:
 		old_piece = self[square]
 
 		if old_piece is not None:
@@ -21,5 +21,5 @@ class Board(list[material.Piece | None]):
 				square = square,
 			)
 
-	def __delitem__(self, square: geometry.Square) -> None:
+	def __delitem__(self, square: chess.geometry.Square) -> None:
 		self[square] = None
