@@ -80,7 +80,7 @@ class Pawn(Piece):
 		self.moves.update(self.specs)
 
 
-class Ghost(Pawn):
+class Ghost:
 
 	...
 
