@@ -1,7 +1,6 @@
 from __future__ import annotations
 
-from functools import total_ordering
-from typing import Container, TYPE_CHECKING
+from typing import Container, Self, TYPE_CHECKING
 
 import chess.base
 import chess.geometry
@@ -10,19 +9,7 @@ if TYPE_CHECKING:
 	import chess.game
 
 
-@total_ordering
-class Life(int):
-
-	def __eq__(self, other: int | None) -> bool:
-		return other is None or self == other
-
-	def __le__(self, other: int | None) -> bool:
-		return other is None or self <= other
-
-
 class Piece:
-
-	turns: int = 2 ** 32  # lifespan
 
 	specs: set[chess.geometry.Move] = set()  # possible special moves
 	moves: set[chess.geometry.Move] = set()  # possible moves
@@ -37,7 +24,7 @@ class Piece:
 
 	def __pre_init__(self) -> None:
 		self.turn: int = 0
-		self.moved: int = 0
+		self.moved: bool = False
 
 	def __init__(self, color: chess.base.Color,
 		board: chess.game.Board | None = None,
@@ -55,9 +42,6 @@ class Piece:
 
 	def __post_init__(self) -> None:
 		...
-
-	def alive(self) -> bool:
-		return self.turn < self.turns
 
 
 	def add(self,
@@ -98,7 +82,7 @@ class Pawn(Piece):
 
 class Ghost(Pawn):
 
-	turns: int = 1
+	...
 
 
 class Melee(Piece):
