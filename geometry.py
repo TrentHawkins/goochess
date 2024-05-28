@@ -1,17 +1,10 @@
+from __future__ import annotations
+
 from enum import Enum
 from re import findall
 from typing import Self
 
 import chess.base
-
-
-class Group(int):
-
-	def __add__(self, other: int) -> Self:
-		return self.__class__(super().__add__(other))
-
-	def __sub__(self, other: int) -> Self:
-		return self.__class__(super().__sub__(other))
 
 
 class File(int, Enum):
@@ -46,7 +39,7 @@ class Rank(int, Enum):
 		return self.name.strip("_").lower()
 
 
-class Square(Group, Enum):
+class Square(int, Enum):
 
 #	A          B          C          D          E          F          G          H        :
 	A8 = 0o00; B8 = 0o01; C8 = 0o02; D8 = 0o03; E8 = 0o04; F8 = 0o05; G8 = 0o06; H8 = 0o07;  # 8
@@ -62,6 +55,9 @@ class Square(Group, Enum):
 	def __repr__(self) -> str:
 		return self.name.lower()
 
+	def __add__(self, other: Difference) -> Square:
+		return Square(super().__add__(other))
+
 
 	@property
 	def rank(self) -> Rank:
@@ -76,13 +72,7 @@ class Square(Group, Enum):
 		return chess.base.Color(((self.rank + self.file & 1) << 1) - 1)
 
 
-class Ring(Group):
-
-	def __mul__(self, other: int) -> Self:
-		return self.__class__(super().__mul__(other))
-
-
-class Move(Ring, Enum):
+class Difference(int, Enum):
 
 	N = -0o10  # king queen rook pawn (white)
 	E = +0o01  # king queen rook
@@ -115,3 +105,40 @@ class Move(Ring, Enum):
 		result = "".join(char * (int(num) if num else 1) for char, num in findall(r'([A-Za-z])([0-9]*)', self.name))
 
 		return result.replace("N", "▲").replace("E", "▶").replace("S", "▼").replace("W", "◀")
+
+
+class Squares:
+
+	def __init__(self,
+		squares: set[Square] | None = None,
+		targets: set[Square] | None = None,
+	) -> None:
+		self.squares = squares or set()
+		self.targets = targets or set()
+
+	def __repr__(self) -> str:
+		return repr(self.squares | self.targets)
+
+	def __or__(self, other: Squares) -> Squares:
+		return Squares(
+			self.squares | other.squares,
+			self.targets | other.targets,
+		)
+
+	def __and__(self, other: Squares) -> Squares:
+		return Squares(
+			self.squares | other.squares,
+			self.targets | other.targets,
+		)
+
+	def __sub__(self, other: Squares) -> Squares:
+		return Squares(
+			self.squares - other.squares,
+			self.targets - other.targets,
+		)
+
+	def __xor__(self, other: Squares) -> Squares:
+		return Squares(
+			self.squares ^ other.squares,
+			self.targets ^ other.targets,
+		)

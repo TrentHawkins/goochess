@@ -11,9 +11,9 @@ if TYPE_CHECKING:
 
 class Piece:
 
-	specs: set[chess.geometry.Move] = set()  # possible special moves
-	moves: set[chess.geometry.Move] = set()  # possible moves
-	capts: set[chess.geometry.Move] = set()  # possible captures
+	specs: set[chess.geometry.Difference] = set()  # possible special moves
+	moves: set[chess.geometry.Difference] = set()  # possible moves
+	capts: set[chess.geometry.Difference] = set()  # possible captures
 
 
 	def __init_subclass__(cls) -> None:
@@ -51,7 +51,6 @@ class Piece:
 		self.board = board
 		self.square = square
 
-
 	def discard(self) -> None:
 		self.__init__(self.color)
 
@@ -59,25 +58,15 @@ class Piece:
 class Pawn(Piece):
 
 	specs = {
-		chess.geometry.Move.S2,
+		chess.geometry.Difference.S2,
 	}
 	moves = specs | {
-		chess.geometry.Move.S,
+		chess.geometry.Difference.S,
 	}
 	capts = {
-		chess.geometry.Move.SE,
-		chess.geometry.Move.SW,
+		chess.geometry.Difference.SE,
+		chess.geometry.Difference.SW,
 	}
-
-	def __post_init__(self) -> None:
-		super().__post_init__()
-
-		self.moves = {move * self.color for move in self.moves}
-		self.capts = {capt * self.color for capt in self.capts}
-		self.specs = {spec * self.color for spec in self.specs}
-
-	#	Pawns start with the option to leap forward:
-		self.moves.update(self.specs)
 
 
 class Ghost:
@@ -87,20 +76,20 @@ class Ghost:
 
 class Melee(Piece):
 
-	def squares(self, ) -> Container[chess.geometry.Square]:
-		squares: set[chess.geometry.Square] = set()
+	def squares(self) -> chess.geometry.Squares:
+		squares = chess.geometry.Squares()
 
 		if self.square is not None:
 			for move in self.moves:
 				try:
-					squares.add(self.square + move)
+					squares.squares.add(self.square + move)
 
 				except ValueError:
 					continue
 
 			for capt in self.capts:
 				try:
-					squares.add(self.square + capt)
+					squares.targets.add(self.square + capt)
 
 				except ValueError:
 					continue
@@ -108,7 +97,7 @@ class Melee(Piece):
 			if not self.moved:
 				for spec in self.specs:
 					try:
-						squares.add(self.square + spec)
+						squares.squares.add(self.square + spec)
 
 					except ValueError:
 						continue
@@ -124,20 +113,21 @@ class Ranged(Piece):
 class Rook(Ranged, Piece):
 
 	moves = {
-		chess.geometry.Move.N,
-		chess.geometry.Move.E,
-		chess.geometry.Move.S,
-		chess.geometry.Move.W,
+		chess.geometry.Difference.N,
+		chess.geometry.Difference.E,
+		chess.geometry.Difference.S,
+		chess.geometry.Difference.W,
 	}
 	capts = moves
+
 
 class Bishop(Ranged, Piece):
 
 	moves = {
-		chess.geometry.Move.NE,
-		chess.geometry.Move.SE,
-		chess.geometry.Move.SW,
-		chess.geometry.Move.NW,
+		chess.geometry.Difference.NE,
+		chess.geometry.Difference.SE,
+		chess.geometry.Difference.SW,
+		chess.geometry.Difference.NW,
 	}
 	capts = moves
 
@@ -145,17 +135,16 @@ class Bishop(Ranged, Piece):
 class Knight(Melee, Piece):
 
 	moves = {
-		chess.geometry.Move.N2E,
-		chess.geometry.Move.NE2,
-		chess.geometry.Move.SE2,
-		chess.geometry.Move.S2E,
-		chess.geometry.Move.S2W,
-		chess.geometry.Move.SW2,
-		chess.geometry.Move.NW2,
-		chess.geometry.Move.N2W,
+		chess.geometry.Difference.N2E,
+		chess.geometry.Difference.NE2,
+		chess.geometry.Difference.SE2,
+		chess.geometry.Difference.S2E,
+		chess.geometry.Difference.S2W,
+		chess.geometry.Difference.SW2,
+		chess.geometry.Difference.NW2,
+		chess.geometry.Difference.N2W,
 	}
 	capts = moves
-
 
 
 class Queen(Rook, Bishop):
@@ -166,7 +155,7 @@ class Queen(Rook, Bishop):
 class King(Melee, Queen):
 
 	specs = {
-		chess.geometry.Move.E2,
-		chess.geometry.Move.W2,
+		chess.geometry.Difference.E2,
+		chess.geometry.Difference.W2,
 	}
 	moves = specs
