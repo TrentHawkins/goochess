@@ -55,13 +55,8 @@ class Square(int, Enum):
 	def __repr__(self) -> str:
 		return self.name.lower()
 
-	def __add__(self, other: Square | int) -> Square | int:
-		result = super().__add__(other)
-
-		if not isinstance(other, Square):
-			result = Square(result)
-
-		return result
+	def __add__(self, other: int) -> Square:
+		return Square(super().__add__(other))
 
 	def __sub__(self, other: Square | int) -> Square | int:
 		result = super().__sub__(other)
@@ -96,13 +91,11 @@ class Difference(int, Enum):
 	S2 = S * 2  # pawn (leap)
 	E2 = E * 2  # king (castle)
 	W2 = W * 2  # king (castle)
-	W3 = W * 3  # rook (castling short (kingside))
-	E4 = E * 4  # rook (castling long (queenside))
 
 	NE = N + E  # queen bishop pawn (white capture)
 	SE = S + E  # queen bishop pawn (black capture)
-	NW = N + W  # queen bishop pawn (white capture)
 	SW = S + W  # queen bishop pawn (black capture)
+	NW = N + W  # queen bishop pawn (white capture)
 
 	N2E = N + NE  # knight
 	NE2 = NE + E  # knight
@@ -112,3 +105,30 @@ class Difference(int, Enum):
 	SW2 = SW + W  # knight
 	NW2 = NW + W  # knight
 	N2W = N + NW  # knight
+
+	def __repr__(self) -> str:
+		return {
+			self.N: "⭡",
+			self.E: "⭢",
+			self.S: "⭣",
+			self.W: "⭠",
+
+			self.N2: "⮅",
+			self.E2: "⮆",
+			self.S2: "⮇",
+			self.W2: "⮄",
+
+			self.NE: "⭧",
+			self.SE: "⭨",
+			self.SW: "⭩",
+			self.NW: "⭦",
+
+			self.N2E: "⮥",
+			self.NE2: "⮣",
+			self.SE2: "⮡",
+			self.S2E: "⮧",
+			self.S2W: "⮦",
+			self.SW2: "⮠",
+			self.NW2: "⮢",
+			self.N2W: "⮤",
+		}[self]

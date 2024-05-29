@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Container, Self, TYPE_CHECKING
+from typing import TYPE_CHECKING
 
 import chess.base
 import chess.geometry
@@ -17,7 +17,7 @@ class Piece:
 	def __init_subclass__(cls) -> None:
 		super().__init_subclass__()
 
-		cls.moves = cls.moves.union(*(chess.base.moves for chess.base in cls.__bases__))
+		cls.moves = cls.moves.union(*(base.moves for base in cls.__bases__))
 
 	def __pre_init__(self) -> None:
 		self.turn: int = 0
@@ -52,20 +52,30 @@ class Piece:
 		self.__init__(self.color)
 
 
+	def append(self, squares: set[chess.geometry.Square], move: chess.geometry.Difference):
+		if self.square is not None:
+			try:
+				squares.add(self.square + move)
+
+			except ValueError:
+				...
+
+
 class Pawn(Piece):
 
-	moves = chess.base.Set(
-		squares = {
-			chess.geometry.Difference.S,
-			chess.geometry.Difference.S2,
-		},
-		targets = {
-			chess.geometry.Difference.SE,
-			chess.geometry.Difference.SW,
-		},
-		special = {
-			chess.geometry.Difference.S2,
-		},
+	def __post_init__(self) -> None:
+		self.moves = chess.base.Set(
+			squares = {
+				chess.geometry.Difference(self.color * chess.geometry.Difference.S ),
+				chess.geometry.Difference(self.color * chess.geometry.Difference.S2),
+			},
+			targets = {
+				chess.geometry.Difference(self.color * chess.geometry.Difference.SE),
+				chess.geometry.Difference(self.color * chess.geometry.Difference.SW),
+			},
+			special = {
+				chess.geometry.Difference(self.color * chess.geometry.Difference.S2),
+			},
 	)
 
 
@@ -77,37 +87,37 @@ class Ghost:
 class Melee(Piece):
 
 	def squares(self) -> chess.base.Set[chess.geometry.Square]:
-		moves = chess.base.Set()
+		squares = chess.base.Set()
 
-		if self.square is not None:
-			for move in self.moves.squares:
-				try:
-					moves.squares.add(self.square + move)
+		for move in self.moves.squares:
+			self.append(squares.squares, move)
 
-				except ValueError:
-					continue
+		for capt in self.moves.targets:
+			self.append(squares.targets, capt)
 
-			for capt in self.moves.targets:
-				try:
-					moves.targets.add(self.square + capt)
+		if not self.moved:
+			for spec in self.moves.special:
+				self.append(squares.special, spec)
 
-				except ValueError:
-					continue
-
-			if not self.moved:
-				for spec in self.moves.special:
-					try:
-						moves.special.add(self.square + spec)
-
-					except ValueError:
-						continue
-
-		return moves
+		return squares
 
 
 class Ranged(Piece):
 
-	...
+	def squares(self) -> chess.base.Set[chess.geometry.Square]:
+		squares = chess.base.Set()
+
+		for move in self.moves.squares:
+			self.append(squares.squares, move)
+
+		for capt in self.moves.targets:
+			self.append(squares.targets, capt)
+
+		if not self.moved:
+			for spec in self.moves.special:
+				self.append(squares.special, spec)
+
+		return squares
 
 
 class Rook(Ranged, Piece):
