@@ -55,8 +55,21 @@ class Square(int, Enum):
 	def __repr__(self) -> str:
 		return self.name.lower()
 
-	def __add__(self, other: Difference) -> Square:
-		return Square(super().__add__(other))
+	def __add__(self, other: Square | int) -> Square | int:
+		result = super().__add__(other)
+
+		if not isinstance(other, Square):
+			result = Square(result)
+
+		return result
+
+	def __sub__(self, other: Square | int) -> Square | int:
+		result = super().__sub__(other)
+
+		if not isinstance(other, Square):
+			result = Square(result)
+
+		return result
 
 
 	@property
@@ -99,46 +112,3 @@ class Difference(int, Enum):
 	SW2 = SW + W  # knight
 	NW2 = NW + W  # knight
 	N2W = N + NW  # knight
-
-
-	def __repr__(self) -> str:
-		result = "".join(char * (int(num) if num else 1) for char, num in findall(r'([A-Za-z])([0-9]*)', self.name))
-
-		return result.replace("N", "▲").replace("E", "▶").replace("S", "▼").replace("W", "◀")
-
-
-class Squares:
-
-	def __init__(self,
-		squares: set[Square] | None = None,
-		targets: set[Square] | None = None,
-	) -> None:
-		self.squares = squares or set()
-		self.targets = targets or set()
-
-	def __repr__(self) -> str:
-		return repr(self.squares | self.targets)
-
-	def __or__(self, other: Squares) -> Squares:
-		return Squares(
-			self.squares | other.squares,
-			self.targets | other.targets,
-		)
-
-	def __and__(self, other: Squares) -> Squares:
-		return Squares(
-			self.squares | other.squares,
-			self.targets | other.targets,
-		)
-
-	def __sub__(self, other: Squares) -> Squares:
-		return Squares(
-			self.squares - other.squares,
-			self.targets - other.targets,
-		)
-
-	def __xor__(self, other: Squares) -> Squares:
-		return Squares(
-			self.squares ^ other.squares,
-			self.targets ^ other.targets,
-		)
