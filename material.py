@@ -76,26 +76,20 @@ class Ghost:
 
 class Melee(Piece):
 
-	def squares(self) -> tuple[
-		set[chess.geometry.Square],
-		set[chess.geometry.Square],
-		set[chess.geometry.Square],
-	]:
-		squares = set()
-		targets = set()
-		special = set()
+	def squares(self) -> chess.base.Set[chess.geometry.Square]:
+		moves = chess.base.Set()
 
 		if self.square is not None:
 			for move in self.moves.squares:
 				try:
-					squares.add(self.square + move)
+					moves.squares.add(self.square + move)
 
 				except ValueError:
 					continue
 
 			for capt in self.moves.targets:
 				try:
-					targets.add(self.square + capt)
+					moves.targets.add(self.square + capt)
 
 				except ValueError:
 					continue
@@ -103,16 +97,12 @@ class Melee(Piece):
 			if not self.moved:
 				for spec in self.moves.special:
 					try:
-						special.add(self.square + spec)
+						moves.special.add(self.square + spec)
 
 					except ValueError:
 						continue
 
-		return (
-			squares,
-			targets,
-			special,
-		)
+		return moves
 
 
 class Ranged(Piece):
