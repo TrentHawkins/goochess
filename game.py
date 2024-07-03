@@ -7,22 +7,19 @@ class Board(list[chess.material.Piece | None]):
 	def __init__(self) -> None:
 		super().__init__(None for _ in chess.geometry.Square)
 
-	def __getitem__(self, square: chess.geometry.Square) -> chess.material.Piece | None:
-		return super().__getitem__(square)
-
 	def __setitem__(self, square: chess.geometry.Square, piece: chess.material.Piece | None) -> None:
+		if piece is not None:
+			if piece.board is not self:
+				return
+
+			piece.square = square
+
 		_piece = self[square]
 
 		if _piece is not None:
-			_piece.discard()
+			_piece.square = None
 
 		super().__setitem__(square, piece)
-
-		if piece is not None:
-			piece.add(
-				board = self,
-				square = square,
-			)
 
 	def __delitem__(self, square: chess.geometry.Square) -> None:
 		self[square] = None

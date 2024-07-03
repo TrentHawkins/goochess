@@ -43,7 +43,7 @@ class Set[T](set[T]):
 
 	def difference(self, *args: Set[T]) -> Set[T]:
 		return Set(
-			squares = self.squares.intersection(*(arg.squares for arg in args)),
-			targets = self.targets.intersection(*(arg.targets for arg in args)),
-			special = self.special.intersection(*(arg.special for arg in args)),
+			squares = self.squares.difference(*(arg.squares for arg in args)),
+			targets = self.targets.difference(*(arg.targets for arg in args)),
+			special = self.special.difference(*(arg.special for arg in args)),
 		)

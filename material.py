@@ -39,19 +39,6 @@ class Piece:
 		...
 
 
-	def add(self,
-		board: chess.game.Board | None = None,
-		square: chess.geometry.Square | None = None,
-	) -> None:
-		self.__init__(self.color,
-			board = board,
-			square = square,
-		)
-
-	def discard(self) -> None:
-		self.__init__(self.color)
-
-
 	def append(self, squares: set[chess.geometry.Square], move: chess.geometry.Difference):
 		if self.square is not None:
 			try:
