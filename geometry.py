@@ -87,8 +87,8 @@ class Difference(int, Enum):
 	S = +0o10  # king queen rook pawn (black)
 	W = -0o01  # king queen rook
 
-	N2 = N * 2  # pawn (leap)
-	S2 = S * 2  # pawn (leap)
+	N2 = N * 2  # pawn (white leap)
+	S2 = S * 2  # pawn (black leap)
 	E2 = E * 2  # king (castle)
 	W2 = W * 2  # king (castle)
 
@@ -108,27 +108,27 @@ class Difference(int, Enum):
 
 	def __repr__(self) -> str:
 		return {
-			self.N: "⭡",
-			self.E: "⭢",
-			self.S: "⭣",
-			self.W: "⭠",
+			self.N: "▲",
+			self.E: "▶",
+			self.S: "▼",
+			self.W: "◀",
 
-			self.N2: "⮅",
-			self.E2: "⮆",
-			self.S2: "⮇",
-			self.W2: "⮄",
+			self.N2: "▲▲",
+			self.E2: "▶▶",
+			self.S2: "▼▼",
+			self.W2: "◀◀",
 
-			self.NE: "⭧",
-			self.SE: "⭨",
-			self.SW: "⭩",
-			self.NW: "⭦",
+			self.NE: "▲▶",
+			self.SE: "▼▶",
+			self.SW: "▼◀",
+			self.NW: "▲◀",
 
-			self.N2E: "⮥",
-			self.NE2: "⮣",
-			self.SE2: "⮡",
-			self.S2E: "⮧",
-			self.S2W: "⮦",
-			self.SW2: "⮠",
-			self.NW2: "⮢",
-			self.N2W: "⮤",
+			self.N2E: "▲▲▶",
+			self.NE2: "▲▶▶",
+			self.SE2: "▼▶▶",
+			self.S2E: "▼▼▶",
+			self.S2W: "▼▼◀",
+			self.SW2: "▼◀◀",
+			self.NW2: "▲◀◀",
+			self.N2W: "▲▲◀",
 		}[self]
