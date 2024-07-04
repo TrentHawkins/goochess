@@ -78,14 +78,22 @@ class Melee(Piece):
 		squares = set()
 
 		if self.square is not None:
-			for move in self.moves:
-				square = self.square + move
-				squares.add(square)
+			for move in self.moves | self.capts:
+				try:
+					square = self.square + move
+					squares.add(square)
+
+				except ValueError:
+					continue
 
 			if not self.moved:
 				for spec in self.specs:
-					square = self.square + spec
-					squares.add(square)
+					try:
+						square = self.square + spec
+						squares.add(square)
+
+					except ValueError:
+						continue
 
 		return squares
 
@@ -96,23 +104,27 @@ class Ranged(Piece):
 		squares = set()
 
 		if self.square is not None:
-			for move in self.moves:
-				square = self.square
-
-				while square == self.square or self.board[square] is not None:
+			for move in self.moves | self.capts:
+				while True:
 					try:
 						square = self.square + move
 						squares.add(square)
 
 					except ValueError:
-						break
+						continue
 
 			if not self.moved:
 				for spec in self.specs:
-					square = self.square + spec
-					squares.add(square)
+					while True:
+						try:
+							square = self.square + spec
+							squares.add(square)
+
+						except ValueError:
+							continue
 
 		return squares
+
 
 
 class Rook(Ranged, Piece):
