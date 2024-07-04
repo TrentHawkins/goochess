@@ -9,20 +9,18 @@ class Board(list[chess.material.Piece | None]):
 
 	def __setitem__(self, square: chess.geometry.Square, piece: chess.material.Piece | None) -> None:
 		if piece is not None:
-			if piece.board is not self:
-				return
-
+			assert piece.board == self
 			piece.square = square
 
-		_piece = self[square]
-
-		if _piece is not None:
-			_piece.square = None
-
+		del self[square]
 		super().__setitem__(square, piece)
 
 	def __delitem__(self, square: chess.geometry.Square) -> None:
-		self[square] = None
+		piece = self[square]
+
+		if piece is not None:
+			piece.square = None
+			super().__delitem__(square)
 
 
 class Move:

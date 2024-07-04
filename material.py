@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import TYPE_CHECKING
+from typing import Self, TYPE_CHECKING
 
 import chess.base
 import chess.geometry
@@ -11,7 +11,9 @@ if TYPE_CHECKING:
 
 class Piece:
 
-	moves: chess.base.Set[chess.geometry.Difference] = chess.base.Set()
+	moves: set[chess.geometry.Difference] = set()
+	capts: set[chess.geometry.Difference] = set()
+	specs: set[chess.geometry.Difference] = set()
 
 
 	def __init_subclass__(cls) -> None:
@@ -19,24 +21,26 @@ class Piece:
 
 		cls.moves = cls.moves.union(*(base.moves for base in cls.__bases__))
 
-	def __pre_init__(self) -> None:
-		self.turn: int = 0
-		self.moved: bool = False
-
-	def __init__(self, color: chess.base.Color,
-		board: chess.game.Board | None = None,
-		square: chess.geometry.Square | None = None,
+	def __init__(self,
+		color: chess.base.Color,
+		board: chess.game.Board, square: chess.geometry.Square | None = None,
 	) -> None:
-		self.__pre_init__()
-
 		self.color = color
 		self.board = board
+
 		self.square = square
+
+		self.turn: int = 0
+		self.moved: bool = False
 
 		self.__post_init__()
 
 	def __post_init__(self) -> None:
 		...
+
+	def __call__(self, square: chess.geometry.Square) -> None:
+		if self.square is not None:
+			self.board[square] = self.board.pop(self.square)
 
 
 	def append(self, squares: set[chess.geometry.Square], move: chess.geometry.Difference):
@@ -50,101 +54,98 @@ class Piece:
 
 class Pawn(Piece):
 
-	def __post_init__(self) -> None:
-		self.moves = chess.base.Set(
-			squares = {
-				chess.geometry.Difference(self.color * chess.geometry.Difference.S ),
-				chess.geometry.Difference(self.color * chess.geometry.Difference.S2),
-			},
-			targets = {
-				chess.geometry.Difference(self.color * chess.geometry.Difference.SE),
-				chess.geometry.Difference(self.color * chess.geometry.Difference.SW),
-			},
-			special = {
-				chess.geometry.Difference(self.color * chess.geometry.Difference.S2),
-			},
-	)
+	moves = {
+		chess.geometry.Difference.S ,
+	}
+	capts = {
+		chess.geometry.Difference.SE,
+		chess.geometry.Difference.SW,
+	}
+	specs = {
+		chess.geometry.Difference.S2,
+	}
 
 
-class Ghost:
+class Ghost(Piece):
 
 	...
 
 
 class Melee(Piece):
 
-	def squares(self) -> chess.base.Set[chess.geometry.Square]:
-		squares = chess.base.Set()
+	@property
+	def squares(self) -> set[chess.geometry.Square]:
+		squares = set()
 
-		for move in self.moves.squares:
-			self.append(squares.squares, move)
+		if self.square is not None:
+			for move in self.moves:
+				square = self.square + move
+				squares.add(square)
 
-		for capt in self.moves.targets:
-			self.append(squares.targets, capt)
-
-		if not self.moved:
-			for spec in self.moves.special:
-				self.append(squares.special, spec)
+			if not self.moved:
+				for spec in self.specs:
+					square = self.square + spec
+					squares.add(square)
 
 		return squares
 
 
 class Ranged(Piece):
 
-	def squares(self) -> chess.base.Set[chess.geometry.Square]:
-		squares = chess.base.Set()
+	def squares(self) -> set[chess.geometry.Square]:
+		squares = set()
 
-		for move in self.moves.squares:
-			self.append(squares.squares, move)
+		if self.square is not None:
+			for move in self.moves:
+				square = self.square
 
-		for capt in self.moves.targets:
-			self.append(squares.targets, capt)
+				while square == self.square or self.board[square] is not None:
+					try:
+						square = self.square + move
+						squares.add(square)
 
-		if not self.moved:
-			for spec in self.moves.special:
-				self.append(squares.special, spec)
+					except ValueError:
+						break
+
+			if not self.moved:
+				for spec in self.specs:
+					square = self.square + spec
+					squares.add(square)
 
 		return squares
 
 
 class Rook(Ranged, Piece):
 
-	moves: chess.base.Set[chess.geometry.Difference] = chess.base.Set(
-		squares = {
-			chess.geometry.Difference.N,
-			chess.geometry.Difference.E,
-			chess.geometry.Difference.S,
-			chess.geometry.Difference.W,
-		}
-	)
+	moves: set[chess.geometry.Difference] = {
+		chess.geometry.Difference.N,
+		chess.geometry.Difference.E,
+		chess.geometry.Difference.S,
+		chess.geometry.Difference.W,
+	}
 
 
 class Bishop(Ranged, Piece):
 
-	moves: chess.base.Set[chess.geometry.Difference] = chess.base.Set(
-		squares = {
-			chess.geometry.Difference.NE,
-			chess.geometry.Difference.SE,
-			chess.geometry.Difference.SW,
-			chess.geometry.Difference.NW,
-		}
-	)
-
+	moves: set[chess.geometry.Difference] = {
+		chess.geometry.Difference.NE,
+		chess.geometry.Difference.SE,
+		chess.geometry.Difference.SW,
+		chess.geometry.Difference.NW,
+	}
 
 class Knight(Melee, Piece):
 
-	moves: chess.base.Set[chess.geometry.Difference] = chess.base.Set(
-		squares = {
-			chess.geometry.Difference.N2E,
-			chess.geometry.Difference.NE2,
-			chess.geometry.Difference.SE2,
-			chess.geometry.Difference.S2E,
-			chess.geometry.Difference.S2W,
-			chess.geometry.Difference.SW2,
-			chess.geometry.Difference.NW2,
-			chess.geometry.Difference.N2W,
-		}
-	)
+	moves: set[chess.geometry.Difference] = {
+		chess.geometry.Difference.N2E,
+		chess.geometry.Difference.NE2,
+		chess.geometry.Difference.SE2,
+		chess.geometry.Difference.S2E,
+		chess.geometry.Difference.S2W,
+		chess.geometry.Difference.SW2,
+		chess.geometry.Difference.NW2,
+		chess.geometry.Difference.N2W,
+	}
 
 
 class Queen(Rook, Bishop):
@@ -154,9 +155,7 @@ class Queen(Rook, Bishop):
 
 class King(Melee, Queen):
 
-	moves: chess.base.Set[chess.geometry.Difference] = chess.base.Set(
-		special = {
-			chess.geometry.Difference.E2,
-			chess.geometry.Difference.W2,
-		}
-	)
+	specs: set[chess.geometry.Difference] = {
+		chess.geometry.Difference.E2,
+		chess.geometry.Difference.W2,
+	}
