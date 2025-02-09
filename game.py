@@ -1,3 +1,8 @@
+from __future__ import annotations
+
+
+import os
+
 import chess.base
 import chess.geometry
 import chess.material
@@ -7,6 +12,17 @@ class Board(list[chess.material.Piece | None]):
 
 	def __init__(self):
 		super().__init__(None for _ in chess.geometry.Square)
+
+	def __repr__(self) -> str:
+		representation = ""
+
+		for square in chess.geometry.Square:
+			if not square % 8:
+				representation += os.linesep
+
+			representation += repr(square.color)
+
+		return representation + os.linesep
 
 	def __setitem__(self, square: chess.geometry.Square, piece: chess.material.Piece | None):
 		if piece is not None:
