@@ -1,19 +1,15 @@
 from __future__ import annotations
 
-from typing import Self, TYPE_CHECKING
 
-import chess.base
-import chess.geometry
-
-if TYPE_CHECKING:
-	import chess.game
+from chess.base import Color
+from chess.geometry import Square, Difference
 
 
 class Piece:
 
-	moves: set[chess.geometry.Difference] = set()
-	capts: set[chess.geometry.Difference] = set()
-	specs: set[chess.geometry.Difference] = set()
+	moves: set[Difference] = set()
+	capts: set[Difference] = set()
+	specs: set[Difference] = set()
 
 
 	def __init_subclass__(cls):
@@ -21,8 +17,8 @@ class Piece:
 
 		cls.moves = cls.moves.union(*(base.moves for base in cls.__bases__))
 
-	def __init__(self, color: chess.base.Color,
-		square: chess.geometry.Square | None = None,
+	def __init__(self, color: Color,
+		square: Square | None = None,
 	):
 		self.color = color
 		self.square = square
@@ -31,7 +27,7 @@ class Piece:
 		self.moved: bool = False
 
 
-	def append(self, squares: set[chess.geometry.Square], move: chess.geometry.Difference):
+	def append(self, squares: set[Square], move: Difference):
 		if self.square is not None:
 			try:
 				squares.add(self.square + move)
@@ -43,14 +39,14 @@ class Piece:
 class Pawn(Piece):
 
 	moves = {
-		chess.geometry.Difference.S ,
+		Difference.S ,
 	}
 	capts = {
-		chess.geometry.Difference.SE,
-		chess.geometry.Difference.SW,
+		Difference.SE,
+		Difference.SW,
 	}
 	specs = {
-		chess.geometry.Difference.S2,
+		Difference.S2,
 	}
 
 
@@ -62,7 +58,7 @@ class Ghost(Piece):
 class Melee(Piece):
 
 	@property
-	def squares(self) -> set[chess.geometry.Square]:
+	def squares(self) -> set[Square]:
 		squares = set()
 
 		if self.square is not None:
@@ -88,7 +84,7 @@ class Melee(Piece):
 
 class Ranged(Piece):
 
-	def squares(self) -> set[chess.geometry.Square]:
+	def squares(self) -> set[Square]:
 		squares = set()
 
 		if self.square is not None:
@@ -117,34 +113,34 @@ class Ranged(Piece):
 
 class Rook(Ranged, Piece):
 
-	moves: set[chess.geometry.Difference] = {
-		chess.geometry.Difference.N,
-		chess.geometry.Difference.E,
-		chess.geometry.Difference.S,
-		chess.geometry.Difference.W,
+	moves: set[Difference] = {
+		Difference.N,
+		Difference.E,
+		Difference.S,
+		Difference.W,
 	}
 
 
 class Bishop(Ranged, Piece):
 
-	moves: set[chess.geometry.Difference] = {
-		chess.geometry.Difference.NE,
-		chess.geometry.Difference.SE,
-		chess.geometry.Difference.SW,
-		chess.geometry.Difference.NW,
+	moves: set[Difference] = {
+		Difference.NE,
+		Difference.SE,
+		Difference.SW,
+		Difference.NW,
 	}
 
 class Knight(Melee, Piece):
 
-	moves: set[chess.geometry.Difference] = {
-		chess.geometry.Difference.N2E,
-		chess.geometry.Difference.NE2,
-		chess.geometry.Difference.SE2,
-		chess.geometry.Difference.S2E,
-		chess.geometry.Difference.S2W,
-		chess.geometry.Difference.SW2,
-		chess.geometry.Difference.NW2,
-		chess.geometry.Difference.N2W,
+	moves: set[Difference] = {
+		Difference.N2E,
+		Difference.NE2,
+		Difference.SE2,
+		Difference.S2E,
+		Difference.S2W,
+		Difference.SW2,
+		Difference.NW2,
+		Difference.N2W,
 	}
 
 
@@ -155,7 +151,7 @@ class Queen(Rook, Bishop):
 
 class King(Melee, Queen):
 
-	specs: set[chess.geometry.Difference] = {
-		chess.geometry.Difference.E2,
-		chess.geometry.Difference.W2,
+	specs: set[Difference] = {
+		Difference.E2,
+		Difference.W2,
 	}

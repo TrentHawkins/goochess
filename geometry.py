@@ -3,7 +3,7 @@ from __future__ import annotations
 
 from enum import IntEnum
 
-import chess.base
+from chess.base import Color
 
 
 class File(IntEnum):
@@ -80,8 +80,8 @@ class Square(IntEnum):
 		return File(self - (self.rank << 3))
 
 	@property
-	def color(self) -> chess.base.Color:
-		return chess.base.Color(((self.rank + self.file & 1) << 1) - 1)
+	def color(self) -> Color:
+		return Color(((self.rank + self.file & 1) << 1) - 1)
 
 
 class Difference(IntEnum):

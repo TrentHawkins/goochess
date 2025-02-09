@@ -3,20 +3,20 @@ from __future__ import annotations
 
 import os
 
-import chess.base
-import chess.geometry
-import chess.material
+from chess.base import Color
+from chess.geometry import Square
+from chess.material import Piece, Pawn, Rook, Bishop, Knight, Queen, King
 
 
-class Board(list[chess.material.Piece | None]):
+class Board(list[Piece | None]):
 
 	def __init__(self):
-		super().__init__(None for _ in chess.geometry.Square)
+		super().__init__(None for _ in Square)
 
 	def __repr__(self) -> str:
 		representation = ""
 
-		for square in chess.geometry.Square:
+		for square in Square:
 			if not square % 8:
 				representation += os.linesep
 
@@ -24,15 +24,15 @@ class Board(list[chess.material.Piece | None]):
 
 		return representation + os.linesep
 
-	def __setitem__(self, square: chess.geometry.Square, piece: chess.material.Piece | None):
+	def __setitem__(self, square: Square, piece: Piece | None):
 		if piece is not None:
 			piece.square = square
 
-		del self[square]
+		del self[square]  # capture the existing piece if any
 
 		super().__setitem__(square, piece)
 
-	def __delitem__(self, square: chess.geometry.Square):
+	def __delitem__(self, square: Square):
 		piece = self[square]
 
 		if piece is not None:
@@ -43,17 +43,18 @@ class Board(list[chess.material.Piece | None]):
 
 class Move:
 
-	def __init__(self, piece: chess.material.Piece, square: chess.geometry.Square):
+	def __init__(self, piece: Piece, square: Square):
 		self.piece = piece
-
 		self.source = self.piece.square
 		self.target = square
 
 
-class Side(set[chess.material.Piece]):
+class Side(set[Piece]):
 
 	def __init__(self, *args):
 		super().__init__(*args)
+
+		self.captured: set[Piece] = set()
 
 
 class Position(Board):
@@ -61,44 +62,39 @@ class Position(Board):
 	def __init__(self):
 		super().__init__()
 
-		self.board = Board()
+		self[Square.A8] = Rook  (Color.BLACK)
+		self[Square.B8] = Knight(Color.BLACK)
+		self[Square.C8] = Bishop(Color.BLACK)
+		self[Square.D8] = Queen (Color.BLACK)
+		self[Square.E8] = King  (Color.BLACK)
+		self[Square.F8] = Bishop(Color.BLACK)
+		self[Square.G8] = Knight(Color.WHITE)
+		self[Square.H8] = Rook  (Color.BLACK)
+		self[Square.A7] = Pawn  (Color.BLACK)
+		self[Square.B7] = Pawn  (Color.BLACK)
+		self[Square.C7] = Pawn  (Color.BLACK)
+		self[Square.D7] = Pawn  (Color.BLACK)
+		self[Square.E7] = Pawn  (Color.BLACK)
+		self[Square.F7] = Pawn  (Color.BLACK)
+		self[Square.G7] = Pawn  (Color.BLACK)
+		self[Square.H7] = Pawn  (Color.BLACK)
+		self[Square.A2] = Pawn  (Color.WHITE)
+		self[Square.B2] = Pawn  (Color.WHITE)
+		self[Square.C2] = Pawn  (Color.WHITE)
+		self[Square.D2] = Pawn  (Color.WHITE)
+		self[Square.E2] = Pawn  (Color.WHITE)
+		self[Square.F2] = Pawn  (Color.WHITE)
+		self[Square.G2] = Pawn  (Color.WHITE)
+		self[Square.H2] = Pawn  (Color.WHITE)
+		self[Square.A1] = Rook  (Color.WHITE)
+		self[Square.B1] = Knight(Color.WHITE)
+		self[Square.C1] = Bishop(Color.WHITE)
+		self[Square.D1] = Queen (Color.WHITE)
+		self[Square.E1] = King  (Color.WHITE)
+		self[Square.F1] = Bishop(Color.WHITE)
+		self[Square.G1] = Knight(Color.WHITE)
+		self[Square.H1] = Rook  (Color.WHITE)
 
-		self.board[chess.geometry.Square.A8] = chess.material.Rook  (chess.base.Color.BLACK)
-		self.board[chess.geometry.Square.B8] = chess.material.Knight(chess.base.Color.BLACK)
-		self.board[chess.geometry.Square.C8] = chess.material.Bishop(chess.base.Color.BLACK)
-		self.board[chess.geometry.Square.D8] = chess.material.Queen (chess.base.Color.BLACK)
-		self.board[chess.geometry.Square.E8] = chess.material.King  (chess.base.Color.BLACK)
-		self.board[chess.geometry.Square.F8] = chess.material.Bishop(chess.base.Color.BLACK)
-		self.board[chess.geometry.Square.G8] = chess.material.Knight(chess.base.Color.WHITE)
-		self.board[chess.geometry.Square.H8] = chess.material.Rook  (chess.base.Color.BLACK)
-
-		self.board[chess.geometry.Square.A7] = chess.material.Pawn  (chess.base.Color.BLACK)
-		self.board[chess.geometry.Square.B7] = chess.material.Pawn  (chess.base.Color.BLACK)
-		self.board[chess.geometry.Square.C7] = chess.material.Pawn  (chess.base.Color.BLACK)
-		self.board[chess.geometry.Square.D7] = chess.material.Pawn  (chess.base.Color.BLACK)
-		self.board[chess.geometry.Square.E7] = chess.material.Pawn  (chess.base.Color.BLACK)
-		self.board[chess.geometry.Square.F7] = chess.material.Pawn  (chess.base.Color.BLACK)
-		self.board[chess.geometry.Square.G7] = chess.material.Pawn  (chess.base.Color.BLACK)
-		self.board[chess.geometry.Square.H7] = chess.material.Pawn  (chess.base.Color.BLACK)
-
-		self.board[chess.geometry.Square.A2] = chess.material.Pawn  (chess.base.Color.WHITE)
-		self.board[chess.geometry.Square.B2] = chess.material.Pawn  (chess.base.Color.WHITE)
-		self.board[chess.geometry.Square.C2] = chess.material.Pawn  (chess.base.Color.WHITE)
-		self.board[chess.geometry.Square.D2] = chess.material.Pawn  (chess.base.Color.WHITE)
-		self.board[chess.geometry.Square.E2] = chess.material.Pawn  (chess.base.Color.WHITE)
-		self.board[chess.geometry.Square.F2] = chess.material.Pawn  (chess.base.Color.WHITE)
-		self.board[chess.geometry.Square.G2] = chess.material.Pawn  (chess.base.Color.WHITE)
-		self.board[chess.geometry.Square.H2] = chess.material.Pawn  (chess.base.Color.WHITE)
-
-		self.board[chess.geometry.Square.A1] = chess.material.Rook  (chess.base.Color.WHITE)
-		self.board[chess.geometry.Square.B1] = chess.material.Knight(chess.base.Color.WHITE)
-		self.board[chess.geometry.Square.C1] = chess.material.Bishop(chess.base.Color.WHITE)
-		self.board[chess.geometry.Square.D1] = chess.material.Queen (chess.base.Color.WHITE)
-		self.board[chess.geometry.Square.E1] = chess.material.King  (chess.base.Color.WHITE)
-		self.board[chess.geometry.Square.F1] = chess.material.Bishop(chess.base.Color.WHITE)
-		self.board[chess.geometry.Square.G1] = chess.material.Knight(chess.base.Color.WHITE)
-		self.board[chess.geometry.Square.H1] = chess.material.Rook  (chess.base.Color.WHITE)
-
-		self.black = Side(piece for piece in self.board if piece is not None and piece.color == chess.base.Color.BLACK)
-		self.white = Side(piece for piece in self.board if piece is not None and piece.color == chess.base.Color.WHITE)
+		self.black = Side(piece for piece in self if piece is not None and piece.color == Color.BLACK)
+		self.white = Side(piece for piece in self if piece is not None and piece.color == Color.WHITE)
 
