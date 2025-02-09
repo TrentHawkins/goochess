@@ -71,7 +71,7 @@ class Position(Board):
 		self[Square.D8] = Queen (Color.BLACK)
 		self[Square.E8] = King  (Color.BLACK)
 		self[Square.F8] = Bishop(Color.BLACK)
-		self[Square.G8] = Knight(Color.WHITE)
+		self[Square.G8] = Knight(Color.BLACK)
 		self[Square.H8] = Rook  (Color.BLACK)
 		self[Square.A7] = Pawn  (Color.BLACK)
 		self[Square.B7] = Pawn  (Color.BLACK)
