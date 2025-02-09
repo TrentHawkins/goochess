@@ -40,7 +40,7 @@ class Rank(IntEnum):
 
 class Square(IntEnum):
 
-#	A          B          C          D          E          F          G          H        :
+#	A        : B        : C        : D        : E        : F        : G        : H        :
 	A8 = 0o00; B8 = 0o01; C8 = 0o02; D8 = 0o03; E8 = 0o04; F8 = 0o05; G8 = 0o06; H8 = 0o07;  # 8
 	A7 = 0o10; B7 = 0o11; C7 = 0o12; D7 = 0o13; E7 = 0o14; F7 = 0o15; G7 = 0o16; H7 = 0o17;  # 7
 	A6 = 0o20; B6 = 0o21; C6 = 0o22; D6 = 0o23; E6 = 0o24; F6 = 0o25; G6 = 0o26; H6 = 0o27;  # 6
@@ -60,6 +60,7 @@ class Square(IntEnum):
 	def __sub__(self, other: Square | Difference) -> Square | Difference:
 		if not isinstance(other, Square):
 			return Square(super().__sub__(other))
+
 		return Difference(super().__sub__(other))
 
 
@@ -73,25 +74,25 @@ class Square(IntEnum):
 
 	@property
 	def color(self) -> chess.base.Color:
-		return chess.base.Color(((self.rank + self.file & 1) << 1) - 1)
+		return chess.base.Color((((self.rank + self.file) & 1) << 1) - 1)
 
 
 class Difference(IntEnum):
 
-	N = -0o10  # king queen rook pawn (white)
+	N = -0o10  # king queen rook pawn(white)
 	E = +0o01  # king queen rook
-	S = +0o10  # king queen rook pawn (black)
+	S = +0o10  # king queen rook pawn(black)
 	W = -0o01  # king queen rook
 
-	N2 = N * 2  # pawn (white leap)
-	S2 = S * 2  # pawn (black leap)
-	E2 = E * 2  # king (castle)
-	W2 = W * 2  # king (castle)
+	N2 = N * 2  # pawn(white leap)
+	S2 = S * 2  # pawn(black leap)
+	E2 = E * 2  # king(castle)
+	W2 = W * 2  # king(castle)
 
-	NE = N + E  # queen bishop pawn (white capture)
-	SE = S + E  # queen bishop pawn (black capture)
-	SW = S + W  # queen bishop pawn (black capture)
-	NW = N + W  # queen bishop pawn (white capture)
+	NE = N + E  # queen bishop pawn(white capture)
+	SE = S + E  # queen bishop pawn(black capture)
+	SW = S + W  # queen bishop pawn(black capture)
+	NW = N + W  # queen bishop pawn(white capture)
 
 	N2E = N + NE  # knight
 	NE2 = NE + E  # knight
@@ -104,27 +105,27 @@ class Difference(IntEnum):
 
 	def __repr__(self) -> str:
 		return {
-			self.N: "▲",
-			self.E: "▶",
-			self.S: "▼",
-			self.W: "◀",
+			self.N: "▲",  # king queen rook pawn(white)
+			self.E: "▶",  # king queen rook
+			self.S: "▼",  # king queen rook pawn(black)
+			self.W: "◀",  # king queen rook
 
-			self.N2: "▲▲",
-			self.E2: "▶▶",
-			self.S2: "▼▼",
-			self.W2: "◀◀",
+			self.N2: "▲▲",  # pawn(white leap)
+			self.E2: "▶▶",  # pawn(black leap)
+			self.S2: "▼▼",  # king(castle)
+			self.W2: "◀◀",  # king(castle)
 
-			self.NE: "▲▶",
-			self.SE: "▼▶",
-			self.SW: "▼◀",
-			self.NW: "▲◀",
+			self.NE: "▲▶",  # queen bishop pawn(white capture)
+			self.SE: "▼▶",  # queen bishop pawn(black capture)
+			self.SW: "▼◀",  # queen bishop pawn(black capture)
+			self.NW: "▲◀",  # queen bishop pawn(white capture)
 
-			self.N2E: "▲▲▶",
-			self.NE2: "▲▶▶",
-			self.SE2: "▼▶▶",
-			self.S2E: "▼▼▶",
-			self.S2W: "▼▼◀",
-			self.SW2: "▼◀◀",
-			self.NW2: "▲◀◀",
-			self.N2W: "▲▲◀",
+			self.N2E: "▲▲▶",  # knight
+			self.NE2: "▲▶▶",  # knight
+			self.SE2: "▼▶▶",  # knight
+			self.S2E: "▼▼▶",  # knight
+			self.S2W: "▼▼◀",  # knight
+			self.SW2: "▼◀◀",  # knight
+			self.NW2: "▲◀◀",  # knight
+			self.N2W: "▲▲◀",  # knight
 		}[self]
