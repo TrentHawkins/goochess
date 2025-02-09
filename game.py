@@ -54,7 +54,10 @@ class Side(set[Piece]):
 	def __init__(self, *args):
 		super().__init__(*args)
 
-		self.captured: set[Piece] = set()
+
+	@property
+	def captured(self) -> set[Piece]:
+		return set(piece for piece in self if piece.square is None)
 
 
 class Position(Board):
@@ -97,4 +100,3 @@ class Position(Board):
 
 		self.black = Side(piece for piece in self if piece is not None and piece.color == Color.BLACK)
 		self.white = Side(piece for piece in self if piece is not None and piece.color == Color.WHITE)
-
