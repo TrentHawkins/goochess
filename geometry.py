@@ -1,13 +1,12 @@
 from __future__ import annotations
 
-from enum import Enum
-from re import findall
-from typing import Self
+
+from enum import IntEnum
 
 import chess.base
 
 
-class File(int, Enum):
+class File(IntEnum):
 
 	A_ = 0o0  # A
 	B_ = 0o1  # B
@@ -23,7 +22,7 @@ class File(int, Enum):
 		return self.name.strip("_").lower()
 
 
-class Rank(int, Enum):
+class Rank(IntEnum):
 
 	_8 = 0o0  # 8
 	_7 = 0o1  # 7
@@ -39,7 +38,7 @@ class Rank(int, Enum):
 		return self.name.strip("_").lower()
 
 
-class Square(int, Enum):
+class Square(IntEnum):
 
 #	A          B          C          D          E          F          G          H        :
 	A8 = 0o00; B8 = 0o01; C8 = 0o02; D8 = 0o03; E8 = 0o04; F8 = 0o05; G8 = 0o06; H8 = 0o07;  # 8
@@ -58,13 +57,10 @@ class Square(int, Enum):
 	def __add__(self, other: int) -> Square:
 		return Square(super().__add__(other))
 
-	def __sub__(self, other: Square | int) -> Square | int:
-		result = super().__sub__(other)
-
+	def __sub__(self, other: Square | Difference) -> Square | Difference:
 		if not isinstance(other, Square):
-			result = Square(result)
-
-		return result
+			return Square(super().__sub__(other))
+		return Difference(super().__sub__(other))
 
 
 	@property
@@ -80,7 +76,7 @@ class Square(int, Enum):
 		return chess.base.Color(((self.rank + self.file & 1) << 1) - 1)
 
 
-class Difference(int, Enum):
+class Difference(IntEnum):
 
 	N = -0o10  # king queen rook pawn (white)
 	E = +0o01  # king queen rook
