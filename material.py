@@ -16,31 +16,19 @@ class Piece:
 	specs: set[chess.geometry.Difference] = set()
 
 
-	def __init_subclass__(cls) -> None:
+	def __init_subclass__(cls):
 		super().__init_subclass__()
 
 		cls.moves = cls.moves.union(*(base.moves for base in cls.__bases__))
 
-	def __init__(self,
-		color: chess.base.Color,
-		board: chess.game.Board, square: chess.geometry.Square | None = None,
-	) -> None:
+	def __init__(self, color: chess.base.Color,
+		square: chess.geometry.Square | None = None,
+	):
 		self.color = color
-		self.board = board
-
 		self.square = square
 
 		self.turn: int = 0
 		self.moved: bool = False
-
-		self.__post_init__()
-
-	def __post_init__(self) -> None:
-		...
-
-	def __call__(self, square: chess.geometry.Square) -> None:
-		if self.square is not None:
-			self.board[square] = self.board.pop(self.square)
 
 
 	def append(self, squares: set[chess.geometry.Square], move: chess.geometry.Difference):

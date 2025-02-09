@@ -19,7 +19,7 @@ class Set[T](set[T]):
 		squares: set[T] | None = None,
 		targets: set[T] | None = None,
 		special: set[T] | None = None,
-	) -> None:
+	):
 		self.special = special or set[T]()
 		self.squares = squares or self.special
 		self.targets = targets or self.squares
