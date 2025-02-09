@@ -64,6 +64,13 @@ class Square(IntEnum):
 		return Difference(super().__sub__(other))
 
 
+	@classmethod
+	def fromnotation(cls, notation: str) -> Square:
+		file, rank = notation
+
+		return cls((0o10 - int(rank) << 3) + ord(file) - ord("a"))
+
+
 	@property
 	def rank(self) -> Rank:
 		return Rank(self >> 3)
@@ -74,7 +81,7 @@ class Square(IntEnum):
 
 	@property
 	def color(self) -> chess.base.Color:
-		return chess.base.Color((((self.rank + self.file) & 1) << 1) - 1)
+		return chess.base.Color((self.rank + self.file & 1) << 1 - 1)
 
 
 class Difference(IntEnum):
