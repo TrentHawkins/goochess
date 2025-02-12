@@ -1,12 +1,9 @@
-import chess.base
-import chess.geometry
-import chess.material
-import chess.game
+from chess import *
 
 
-class TestChess:
+def test_board_side_ref():
 
-	def test_board(self):
+	game = Game()
 
-		board = chess.game.Board()
-		board[chess.geometry.Square.A1] = chess.material.Rook(chess.base.Color.WHITE)
+	assert game.black[0] is game[Square.A8]
+	assert game.white[0] is game[Square.A1]
