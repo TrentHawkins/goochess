@@ -7,6 +7,8 @@ from chess.geometry import Square, Difference
 
 class Piece:
 
+	value: int
+
 	moves: set[Difference] = set()
 	capts: set[Difference] = set()
 	specs: set[Difference] = set()
@@ -25,6 +27,9 @@ class Piece:
 
 		self.turn: int = 0
 		self.moved: bool = False
+
+	def __hash__(self) -> int:
+		return hash((self.__class__, self.color, self.square))
 
 
 	def append(self, squares: set[Square], move: Difference):

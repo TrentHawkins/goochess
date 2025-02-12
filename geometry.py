@@ -1,7 +1,9 @@
 from __future__ import annotations
 
 
+from copy import copy
 from enum import IntEnum
+from re import compile
 
 from chess.base import Color
 
@@ -54,14 +56,26 @@ class Square(IntEnum):
 	def __repr__(self) -> str:
 		return self.name.lower()
 
-	def __add__(self, other: int) -> Square:
-		return Square(super().__add__(other))
+	def __add__(self, other: Difference) -> Square:
+		return Square(super() + other)
 
 	def __sub__(self, other: Square | Difference) -> Square | Difference:
 		if not isinstance(other, Square):
-			return Square(super().__sub__(other))
+			return Square(super() - other)
 
-		return Difference(super().__sub__(other))
+		return Difference(super() - other)
+
+	def __pos__(self) -> Square:
+		return Square(self)
+
+	def __neg__(self) -> Square:
+		return Square(self ^ 0o70)
+
+	def __invert__(self) -> Square:
+		return Square(0o77 - self)
+
+	def __mul__(self, color: Color) -> Square:
+		return +self if color + 1 else -self
 
 
 	@classmethod
@@ -95,6 +109,8 @@ class Difference(IntEnum):
 	S2 = S * 2  # pawn(black leap)
 	E2 = E * 2  # king(castle)
 	W2 = W * 2  # king(castle)
+	E4 = E * 4  # rook(castle)
+	W3 = W * 3  # rook(castle)
 
 	NE = N + E  # queen bishop pawn(white capture)
 	SE = S + E  # queen bishop pawn(black capture)
@@ -110,29 +126,19 @@ class Difference(IntEnum):
 	NW2 = NW + W  # knight
 	N2W = N + NW  # knight
 
+
 	def __repr__(self) -> str:
-		return {
-			self.N: "▲",  # king queen rook pawn(white)
-			self.E: "▶",  # king queen rook
-			self.S: "▼",  # king queen rook pawn(black)
-			self.W: "◀",  # king queen rook
+		symbols = {
+			self.N.name: "▲",  # king queen rook pawn(white)
+			self.E.name: "▶",  # king queen rook
+			self.S.name: "▼",  # king queen rook pawn(black)
+			self.W.name: "◀",  # king queen rook
+		}
 
-			self.N2: "▲▲",  # pawn(white leap)
-			self.E2: "▶▶",  # pawn(black leap)
-			self.S2: "▼▼",  # king(castle)
-			self.W2: "◀◀",  # king(castle)
+		parts = compile(r"([NSWE])(\d*)").findall(self.name)  # Extract movement letters and optional numbers
+		representation = ""
 
-			self.NE: "▲▶",  # queen bishop pawn(white capture)
-			self.SE: "▼▶",  # queen bishop pawn(black capture)
-			self.SW: "▼◀",  # queen bishop pawn(black capture)
-			self.NW: "▲◀",  # queen bishop pawn(white capture)
+		for direction, count in parts:
+			representation += symbols[direction] * (int(count) if count else 1)
 
-			self.N2E: "▲▲▶",  # knight
-			self.NE2: "▲▶▶",  # knight
-			self.SE2: "▼▶▶",  # knight
-			self.S2E: "▼▼▶",  # knight
-			self.S2W: "▼▼◀",  # knight
-			self.SW2: "▼◀◀",  # knight
-			self.NW2: "▲◀◀",  # knight
-			self.N2W: "▲▲◀",  # knight
-		}[self]
+		return representation

@@ -11,7 +11,7 @@ class Color(int, Enum):
 
 
 	def __repr__(self) -> str:
-		return "⬛" if self + 1 else "⬜"
+		return "⬛" if self + 1 else "⬜\n"
 
 
 class Set[T](set[T]):
