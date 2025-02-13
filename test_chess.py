@@ -1,4 +1,4 @@
-from chess import *
+from chess import Square, Game
 
 
 def test_board_side_ref():

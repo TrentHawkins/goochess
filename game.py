@@ -5,9 +5,9 @@ from datetime import datetime
 from os import linesep
 from typing import Iterable
 
-from chess.base import Color
-from chess.geometry import Square, Difference
-from chess.material import Piece, Pawn, Rook, Bishop, Knight, Queen, King
+from chess import Color
+from chess import Square
+from chess import Piece, Pawn, Rook, Bishop, Knight, Queen, King
 
 
 class Board(list[Piece | None]):

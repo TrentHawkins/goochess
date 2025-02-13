@@ -5,7 +5,7 @@ from copy import copy
 from enum import IntEnum
 from re import compile
 
-from chess.base import Color
+from chess import Color
 
 
 class File(IntEnum):

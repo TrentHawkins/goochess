@@ -1,8 +1,8 @@
 from __future__ import annotations
 
 
-from chess.base import Color
-from chess.geometry import Square, Difference
+from chess import Color
+from chess import Square, Difference
 
 
 class Piece:

@@ -5,7 +5,7 @@ from datetime import datetime
 
 from chess.base import Color
 from chess.geometry import Rank, File, Square, Difference
-from chess.material import Piece, Pawn, Rook, Bishop, Knight, King
+from chess.material import Piece, Pawn, Rook, Bishop, Knight, Queen, King
 from chess.game import Board, Side
 
 
