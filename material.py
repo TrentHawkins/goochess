@@ -160,3 +160,11 @@ class King(Melee, Queen):
 		Difference.E2,
 		Difference.W2,
 	}
+
+
+class Move:
+
+	def __init__(self, piece: Piece, square: Square):
+		self.piece = piece
+		self.source = self.piece.square
+		self.target = square

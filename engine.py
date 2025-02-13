@@ -50,14 +50,6 @@ class Board(list[Piece | None]):
 		if other is not None: other.square = None
 
 
-class Move:
-
-	def __init__(self, piece: Piece, square: Square):
-		self.piece = piece
-		self.source = self.piece.square
-		self.target = square
-
-
 class Side(list[Piece]):
 
 	def __init__(self, color: Color):
@@ -66,10 +58,8 @@ class Side(list[Piece]):
 				Rook  (color),
 				Knight(color),
 				Bishop(color),
-				Queen (color) if color + 1 else king :=
-				King  (color),
-				Queen (color) if color - 1 else king :=
-				King  (color),
+				Queen (color) if color + 1 else king := King  (color),
+				Queen (color) if color - 1 else king := King  (color),
 				Bishop(color),
 				Knight(color),
 				Rook  (color),
@@ -104,4 +94,4 @@ class Game(Board):
 		self[-Square.A8:-Square.A6:Difference.W] = self.white
 
 	def __hash__(self) -> int:
-		return int(datetime.now().timestamp())
+		return hash(datetime.now().timestamp())
