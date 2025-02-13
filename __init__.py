@@ -4,21 +4,6 @@ from __future__ import annotations
 from datetime import datetime
 
 from chess.base import Color
-from chess.geometry import Rank, File, Square, Difference
+from chess.geometry import Rank, File, Difference, Square
 from chess.material import Piece, Pawn, Rook, Bishop, Knight, Queen, King
-from chess.game import Board, Side
-
-
-class Game(Board):
-
-	def __init__(self):
-		super().__init__()
-
-		self.black = Side(Color.BLACK)
-		self.white = Side(Color.WHITE)
-
-		self[+Square.A8:+Square.A6:Difference.E] = self.black
-		self[-Square.A8:-Square.A6:Difference.W] = self.white
-
-	def __hash__(self) -> int:
-		return int(datetime.now().timestamp())
+from chess.engine import Board, Side, Game

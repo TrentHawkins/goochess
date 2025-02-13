@@ -6,7 +6,7 @@ from os import linesep
 from typing import Iterable
 
 from chess import Color
-from chess import Square
+from chess import Difference, Square
 from chess import Piece, Pawn, Rook, Bishop, Knight, Queen, King
 
 
@@ -90,3 +90,18 @@ class Side(list[Piece]):
 	@property
 	def material(self) -> int:
 		return sum(piece.value for piece in self if piece.square is not None)
+
+
+class Game(Board):
+
+	def __init__(self):
+		super().__init__()
+
+		self.black = Side(Color.BLACK)
+		self.white = Side(Color.WHITE)
+
+		self[+Square.A8:+Square.A6:Difference.E] = self.black
+		self[-Square.A8:-Square.A6:Difference.W] = self.white
+
+	def __hash__(self) -> int:
+		return int(datetime.now().timestamp())
