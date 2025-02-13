@@ -17,8 +17,8 @@ class Game(Board):
 		self.black = Side(Color.BLACK)
 		self.white = Side(Color.WHITE)
 
-		self[ Square.A8: Square.A6:+1] = self.black
-		self[~Square.A8:~Square.A6:-1] = self.white
+		self[+Square.A8:+Square.A6:Difference.E] = self.black
+		self[-Square.A8:-Square.A6:Difference.W] = self.white
 
 	def __hash__(self) -> int:
 		return int(datetime.now().timestamp())
