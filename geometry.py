@@ -119,7 +119,7 @@ class Square(IntEnum):
 		return Difference(super() - other)
 
 	def __mul__(self, color: Color) -> Square:
-		return +self if color + 1 else -self
+		return +self if color else -self
 
 	def __pos__(self) -> Square:
 		return Square(self)
@@ -135,7 +135,7 @@ class Square(IntEnum):
 	def fromnotation(cls, notation: str) -> Square:
 		file, rank = notation
 
-		return cls((0o10 - int(rank) << 3) + ord(file) - ord("a"))
+		return cls((0o10 - int(rank) << 0b11) + ord(file) - ord("a"))
 
 	@classmethod
 	def range(cls, *args):
@@ -145,11 +145,11 @@ class Square(IntEnum):
 
 	@property
 	def rank(self) -> Rank:
-		return Rank(self >> 3)
+		return Rank(self >> 0b11)
 
 	@property
 	def file(self) -> File:
-		return File(self - (self.rank << 3))
+		return File(self - (self.rank << 0b11))
 
 	@property
 	def color(self) -> Color:
