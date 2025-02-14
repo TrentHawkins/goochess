@@ -17,6 +17,20 @@ class Color(int, Enum):
 		return "⬛" if self + 1 else "⬜\n"
 
 
+	def piece(self, obj,
+		black: int = 0,
+		white: int = 7,
+	) -> str:
+		return f"\x1b[3{black if self else white}m{obj}\x1b[0m"
+
+	def square(self, obj,
+		black: int = 3,
+		white: int = 4,
+	) -> str:
+		return f"\x1b[3{black if self else white}m{obj}\x1b[0m"
+
+
+
 class Set[T](set[T]):
 
 	def __init__(self, *,
