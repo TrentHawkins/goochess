@@ -58,8 +58,8 @@ class Side(list[Piece]):
 				Rook  (color),
 				Knight(color),
 				Bishop(color),
-				Queen (color) if color else king := King(color),
-				Queen (color) if color else king := King(color),
+				Queen (color) if color else King  (color),
+				King  (color) if color else Queen (color),
 				Bishop(color),
 				Knight(color),
 				Rook  (color),
@@ -68,7 +68,7 @@ class Side(list[Piece]):
 			] * 0o10
 		)
 
-		self.king = king
+		self.king = self[Square.E8 if color else Square.D8]
 
 
 	@property
