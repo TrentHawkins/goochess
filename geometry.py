@@ -109,23 +109,13 @@ class Square(IntEnum):
 	def __repr__(self) -> str:
 		return self.name.lower()
 
-	def __add__(self, other: Difference) -> Square:
-		return Square(super() + other)
-
-	def __sub__(self, other: Square | Difference) -> Square | Difference:
-		if not isinstance(other, Square):
-			return Square(super() - other)
-
-		return Difference(super() - other)
-
-	def __mul__(self, color: Color) -> Square:
+	def __add__(self, other: Difference) -> Square    : return Square    (super() + other)
+	def __sub__(self, other: Square    ) -> Difference: return Difference(super() - other)
+	def __mul__(self, color: Color     ) -> Square    :
 		return +self if color else -self
 
-	def __pos__(self) -> Square:
-		return Square(self)
-
-	def __neg__(self) -> Square:
-		return Square(0o77 - self)
+	def __pos__(self) -> Square: return Square(       self)
+	def __neg__(self) -> Square: return Square(0o77 - self)
 
 	def __invert__(self) -> Square:
 		return Square(self ^ 0o70)
