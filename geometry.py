@@ -2,13 +2,13 @@ from __future__ import annotations
 
 
 from copy import copy
-from enum import IntEnum
+from enum import Enum
 from re import compile
 
 from chess import Color
 
 
-class File(IntEnum):
+class File(int, Enum):
 
 	A_ = 0o0  # A
 	B_ = 0o1  # B
@@ -24,7 +24,7 @@ class File(IntEnum):
 		return self.name.strip("_").lower()
 
 
-class Rank(IntEnum):
+class Rank(int, Enum):
 
 	_8 = 0o0  # 8
 	_7 = 0o1  # 7
@@ -40,7 +40,7 @@ class Rank(IntEnum):
 		return self.name.strip("_").lower()
 
 
-class Difference(IntEnum):
+class Difference(int, Enum):
 
 	N = -0o10  # king queen rook pawn(white)
 	E = +0o01  # king queen rook
@@ -93,7 +93,7 @@ class Difference(IntEnum):
 	def __neg__(self) -> Difference: return Difference(-super())
 
 
-class Square(IntEnum):
+class Square(int, Enum):
 
 #	A        : B        : C        : D        : E        : F        : G        : H        :
 	A8 = 0o00; B8 = 0o01; C8 = 0o02; D8 = 0o03; E8 = 0o04; F8 = 0o05; G8 = 0o06; H8 = 0o07;  # 8
