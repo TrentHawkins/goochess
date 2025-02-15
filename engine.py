@@ -6,7 +6,7 @@ from os import linesep
 from typing import Iterable
 
 from chess import Color
-from chess import Difference, Square
+from chess import Rank, File, Difference, Square
 from chess import Piece, Pawn, Rook, Bishop, Knight, Queen, King
 
 
@@ -18,13 +18,24 @@ class Board(list[Piece | None]):
 	def __repr__(self) -> str:
 		representation = ""
 
-		for square in Square:
-			if not square % 8:
-				representation += linesep
+		representation += "▗▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▖" + linesep
+		representation += "▐▌  A B C D E F G H  ▐▌" + linesep
 
-			representation += repr(square.color)
+		for index, piece in enumerate(self):
+			square = Square(index)
 
-		return representation + linesep
+			if square.file == File.A_:
+				representation += "▐▌" + str(square.rank)
+
+			if square.file == File.H_:
+				representation +=  str(square.rank) + "▐▌" + linesep
+
+			representation += str(piece)
+
+		representation += "▐▌  A B C D E F G H  ▐▌" + linesep
+		representation += "▝▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▘" + linesep
+
+		return representation
 
 	def __setitem__(self, key: Square | slice, value: Piece | None | Iterable[Piece | None]):
 		if isinstance(key, Square):	key = slice(key, key + 1, +1)

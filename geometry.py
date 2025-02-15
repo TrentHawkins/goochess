@@ -85,9 +85,9 @@ class Difference(int, Enum):
 
 		return representation
 
-	def __add__(self, other: Difference) -> Difference: return Difference(super() + other)
-	def __sub__(self, other: Difference) -> Difference: return Difference(super() - other)
-	def __mul__(self, other: Difference) -> Difference: return Difference(super() * other)
+	def __add__(self, other: Difference) -> Difference: return Difference(super().__add__(other))
+	def __sub__(self, other: Difference) -> Difference: return Difference(super().__sub__(other))
+	def __mul__(self, other: Difference) -> Difference: return Difference(super().__mul__(other))
 
 	def __pos__(self) -> Difference: return Difference(+super())
 	def __neg__(self) -> Difference: return Difference(-super())
@@ -109,9 +109,9 @@ class Square(int, Enum):
 	def __repr__(self) -> str:
 		return self.name.lower()
 
-	def __add__(self, other: Difference) -> Square    : return Square    (super() + other)
-	def __sub__(self, other: Square    ) -> Difference: return Difference(super() - other)
-	def __mul__(self, color: Color     ) -> Square    :
+	def __add__(self, other: int   ) -> Square: return Square(super().__add__(other))
+	def __sub__(self, other: Square) -> int   : return        super().__sub__(other)
+	def __mul__(self, color: Color ) -> Square:
 		return +self if color else -self
 
 	def __pos__(self) -> Square: return Square(       self)
@@ -139,8 +139,12 @@ class Square(int, Enum):
 
 	@property
 	def file(self) -> File:
-		return File(self - (self.rank << 0b11))
+		return File(self - self.rank << 0b11)
 
 	@property
 	def color(self) -> Color:
 		return Color(((self.rank + self.file & 1) << 1) - 1)
+
+	@property
+	def str(self) -> str:
+		return f"\x1b[7m▌{self.color.square(' ')}\x1b[27m▌"

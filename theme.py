@@ -27,7 +27,7 @@ class RGB:
 
 	@classmethod
 	def fromhex(cls, code: str) -> RGB:
-		code = code.lstrip("#").lower()
+		code = code.lstrip("#")
 
 		return cls(*(int(code[i:i+2], 16) for i in (0, 2, 4)))
 
@@ -35,6 +35,19 @@ class RGB:
 	@property
 	def hex(self) -> str:
 		return f"#{self.R:02x}{self.G:02x}{self.B:02x}"
+
+
+class Theme:
+
+	class Square:
+
+		BLACK = RGB.fromhex("#996633")
+		WHITE = RGB.fromhex("#cc9966")
+
+	class Piece:
+
+		BLACK = RGB.fromhex("#000000")
+		WHITE = RGB.fromhex("#ffffff")
 
 
 class Color(int, Enum):
@@ -47,18 +60,17 @@ class Color(int, Enum):
 		return bool(self + 1)
 
 	def __repr__(self) -> str:
-		return "⬛" if self + 1 else "⬜\n"
+		return "⬛" if self + 1 else "⬜"
 
 
 	def piece(self, obj,
-		black: RGB = RGB.fromhex("#000000"),
-		white: RGB = RGB.fromhex("#ffffff"),
+		black: RGB = Theme.Piece.BLACK,
+		white: RGB = Theme.Piece.WHITE,
 	) -> str:
 		return black.foreground(obj) if self else white.foreground(obj)
 
 	def square(self, obj,
-		black: RGB = RGB.fromhex("#996633"),
-		white: RGB = RGB.fromhex("#cc9966"),
+		black: RGB = Theme.Square.BLACK,
+		white: RGB = Theme.Square.WHITE,
 	) -> str:
 		return black.background(obj) if self else white.background(obj)
-		
