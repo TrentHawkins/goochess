@@ -24,7 +24,11 @@ class Piece:
 		super().__init_subclass__(*args, **kwargs)
 
 		cls.moves = cls.moves.union(*(base.moves for base in cls.__bases__))
+		cls.capts = cls.capts.union(*(base.moves for base in cls.__bases__)) if cls.capts else cls.moves
+		cls.specs = cls.specs.union(*(base.moves for base in cls.__bases__))
+
 		cls.value += value
+
 
 	def __init__(self, color: Color,
 		square: Square | None = None,
@@ -39,15 +43,6 @@ class Piece:
 		color = DEFAULT.pieces.black if self.color else DEFAULT.pieces.white
 
 		return repr(self.square).replace(" ", color.bg(self.symbol))
-
-
-	def append(self, squares: set[Square], move: Difference):
-		if self.square is not None:
-			try:
-				squares.add(self.square + move)
-
-			except ValueError:
-				...
 
 
 class Pawn(Piece):
@@ -67,6 +62,11 @@ class Pawn(Piece):
 
 
 class Ghost(Pawn):
+
+	...
+
+
+class Officer(Piece):
 
 	...
 
@@ -127,7 +127,7 @@ class Ranged(Piece):
 		return squares
 
 
-class Rook(Ranged):
+class Rook(Ranged, Officer):
 
 	symbol: str = "♜"
 
@@ -139,7 +139,7 @@ class Rook(Ranged):
 	}
 
 
-class Bishop(Ranged):
+class Bishop(Ranged, Officer):
 
 	symbol: str = "♝"
 
@@ -150,7 +150,7 @@ class Bishop(Ranged):
 		Difference.NW,
 	}
 
-class Knight(Melee):
+class Knight(Melee, Officer):
 
 	symbol: str = "♞"
 
@@ -166,12 +166,12 @@ class Knight(Melee):
 	}
 
 
-class Queen(Rook, Bishop):
+class Queen(Rook, Bishop, Officer):
 
 	symbol: str = "♛"
 
 
-class King(Melee, Queen):
+class King(Melee, Queen, Officer):
 
 	symbol: str = "♚"
 
