@@ -45,33 +45,12 @@ class Piece:
 		return repr(self.square).replace(" ", color.bg(self.symbol))
 
 
-class Pawn(Piece):
-
-	symbol: str = "♟"
-
-	moves = {
-		Difference.S ,
-	}
-	capts = {
-		Difference.SE,
-		Difference.SW,
-	}
-	specs = {
-		Difference.S2,
-	}
-
-
-class Ghost(Pawn):
-
-	...
-
-
 class Officer(Piece):
 
 	...
 
 
-class Melee(Piece):
+class Melee(Officer):
 
 	@property
 	def squares(self) -> set[Square]:
@@ -98,7 +77,7 @@ class Melee(Piece):
 		return squares
 
 
-class Ranged(Piece):
+class Ranged(Officer):
 
 	@property
 	def squares(self) -> set[Square]:
@@ -127,7 +106,32 @@ class Ranged(Piece):
 		return squares
 
 
-class Rook(Ranged, Officer):
+class Pawn(Piece):
+
+	symbol: str = "♟"
+
+	moves = {
+		Difference.S ,
+	}
+	capts = {
+		Difference.SE,
+		Difference.SW,
+	}
+	specs = {
+		Difference.S2,
+	}
+
+	def promote(self, rank: type):
+		if not issubclass(rank, Officer):
+			raise ValueError
+
+
+class Ghost(Pawn):
+
+	...
+
+
+class Rook(Ranged):
 
 	symbol: str = "♜"
 
@@ -139,7 +143,7 @@ class Rook(Ranged, Officer):
 	}
 
 
-class Bishop(Ranged, Officer):
+class Bishop(Ranged):
 
 	symbol: str = "♝"
 
@@ -150,7 +154,7 @@ class Bishop(Ranged, Officer):
 		Difference.NW,
 	}
 
-class Knight(Melee, Officer):
+class Knight(Melee):
 
 	symbol: str = "♞"
 
@@ -166,12 +170,12 @@ class Knight(Melee, Officer):
 	}
 
 
-class Queen(Rook, Bishop, Officer):
+class Queen(Rook, Bishop):
 
 	symbol: str = "♛"
 
 
-class King(Melee, Queen, Officer):
+class King(Melee, Queen):
 
 	symbol: str = "♚"
 
