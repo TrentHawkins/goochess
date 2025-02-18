@@ -2,8 +2,6 @@ from __future__ import annotations
 
 
 from dataclasses import dataclass
-from enum import Enum
-from typing import Generator
 
 
 @dataclass
@@ -18,18 +16,11 @@ class RGB:
 		return f"{self.R};{self.G};{self.B}"
 
 
-	def foreground(self, obj) -> str:
-		return f"\x1b[38;2;{self}m{obj}\x1b[0m"
-
-	def background(self, obj) -> str:
-		return f"\x1b[48;2;{self}m{obj}\x1b[0m"
-
-
 	@classmethod
-	def fromhex(cls, code: str) -> RGB:
-		code = code.lstrip("#")
+	def fromhex(cls, color: str) -> RGB:
+		color = color.lstrip("#")
 
-		return cls(*(int(code[i:i+2], 16) for i in (0, 2, 4)))
+		return cls(*(int(color[i:i+2], 16) for i in (0, 2, 4)))
 
 
 	@property
@@ -37,40 +28,51 @@ class RGB:
 		return f"#{self.R:02x}{self.G:02x}{self.B:02x}"
 
 
+	def fg(self, obj) -> str:
+		return f"\x1b[38;2;{self}m{obj}\x1b[0m"
+
+	def bg(self, obj) -> str:
+		return f"\x1b[48;2;{self}m{obj}\x1b[0m"
+
+
+@dataclass
+class Palette:
+
+	black: RGB
+	white: RGB
+
+
+	@classmethod
+	def fromhex(cls,
+		black: str,
+		white: str,
+	) -> Palette:
+		return cls(
+			black = RGB.fromhex(black),
+			white = RGB.fromhex(white),
+		)
+
+
+
+@dataclass
 class Theme:
 
-	class Square:
-
-		BLACK = RGB.fromhex("#996633")
-		WHITE = RGB.fromhex("#cc9966")
-
-	class Piece:
-
-		BLACK = RGB.fromhex("#000000")
-		WHITE = RGB.fromhex("#ffffff")
+	square: Palette
+	pieces: Palette
 
 
-class Color(int, Enum):
-
-	BLACK = +1  # ⬛
-	WHITE = -1  # ⬜
-
-
-	def __bool__(self) -> bool:
-		return bool(self + 1)
-
-	def __repr__(self) -> str:
-		return "⬛" if self + 1 else "⬜"
+	@staticmethod
+	def inv(obj) -> str:
+		return f"\x1b[7m{obj}\x1b[27m"
 
 
-	def piece(self, obj,
-		black: RGB = Theme.Piece.BLACK,
-		white: RGB = Theme.Piece.WHITE,
-	) -> str:
-		return black.foreground(obj) if self else white.foreground(obj)
-
-	def square(self, obj,
-		black: RGB = Theme.Square.BLACK,
-		white: RGB = Theme.Square.WHITE,
-	) -> str:
-		return black.background(obj) if self else white.background(obj)
+DEFAULT = Theme(
+	square = Palette.fromhex(
+		black = "#bbaa99",
+		white = "#665544",
+	),
+	pieces = Palette.fromhex(
+		black = "#000000",
+		white = "#ffffff",
+	),
+)

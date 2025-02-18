@@ -24,13 +24,9 @@ class Board(list[Piece | None]):
 		for index, piece in enumerate(self):
 			square = Square(index)
 
-			if square.file == File.A_:
-				representation += "▐▌" + str(square.rank)
-
-			if square.file == File.H_:
-				representation +=  str(square.rank) + "▐▌" + linesep
-
-			representation += str(piece)
+			if   square.file == File.A_: representation += "▐▌" + repr(square.rank) + "\x1b[D"
+			elif square.file == File.H_: representation += repr(square.rank) + "▐▌" + linesep
+			else:                        representation += repr(square) + "\x1b[D"  # repr(piece) if piece is not None else "  "
 
 		representation += "▐▌  A B C D E F G H  ▐▌" + linesep
 		representation += "▝▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▘" + linesep

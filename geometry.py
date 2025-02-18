@@ -1,23 +1,35 @@
 from __future__ import annotations
 
 
-from copy import copy
 from enum import Enum
 from re import compile
 
-from chess import Color
+from chess import DEFAULT
+
+
+class Color(int, Enum):
+
+	BLACK = +1  # ⬛
+	WHITE = -1  # ⬜
+
+
+	def __bool__(self) -> bool:
+		return bool(self + 1)
+
+	def __repr__(self) -> str:
+		return "⬛" if self + 1 else "⬜"
 
 
 class File(int, Enum):
 
-	A_ = 0o0  # A
-	B_ = 0o1  # B
-	C_ = 0o2  # C
-	D_ = 0o3  # D
-	E_ = 0o4  # E
-	F_ = 0o5  # F
-	G_ = 0o6  # G
-	H_ = 0o7  # H
+	A_ = 0o00  # A
+	B_ = 0o01  # B
+	C_ = 0o02  # C
+	D_ = 0o03  # D
+	E_ = 0o04  # E
+	F_ = 0o05  # F
+	G_ = 0o06  # G
+	H_ = 0o07  # H
 
 
 	def __repr__(self) -> str:
@@ -26,14 +38,14 @@ class File(int, Enum):
 
 class Rank(int, Enum):
 
-	_8 = 0o0  # 8
-	_7 = 0o1  # 7
-	_6 = 0o2  # 6
-	_5 = 0o3  # 5
-	_4 = 0o4  # 4
-	_3 = 0o5  # 3
-	_2 = 0o6  # 2
-	_1 = 0o7  # 1
+	_8 = 0o00  # 8
+	_7 = 0o10  # 7
+	_6 = 0o20  # 6
+	_5 = 0o30  # 5
+	_4 = 0o40  # 4
+	_3 = 0o50  # 3
+	_2 = 0o60  # 2
+	_1 = 0o70  # 1
 
 
 	def __repr__(self) -> str:
@@ -106,8 +118,31 @@ class Square(int, Enum):
 	A1 = 0o70; B1 = 0o71; C1 = 0o72; D1 = 0o73; E1 = 0o74; F1 = 0o75; G1 = 0o76; H1 = 0o77;  # 1
 
 
+#	def __repr__(self) -> str:
+#		return self.name.lower()
+
 	def __repr__(self) -> str:
-		return self.name.lower()
+		representation = DEFAULT.inv("▌ ▐")
+
+		a = 6
+		b = 7
+
+		if self.color:
+			if   self.file == File.A_: representation = representation[:a] + DEFAULT.square.white.bg(representation[a:])
+			elif self.file == File.H_: representation = DEFAULT.square.white.bg(representation[:b]) + representation[b:]
+			else                     : representation = DEFAULT.square.white.bg(representation)
+
+			representation = DEFAULT.square.black.fg(representation)
+
+		else:
+			if   self.file == File.A_: representation = representation[:a] + DEFAULT.square.black.bg(representation[a:])
+			elif self.file == File.H_: representation = DEFAULT.square.black.bg(representation[:b]) + representation[b:]
+			else                     : representation = DEFAULT.square.black.bg(representation)
+
+			representation = DEFAULT.square.white.fg(representation)
+
+		return representation
+
 
 	def __add__(self, other: int   ) -> Square: return Square(super().__add__(other))
 	def __sub__(self, other: Square) -> int   : return        super().__sub__(other)
@@ -135,16 +170,12 @@ class Square(int, Enum):
 
 	@property
 	def rank(self) -> Rank:
-		return Rank(self >> 0b11)
+		return Rank(self >> 0b11 << 0b11)
 
 	@property
 	def file(self) -> File:
-		return File(self - self.rank << 0b11)
+		return File(self - self.rank)
 
 	@property
 	def color(self) -> Color:
-		return Color(((self.rank + self.file & 1) << 1) - 1)
-
-	@property
-	def str(self) -> str:
-		return f"\x1b[7m▌{self.color.square(' ')}\x1b[27m▌"
+		return Color((((self.rank >> 0b11) + self.file & 1) << 1) - 1)
