@@ -1,23 +1,30 @@
 from __future__ import annotations
 
 
+from chess import DEFAULT
 from chess import Color
 from chess import Square, Difference
 
 
 class Piece:
 
-	value: int
+	value: int = 0
+
+	symbol: str = " "
+	white: str = " "
 
 	moves: set[Difference] = set()
 	capts: set[Difference] = set()
 	specs: set[Difference] = set()
 
 
-	def __init_subclass__(cls):
-		super().__init_subclass__()
+	def __init_subclass__(cls, *args,
+		value = 0,
+	**kwargs):
+		super().__init_subclass__(*args, **kwargs)
 
 		cls.moves = cls.moves.union(*(base.moves for base in cls.__bases__))
+		cls.value += value
 
 	def __init__(self, color: Color,
 		square: Square | None = None,
@@ -28,8 +35,10 @@ class Piece:
 		self.turn: int = 0
 		self.moved: bool = False
 
-	def __hash__(self) -> int:
-		return hash((self.__class__, self.color, self.square))
+	def __repr__(self) -> str:
+		color = DEFAULT.pieces.black if self.color else DEFAULT.pieces.white
+
+		return repr(self.square).replace(" ", color.bg(self.symbol))
 
 
 	def append(self, squares: set[Square], move: Difference):
@@ -43,6 +52,8 @@ class Piece:
 
 class Pawn(Piece):
 
+	symbol: str = "♟"
+
 	moves = {
 		Difference.S ,
 	}
@@ -55,7 +66,7 @@ class Pawn(Piece):
 	}
 
 
-class Ghost(Piece):
+class Ghost(Pawn):
 
 	...
 
@@ -89,6 +100,7 @@ class Melee(Piece):
 
 class Ranged(Piece):
 
+	@property
 	def squares(self) -> set[Square]:
 		squares = set()
 
@@ -115,8 +127,9 @@ class Ranged(Piece):
 		return squares
 
 
+class Rook(Ranged):
 
-class Rook(Ranged, Piece):
+	symbol: str = "♜"
 
 	moves: set[Difference] = {
 		Difference.N,
@@ -126,7 +139,9 @@ class Rook(Ranged, Piece):
 	}
 
 
-class Bishop(Ranged, Piece):
+class Bishop(Ranged):
+
+	symbol: str = "♝"
 
 	moves: set[Difference] = {
 		Difference.NE,
@@ -135,7 +150,9 @@ class Bishop(Ranged, Piece):
 		Difference.NW,
 	}
 
-class Knight(Melee, Piece):
+class Knight(Melee):
+
+	symbol: str = "♞"
 
 	moves: set[Difference] = {
 		Difference.N2E,
@@ -151,10 +168,12 @@ class Knight(Melee, Piece):
 
 class Queen(Rook, Bishop):
 
-	...
+	symbol: str = "♛"
 
 
 class King(Melee, Queen):
+
+	symbol: str = "♚"
 
 	specs: set[Difference] = {
 		Difference.E2,

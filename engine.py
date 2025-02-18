@@ -6,7 +6,7 @@ from os import linesep
 from typing import Iterable
 
 from chess import Color
-from chess import Difference, Square
+from chess import Rank, File, Difference, Square
 from chess import Piece, Pawn, Rook, Bishop, Knight, Queen, King
 
 
@@ -18,13 +18,20 @@ class Board(list[Piece | None]):
 	def __repr__(self) -> str:
 		representation = ""
 
-		for square in Square:
-			if not square % 8:
-				representation += linesep
+		representation += "▗▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▖" + linesep
+		representation += "▐▌  A B C D E F G H  ▐▌" + linesep
 
-			representation += repr(square.color)
+		for index, piece in enumerate(self):
+			square = Square(index)
 
-		return representation + linesep
+			if square.file == File.A_: representation += "▐▌" + repr(square.rank)
+			representation += (repr(piece) if piece is not None else repr(square)) + "\x1b[D"
+			if square.file == File.H_: representation += "\x1b[C" + repr(square.rank) + "▐▌" + linesep
+
+		representation += "▐▌  A B C D E F G H  ▐▌" + linesep
+		representation += "▝▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▘"
+
+		return representation
 
 	def __setitem__(self, key: Square | slice, value: Piece | None | Iterable[Piece | None]):
 		if isinstance(key, Square):	key = slice(key, key + 1, +1)
@@ -63,9 +70,16 @@ class Side(list[Piece]):
 				Bishop(color),
 				Knight(color),
 				Rook  (color),
-			] + [
+
 				Pawn  (color),
-			] * 0o10
+				Pawn  (color),
+				Pawn  (color),
+				Pawn  (color),
+				Pawn  (color),
+				Pawn  (color),
+				Pawn  (color),
+				Pawn  (color),
+			]
 		)
 
 		self.king = self[Square.E8 if color else Square.D8]
