@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 
+from chess import DEFAULT
 from chess import Color
 from chess import Square, Difference
 
@@ -9,7 +10,7 @@ class Piece:
 
 	value: int = 0
 
-	black: str = " "
+	symbol: str = " "
 	white: str = " "
 
 	moves: set[Difference] = set()
@@ -34,8 +35,10 @@ class Piece:
 		self.turn: int = 0
 		self.moved: bool = False
 
-	def __repr__(self, symbol: str) -> str:
-		return str(self.square) + f"\x1b[D{self.black if self.color else self.white}\x1b[C"
+	def __repr__(self) -> str:
+		color = DEFAULT.pieces.black if self.color else DEFAULT.pieces.white
+
+		return repr(self.square).replace(" ", color.bg(self.symbol))
 
 
 	def append(self, squares: set[Square], move: Difference):
@@ -49,9 +52,7 @@ class Piece:
 
 class Pawn(Piece):
 
-	black = "♟"
-	white = "♙"
-
+	symbol: str = "♟"
 
 	moves = {
 		Difference.S ,
@@ -99,6 +100,7 @@ class Melee(Piece):
 
 class Ranged(Piece):
 
+	@property
 	def squares(self) -> set[Square]:
 		squares = set()
 
@@ -127,8 +129,7 @@ class Ranged(Piece):
 
 class Rook(Ranged):
 
-	black = "♜"
-	white = "♖"
+	symbol: str = "♜"
 
 	moves: set[Difference] = {
 		Difference.N,
@@ -140,8 +141,7 @@ class Rook(Ranged):
 
 class Bishop(Ranged):
 
-	black = "♝"
-	white = "♗"
+	symbol: str = "♝"
 
 	moves: set[Difference] = {
 		Difference.NE,
@@ -152,8 +152,7 @@ class Bishop(Ranged):
 
 class Knight(Melee):
 
-	black = "♞"
-	white = "♘"
+	symbol: str = "♞"
 
 	moves: set[Difference] = {
 		Difference.N2E,
@@ -169,16 +168,12 @@ class Knight(Melee):
 
 class Queen(Rook, Bishop):
 
-	black = "♛"
-	white = "♕"
-
-	...
+	symbol: str = "♛"
 
 
 class King(Melee, Queen):
 
-	black = "♚"
-	white = "♔"
+	symbol: str = "♚"
 
 	specs: set[Difference] = {
 		Difference.E2,

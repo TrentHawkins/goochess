@@ -90,6 +90,7 @@ class Difference(int, Enum):
 		}
 
 		parts = compile(r"([NSWE])(\d*)").findall(self.name)  # Extract movement letters and optional numbers
+
 		representation = ""
 
 		for direction, count in parts:
@@ -122,26 +123,16 @@ class Square(int, Enum):
 #		return self.name.lower()
 
 	def __repr__(self) -> str:
-		representation = DEFAULT.inv("▌ ▐")
+		representation = "▌ ▐"
 
-		a = 6
-		b = 7
+		black = DEFAULT.square.black if self.color else DEFAULT.square.white
+		white = DEFAULT.square.white if self.color else DEFAULT.square.black
 
-		if self.color:
-			if   self.file == File.A_: representation = representation[:a] + DEFAULT.square.white.bg(representation[a:])
-			elif self.file == File.H_: representation = DEFAULT.square.white.bg(representation[:b]) + representation[b:]
-			else                     : representation = DEFAULT.square.white.bg(representation)
+		if   self.file == File.A_: representation = representation[:1] + black.bg(representation[1:])
+		elif self.file == File.H_: representation = black.bg(representation[:2]) + representation[2:]
+		else                     : representation = black.bg(representation)
 
-			representation = DEFAULT.square.black.fg(representation)
-
-		else:
-			if   self.file == File.A_: representation = representation[:a] + DEFAULT.square.black.bg(representation[a:])
-			elif self.file == File.H_: representation = DEFAULT.square.black.bg(representation[:b]) + representation[b:]
-			else                     : representation = DEFAULT.square.black.bg(representation)
-
-			representation = DEFAULT.square.white.fg(representation)
-
-		return representation
+		return DEFAULT.inv(white.fg(representation))
 
 
 	def __add__(self, other: int   ) -> Square: return Square(super().__add__(other))

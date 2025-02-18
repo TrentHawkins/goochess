@@ -24,12 +24,12 @@ class Board(list[Piece | None]):
 		for index, piece in enumerate(self):
 			square = Square(index)
 
-			if   square.file == File.A_: representation += "▐▌" + repr(square.rank) + "\x1b[D"
-			elif square.file == File.H_: representation += repr(square.rank) + "▐▌" + linesep
-			else:                        representation += repr(square) + "\x1b[D"  # repr(piece) if piece is not None else "  "
+			if square.file == File.A_: representation += "▐▌" + repr(square.rank)
+			representation += (repr(piece) if piece is not None else repr(square)) + "\x1b[D"
+			if square.file == File.H_: representation += "\x1b[C" + repr(square.rank) + "▐▌" + linesep
 
 		representation += "▐▌  A B C D E F G H  ▐▌" + linesep
-		representation += "▝▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▘" + linesep
+		representation += "▝▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▘"
 
 		return representation
 
@@ -70,9 +70,16 @@ class Side(list[Piece]):
 				Bishop(color),
 				Knight(color),
 				Rook  (color),
-			] + [
+
 				Pawn  (color),
-			] * 0o10
+				Pawn  (color),
+				Pawn  (color),
+				Pawn  (color),
+				Pawn  (color),
+				Pawn  (color),
+				Pawn  (color),
+				Pawn  (color),
+			]
 		)
 
 		self.king = self[Square.E8 if color else Square.D8]

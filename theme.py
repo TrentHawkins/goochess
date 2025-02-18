@@ -29,10 +29,10 @@ class RGB:
 
 
 	def fg(self, obj) -> str:
-		return f"\x1b[38;2;{self}m{obj}\x1b[0m"
+		return f"\x1b[38;2;{self}m{obj}\x1b[39m"
 
 	def bg(self, obj) -> str:
-		return f"\x1b[48;2;{self}m{obj}\x1b[0m"
+		return f"\x1b[48;2;{self}m{obj}\x1b[49m"
 
 
 @dataclass
