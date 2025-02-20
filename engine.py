@@ -4,6 +4,7 @@ from __future__ import annotations
 from datetime import datetime
 from os import linesep
 from typing import Iterable
+from weakref import ref as weakref
 
 from chess import DEFAULT
 from chess import Color, File, Difference, Square
@@ -67,29 +68,32 @@ class Board(list[Piece | None]):
 
 class Side(list[Piece]):
 
-	def __init__(self, color: Color):
+	def __init__(self, color: Color, game: Game):
 		super().__init__(
 			[
-				Rook  (color),
-				Knight(color),
-				Bishop(color),
-				Queen (color) if color else King  (color),
-				King  (color) if color else Queen (color),
-				Bishop(color),
-				Knight(color),
-				Rook  (color),
+				Rook  (color, game),
+				Knight(color, game),
+				Bishop(color, game),
+				Queen (color, game) if color else
+				King  (color, game),
+				King  (color, game) if color else
+				Queen (color, game),
+				Bishop(color, game),
+				Knight(color, game),
+				Rook  (color, game),
 
-				Pawn  (color),
-				Pawn  (color),
-				Pawn  (color),
-				Pawn  (color),
-				Pawn  (color),
-				Pawn  (color),
-				Pawn  (color),
-				Pawn  (color),
+				Pawn  (color, game),
+				Pawn  (color, game),
+				Pawn  (color, game),
+				Pawn  (color, game),
+				Pawn  (color, game),
+				Pawn  (color, game),
+				Pawn  (color, game),
+				Pawn  (color, game),
 			]
 		)
 
+		self.game = weakref(game)
 		self.king = self[Square.E8 if color else Square.D8]
 
 
@@ -103,8 +107,8 @@ class Game(Board):
 	def __init__(self):
 		super().__init__()
 
-		self.black = Side(Color.BLACK)
-		self.white = Side(Color.WHITE)
+		self.black = Side(Color.BLACK, self)
+		self.white = Side(Color.WHITE, self)
 
 		self[+Square.A8:+Square.A6:Difference.E] = self.black
 		self[-Square.A8:-Square.A6:Difference.W] = self.white

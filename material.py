@@ -2,10 +2,14 @@ from __future__ import annotations
 
 
 from itertools import product
+from typing import TYPE_CHECKING
+from weakref import ref as weakref
 
-from chess import DEFAULT
 from chess import Color
 from chess import Square, Difference
+
+if TYPE_CHECKING:
+	from chess import Game
 
 
 class Piece:
@@ -29,11 +33,12 @@ class Piece:
 	#	cls.value += sum(base.value for base in cls.__bases__)
 
 
-	def __init__(self, color: Color,
+	def __init__(self, color: Color, board: Game,
 		square: Square | None = None,
 	):
 		self.color = color
 		self.square = square
+		self.board = weakref(board)
 
 		self.turn: int = 0
 		self.moved: bool = False
