@@ -53,7 +53,6 @@ class Palette:
 		)
 
 
-
 @dataclass
 class Theme:
 

@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 
+from itertools import product
+
 from chess import DEFAULT
 from chess import Color
 from chess import Square, Difference
@@ -9,8 +11,7 @@ from chess import Square, Difference
 class Piece:
 
 	value: int = 0
-
-	symbol: str = " "
+	black: str = " "
 	white: str = " "
 
 	moves: set[Difference] = set()
@@ -18,16 +19,14 @@ class Piece:
 	specs: set[Difference] = set()
 
 
-	def __init_subclass__(cls, *args,
-		value = 0,
-	**kwargs):
+	def __init_subclass__(cls, *args, **kwargs):
 		super().__init_subclass__(*args, **kwargs)
 
 		cls.moves = cls.moves.union(*(base.moves for base in cls.__bases__))
 		cls.capts = cls.capts.union(*(base.moves for base in cls.__bases__)) if cls.capts else cls.moves
 		cls.specs = cls.specs.union(*(base.moves for base in cls.__bases__))
 
-		cls.value += value
+	#	cls.value += sum(base.value for base in cls.__bases__)
 
 
 	def __init__(self, color: Color,
@@ -40,14 +39,17 @@ class Piece:
 		self.moved: bool = False
 
 	def __repr__(self) -> str:
-		color = DEFAULT.pieces.black if self.color else DEFAULT.pieces.white
+		return self.black if self.color else self.white
 
-		return repr(self.square).replace(" ", color.bg(self.symbol))
+
+	@property
+	def squares(self) -> set[Square]:
+		return set()
 
 
 class Officer(Piece):
 
-	...
+	value = 0
 
 
 class Melee(Officer):
@@ -108,7 +110,9 @@ class Ranged(Officer):
 
 class Pawn(Piece):
 
-	symbol: str = "♟"
+	value: int = 1
+	black: str = "\u265f"
+	white: str = "\u2659"
 
 	moves = {
 		Difference.S ,
@@ -121,19 +125,18 @@ class Pawn(Piece):
 		Difference.S2,
 	}
 
-	def promote(self, rank: type):
-		if not issubclass(rank, Officer):
+	def promote(self, other: Officer):
+		if not isinstance(other, Officer):
 			raise ValueError
 
-
-class Ghost(Pawn):
-
-	...
+		# CODE to swap refs between self and other
 
 
 class Rook(Ranged):
 
-	symbol: str = "♜"
+	value: int = 5
+	black: str = "\u265c"
+	white: str = "\u2656"
 
 	moves: set[Difference] = {
 		Difference.N,
@@ -145,7 +148,9 @@ class Rook(Ranged):
 
 class Bishop(Ranged):
 
-	symbol: str = "♝"
+	value: int = 3
+	black: str = "\u265d"
+	white: str = "\u2657"
 
 	moves: set[Difference] = {
 		Difference.NE,
@@ -156,28 +161,35 @@ class Bishop(Ranged):
 
 class Knight(Melee):
 
-	symbol: str = "♞"
+	value: int = 3
+	black: str = "\u265e"
+	white: str = "\u2658"
 
-	moves: set[Difference] = {
-		Difference.N2E,
-		Difference.NE2,
-		Difference.SE2,
-		Difference.S2E,
-		Difference.S2W,
-		Difference.SW2,
-		Difference.NW2,
-		Difference.N2W,
-	}
+	moves: set[Difference] = {straight + diagonal for straight, diagonal in product(Rook.moves, Bishop.moves)} - Rook.moves
+#	moves: set[Difference] = {
+#		Difference.N2E,
+#		Difference.NE2,
+#		Difference.SE2,
+#		Difference.S2E,
+#		Difference.S2W,
+#		Difference.SW2,
+#		Difference.NW2,
+#		Difference.N2W,
+#	}
 
 
 class Queen(Rook, Bishop):
 
-	symbol: str = "♛"
+	value: int = 9
+	black: str = "\u265b"
+	white: str = "\u2655"
 
 
 class King(Melee, Queen):
 
-	symbol: str = "♚"
+	value: int = 0
+	black: str = "\u265a"
+	white: str = "\u2654"
 
 	specs: set[Difference] = {
 		Difference.E2,

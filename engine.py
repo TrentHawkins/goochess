@@ -5,8 +5,8 @@ from datetime import datetime
 from os import linesep
 from typing import Iterable
 
-from chess import Color
-from chess import Rank, File, Difference, Square
+from chess import DEFAULT
+from chess import Color, File, Difference, Square
 from chess import Piece, Pawn, Rook, Bishop, Knight, Queen, King
 
 
@@ -16,17 +16,25 @@ class Board(list[Piece | None]):
 		super().__init__(None for _ in Square)
 
 	def __repr__(self) -> str:
-		representation = ""
-
+		representation  = ""
 		representation += "▗▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▖" + linesep
 		representation += "▐▌  A B C D E F G H  ▐▌" + linesep
 
 		for index, piece in enumerate(self):
 			square = Square(index)
+			square_representation = repr(square)
 
-			if square.file == File.A_: representation += "▐▌" + repr(square.rank)
-			representation += (repr(piece) if piece is not None else repr(square)) + "\x1b[D"
-			if square.file == File.H_: representation += "\x1b[C" + repr(square.rank) + "▐▌" + linesep
+			if piece is not None:
+				piece_color = DEFAULT.pieces.black if piece.color else DEFAULT.pieces.white
+				square_representation = square_representation.replace(" ", piece_color.bg(piece.black))
+
+			if square.file == File.A_:
+				representation += "▐▌" + repr(square.rank)
+
+			representation += square_representation + "\x1b[D"
+
+			if square.file == File.H_:
+				representation += "\x1b[C" + repr(square.rank) + "▐▌" + linesep
 
 		representation += "▐▌  A B C D E F G H  ▐▌" + linesep
 		representation += "▝▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▘"
