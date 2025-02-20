@@ -9,5 +9,31 @@ class Move:
 
 	def __init__(self, piece: Piece, square: Square):
 		self.piece = piece
+
 		self.source = self.piece.square
 		self.target = square
+
+
+class Capture(Move):
+
+	...
+
+
+class Rush(Move):
+
+	...
+
+
+class EnPassant(Capture):
+
+	...
+
+
+class Promotion(Move):
+
+	...
+
+
+class Castle(Move):
+
+	...
