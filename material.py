@@ -16,12 +16,13 @@ class Piece:
 
 	range: int = 0
 	value: int = 0
+
 	black: str = " "
 	white: str = " "
 
 	moves: set[Difference] = set()
-	capts: set[Difference] = set()
-	specs: set[Difference] = set()
+#	capts: set[Difference] = set()
+#	specs: set[Difference] = set()
 
 
 	def __init_subclass__(cls, *args, **kwargs):
@@ -68,19 +69,19 @@ class Officer(Piece):
 		squares = super().squares
 
 		if self.square is not None:
-			for move in self.moves | self.capts:
+			for move in self.moves:
 				square = self.square
 
 				for _ in range(self.range):
 					try:
 						square += move
 
-						if self == board[square]:
+						if (other := board[square]) is not None and self.color == other.color:
 							break
 
 						squares.add(square)
 
-						if self != board[square]:
+						if (other := board[square]) is not None and self.color != other.color:
 							break
 
 					except ValueError:
@@ -102,6 +103,7 @@ class Ranged(Officer):
 class Pawn(Piece):
 
 	value: int = 1
+
 	black: str = "\u265f"
 	white: str = "\u2659"
 
@@ -116,10 +118,42 @@ class Pawn(Piece):
 #		Difference.S2,
 #	}
 
+	@property
+	def squares(self) -> set[Square]:
+		assert (board := self.board()) is not None
+
+		squares = super().squares
+
+		if self.square is not None:
+			for move in self.moves:
+				square = self.square
+
+				try:
+					square += move
+
+					if board[square := self.square] is None:
+						squares.add(square)
+
+				except ValueError:
+					continue
+
+			for move in self.capts:
+				try:
+					square += move
+
+					if (other := board[square := self.square]) is not None and self.color != other.color:
+						squares.add(square)
+
+				except ValueError:
+					continue
+
+		return squares
+
 
 class Rook(Ranged):
 
 	value: int = 5
+
 	black: str = "\u265c"
 	white: str = "\u2656"
 
@@ -134,6 +168,7 @@ class Rook(Ranged):
 class Bishop(Ranged):
 
 	value: int = 3
+
 	black: str = "\u265d"
 	white: str = "\u2657"
 
@@ -147,6 +182,7 @@ class Bishop(Ranged):
 class Knight(Melee):
 
 	value: int = 3
+
 	black: str = "\u265e"
 	white: str = "\u2658"
 
@@ -166,6 +202,7 @@ class Knight(Melee):
 class Queen(Rook, Bishop):
 
 	value: int = 9
+
 	black: str = "\u265b"
 	white: str = "\u2655"
 
@@ -173,10 +210,11 @@ class Queen(Rook, Bishop):
 class King(Melee, Queen):
 
 	value: int = 0
+
 	black: str = "\u265a"
 	white: str = "\u2654"
 
-	specs: set[Difference] = {
-		Difference.E2,
-		Difference.W2,
-	}
+#	specs: set[Difference] = {
+#		Difference.E2,
+#		Difference.W2,
+#	}
