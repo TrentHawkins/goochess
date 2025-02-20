@@ -98,9 +98,9 @@ class Difference(int, Enum):
 
 		return representation
 
-	def __add__(self, other: Difference) -> Difference: return Difference(super().__add__(other))
-	def __sub__(self, other: Difference) -> Difference: return Difference(super().__sub__(other))
-	def __mul__(self, other: Difference) -> Difference: return Difference(super().__mul__(other))
+	def __add__(self, other: int) -> Difference: return Difference(super().__add__(other))
+	def __sub__(self, other: int) -> Difference: return Difference(super().__sub__(other))
+	def __mul__(self, other: int) -> Difference: return Difference(super().__mul__(other))
 
 	def __pos__(self) -> Difference: return Difference(+super())
 	def __neg__(self) -> Difference: return Difference(-super())

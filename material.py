@@ -118,6 +118,7 @@ class Pawn(Piece):
 #		Difference.S2,
 #	}
 
+
 	@property
 	def squares(self) -> set[Square]:
 		assert (board := self.board()) is not None
@@ -126,12 +127,8 @@ class Pawn(Piece):
 
 		if self.square is not None:
 			for move in self.moves:
-				square = self.square
-
 				try:
-					square += move
-
-					if board[square := self.square] is None:
+					if board[square := self.square + move * self.color] is None:
 						squares.add(square)
 
 				except ValueError:
@@ -139,9 +136,7 @@ class Pawn(Piece):
 
 			for move in self.capts:
 				try:
-					square += move
-
-					if (other := board[square := self.square]) is not None and self.color != other.color:
+					if (other := board[square := self.square + move * self.color]) is not None and self.color != other.color:
 						squares.add(square)
 
 				except ValueError:
