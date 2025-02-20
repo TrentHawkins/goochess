@@ -119,10 +119,10 @@ class Square(int, Enum):
 	A1 = 0o70; B1 = 0o71; C1 = 0o72; D1 = 0o73; E1 = 0o74; F1 = 0o75; G1 = 0o76; H1 = 0o77;  # 1
 
 
-#	def __repr__(self) -> str:
-#		return self.name.lower()
-
 	def __repr__(self) -> str:
+		return self.name.lower()
+
+	def __str__(self) -> str:
 		representation = "▌ ▐"
 
 		black = DEFAULT.square.black if self.color else DEFAULT.square.white

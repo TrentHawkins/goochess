@@ -23,11 +23,10 @@ class Board(list[Piece | None]):
 
 		for index, piece in enumerate(self):
 			square = Square(index)
-			square_representation = repr(square)
+			square_representation = str(square)
 
 			if piece is not None:
-				piece_color = DEFAULT.pieces.black if piece.color else DEFAULT.pieces.white
-				square_representation = square_representation.replace(" ", piece_color.bg(piece.black))
+				square_representation = square_representation.replace(" ", str(piece))
 
 			if square.file == File.A_:
 				representation += "▐▌" + repr(square.rank)

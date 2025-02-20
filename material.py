@@ -5,8 +5,8 @@ from itertools import product
 from typing import TYPE_CHECKING
 from weakref import ref as weakref
 
-from chess import Color
-from chess import Square, Difference
+from chess import DEFAULT
+from chess import Color, Square, Difference
 
 if TYPE_CHECKING:
 	from chess import Board
@@ -47,6 +47,11 @@ class Piece:
 
 	def __repr__(self) -> str:
 		return self.black if self.color else self.white
+
+	def __str__(self) -> str:
+		color = DEFAULT.pieces.black if self.color else DEFAULT.pieces.white
+
+		return color.bg(self.black)
 
 	def __eq__(self, other: Piece | None) -> bool:
 		return other is not None and self.color == other.color
