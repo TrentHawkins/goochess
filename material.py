@@ -65,6 +65,16 @@ class Piece:
 		return set()
 
 
+	def move(self, square: Square):
+		assert (board := self.board()) is not None
+
+		if square not in self.squares or self.square is None:
+			raise ValueError(f"invalid move of {repr(self)} from {repr(self.square)} to {repr(square)}")
+
+		board[self.square], board[square] = None, self
+		self.moved = True
+
+
 class Officer(Piece):
 
 	@property
