@@ -53,12 +53,6 @@ class Piece:
 
 		return color.bg(self.black)
 
-	def __eq__(self, other: Piece | None) -> bool:
-		return other is not None and self.color == other.color
-
-	def __ne__(self, other: Piece | None) -> bool:
-		return other is not None and self.color != other.color
-
 
 	@property
 	def squares(self) -> set[Square]:
