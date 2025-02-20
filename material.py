@@ -9,11 +9,12 @@ from chess import Color
 from chess import Square, Difference
 
 if TYPE_CHECKING:
-	from chess import Game
+	from chess import Board
 
 
 class Piece:
 
+	range: int = 0
 	value: int = 0
 	black: str = " "
 	white: str = " "
@@ -28,12 +29,12 @@ class Piece:
 
 		cls.moves = cls.moves.union(*(base.moves for base in cls.__bases__))
 		cls.capts = cls.capts.union(*(base.moves for base in cls.__bases__)) if cls.capts else cls.moves
-		cls.specs = cls.specs.union(*(base.moves for base in cls.__bases__))
+	#	cls.specs = cls.specs.union(*(base.moves for base in cls.__bases__))
 
 	#	cls.value += sum(base.value for base in cls.__bases__)
 
 
-	def __init__(self, color: Color, board: Game,
+	def __init__(self, color: Color, board: Board,
 		square: Square | None = None,
 	):
 		self.color = color
@@ -46,6 +47,12 @@ class Piece:
 	def __repr__(self) -> str:
 		return self.black if self.color else self.white
 
+	def __eq__(self, other: Piece | None) -> bool:
+		return other is not None and self.color == other.color
+
+	def __ne__(self, other: Piece | None) -> bool:
+		return other is not None and self.color != other.color
+
 
 	@property
 	def squares(self) -> set[Square]:
@@ -54,63 +61,42 @@ class Piece:
 
 class Officer(Piece):
 
-	value = 0
+	@property
+	def squares(self) -> set[Square]:
+		assert (board := self.board()) is not None
+
+		squares = super().squares
+
+		if self.square is not None:
+			for move in self.moves | self.capts:
+				square = self.square
+
+				for _ in range(self.range):
+					try:
+						square += move
+
+						if self == board[square]:
+							break
+
+						squares.add(square)
+
+						if self != board[square]:
+							break
+
+					except ValueError:
+						break
+
+		return squares
 
 
 class Melee(Officer):
 
-	@property
-	def squares(self) -> set[Square]:
-		squares = set()
-
-		if self.square is not None:
-			for move in self.moves | self.capts:
-				try:
-					square = self.square + move
-					squares.add(square)
-
-				except ValueError:
-					continue
-
-			if not self.moved:
-				for spec in self.specs:
-					try:
-						square = self.square + spec
-						squares.add(square)
-
-					except ValueError:
-						continue
-
-		return squares
+	range: int = 1
 
 
 class Ranged(Officer):
 
-	@property
-	def squares(self) -> set[Square]:
-		squares = set()
-
-		if self.square is not None:
-			for move in self.moves | self.capts:
-				while True:
-					try:
-						square = self.square + move
-						squares.add(square)
-
-					except ValueError:
-						continue
-
-			if not self.moved:
-				for spec in self.specs:
-					while True:
-						try:
-							square = self.square + spec
-							squares.add(square)
-
-						except ValueError:
-							continue
-
-		return squares
+	range: int = 8
 
 
 class Pawn(Piece):
@@ -126,15 +112,9 @@ class Pawn(Piece):
 		Difference.SE,
 		Difference.SW,
 	}
-	specs = {
-		Difference.S2,
-	}
-
-	def promote(self, other: Officer):
-		if not isinstance(other, Officer):
-			raise ValueError
-
-		# CODE to swap refs between self and other
+#	specs = {
+#		Difference.S2,
+#	}
 
 
 class Rook(Ranged):
@@ -200,11 +180,3 @@ class King(Melee, Queen):
 		Difference.E2,
 		Difference.W2,
 	}
-
-
-class Move:
-
-	def __init__(self, piece: Piece, square: Square):
-		self.piece = piece
-		self.source = self.piece.square
-		self.target = square

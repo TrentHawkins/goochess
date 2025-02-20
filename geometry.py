@@ -146,6 +146,10 @@ class Square(int, Enum):
 	def __invert__(self) -> Square:
 		return Square(self ^ 0o70)
 
+	def __iadd__(self, other: int   ) -> Square: return self + other
+	def __isub__(self, other: Square) -> int   : return self - other
+	def __imul__(self, color: Color ) -> Square: return self * color
+
 
 	@classmethod
 	def fromnotation(cls, notation: str) -> Square:
