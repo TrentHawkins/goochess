@@ -133,8 +133,11 @@ class Pawn(Piece):
 		if self.square is not None:
 			for move in self.moves:
 				try:
-					if board[square := self.square + move * self.color] is None:
+					if board[square := self.square + (move := move * self.color)] is None:
 						squares.add(square)
+
+					if not self.moved:
+						squares.add(square + move)  # HACK
 
 				except ValueError:
 					continue
