@@ -98,9 +98,9 @@ class Difference(int, Enum):
 
 		return representation
 
-	def __add__(self, other: Difference) -> Difference: return Difference(super().__add__(other))
-	def __sub__(self, other: Difference) -> Difference: return Difference(super().__sub__(other))
-	def __mul__(self, other: Difference) -> Difference: return Difference(super().__mul__(other))
+	def __add__(self, other: int) -> Difference: return Difference(super().__add__(other))
+	def __sub__(self, other: int) -> Difference: return Difference(super().__sub__(other))
+	def __mul__(self, other: int) -> Difference: return Difference(super().__mul__(other))
 
 	def __pos__(self) -> Difference: return Difference(+super())
 	def __neg__(self) -> Difference: return Difference(-super())
@@ -119,10 +119,10 @@ class Square(int, Enum):
 	A1 = 0o70; B1 = 0o71; C1 = 0o72; D1 = 0o73; E1 = 0o74; F1 = 0o75; G1 = 0o76; H1 = 0o77;  # 1
 
 
-#	def __repr__(self) -> str:
-#		return self.name.lower()
-
 	def __repr__(self) -> str:
+		return self.name.lower()
+
+	def __str__(self) -> str:
 		representation = "▌ ▐"
 
 		black = DEFAULT.square.black if self.color else DEFAULT.square.white
@@ -145,6 +145,10 @@ class Square(int, Enum):
 
 	def __invert__(self) -> Square:
 		return Square(self ^ 0o70)
+
+	def __iadd__(self, other: int   ) -> Square: return self + other
+	def __isub__(self, other: Square) -> int   : return self - other
+	def __imul__(self, color: Color ) -> Square: return self * color
 
 
 	@classmethod
