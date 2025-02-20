@@ -21,7 +21,7 @@ class Piece:
 	white: str = " "
 
 	moves: set[Difference] = set()
-#	capts: set[Difference] = set()
+	capts: set[Difference] = set()
 #	specs: set[Difference] = set()
 
 
@@ -29,7 +29,7 @@ class Piece:
 		super().__init_subclass__(*args, **kwargs)
 
 		cls.moves = cls.moves.union(*(base.moves for base in cls.__bases__))
-		cls.capts = cls.capts.union(*(base.moves for base in cls.__bases__)) if cls.capts else cls.moves
+		cls.capts = cls.capts.union(*(base.moves for base in cls.__bases__))
 	#	cls.specs = cls.specs.union(*(base.moves for base in cls.__bases__))
 
 	#	cls.value += sum(base.value for base in cls.__bases__)
@@ -69,7 +69,7 @@ class Officer(Piece):
 		squares = super().squares
 
 		if self.square is not None:
-			for move in self.moves:
+			for move in self.moves | self.capts:
 				square = self.square
 
 				for _ in range(self.range):
