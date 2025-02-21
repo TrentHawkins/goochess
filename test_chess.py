@@ -1,4 +1,9 @@
-from chess import Square, King, Game
+from __future__ import annotations
+
+
+from chess.geometry import Square
+from chess.material import King
+from chess.engine import Game
 
 
 def test_board_side_ref():

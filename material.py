@@ -5,11 +5,12 @@ from itertools import product
 from typing import TYPE_CHECKING
 from weakref import ref as weakref
 
-from chess import DEFAULT
-from chess import Color, Square, Difference
+from chess.theme import DEFAULT
+from chess.geometry import Color, Square, Difference, Difference
+from chess.rules import Move, Capt, Castle
 
 if TYPE_CHECKING:
-	from chess import Board
+	from chess.engine import Game
 
 
 class Piece:
@@ -22,25 +23,25 @@ class Piece:
 
 	moves: set[Difference] = set()
 	capts: set[Difference] = set()
-#	specs: set[Difference] = set()
+	specs: set[Difference] = set()
 
 
 	def __init_subclass__(cls, *args, **kwargs):
 		super().__init_subclass__(*args, **kwargs)
 
 		cls.moves = cls.moves.union(*(base.moves for base in cls.__bases__))
-		cls.capts = cls.capts.union(*(base.moves for base in cls.__bases__))
-	#	cls.specs = cls.specs.union(*(base.moves for base in cls.__bases__))
+		cls.capts = cls.capts.union(*(base.moves for base in cls.__bases__)) if not cls.capts else cls.moves
+		cls.specs = cls.specs.union(*(base.moves for base in cls.__bases__))
 
 	#	cls.value += sum(base.value for base in cls.__bases__)
 
 
-	def __init__(self, color: Color, board: Board,
+	def __init__(self, color: Color, game: Game,
 		square: Square | None = None,
 	):
 		self.color = color
 		self.square = square
-		self.board = weakref(board)
+		self.game = weakref(game)
 
 		self.turn: int = 0
 		self.moved: bool = False
@@ -58,14 +59,13 @@ class Piece:
 	def squares(self) -> set[Square]:
 		return set()
 
-
 	def move(self, square: Square):
-		assert (board := self.board()) is not None
+		assert (game := self.game()) is not None
 
 		if square not in self.squares or self.square is None:
 			raise ValueError(f"invalid move of {repr(self)} from {repr(self.square)} to {repr(square)}")
 
-		board[self.square], board[square] = None, self
+		game[self.square], game[square] = None, self
 		self.moved = True
 
 
@@ -73,8 +73,6 @@ class Officer(Piece):
 
 	@property
 	def squares(self) -> set[Square]:
-		assert (board := self.board()) is not None
-
 		squares = super().squares
 
 		if self.square is not None:
@@ -85,12 +83,12 @@ class Officer(Piece):
 					try:
 						square += move
 
-						if (other := board[square]) is not None and self.color == other.color:
+						if not Move(self, square):
 							break
 
 						squares.add(square)
 
-						if (other := board[square]) is not None and self.color != other.color:
+						if not Capt(self, square):
 							break
 
 					except ValueError:
@@ -123,32 +121,28 @@ class Pawn(Piece):
 		Difference.SE,
 		Difference.SW,
 	}
-#	specs = {
-#		Difference.S2,
-#	}
 
 
 	@property
 	def squares(self) -> set[Square]:
-		assert (board := self.board()) is not None
-
 		squares = super().squares
 
 		if self.square is not None:
 			for move in self.moves:
 				try:
-					if board[square := self.square + (move := move * self.color)] is None:
+					if Move(self, square := self.square + move * self.color):
 						squares.add(square)
 
 					if not self.moved:
-						squares.add(square + move)  # HACK
+						if Move(self, square := square + move * self.color):
+							squares.add(square)
 
 				except ValueError:
 					continue
 
 			for move in self.capts:
 				try:
-					if (other := board[square := self.square + move * self.color]) is not None and self.color != other.color:
+					if Capt(self, square := self.square + move * self.color):
 						squares.add(square)
 
 				except ValueError:
@@ -221,7 +215,16 @@ class King(Melee, Queen):
 	black: str = "\u265a"
 	white: str = "\u2654"
 
-#	specs: set[Difference] = {
-#		Difference.E2,
-#		Difference.W2,
-#	}
+	specs: set[Difference] = {
+		Difference.E2,
+		Difference.W2,
+	}
+
+
+	def safe(self,
+		square: Square | None = None
+	) -> bool:
+		if square is None:
+			square = self.square
+
+		return True

@@ -6,9 +6,8 @@ from os import linesep
 from typing import Iterable
 from weakref import ref as weakref
 
-from chess import DEFAULT
-from chess import Color, File, Difference, Square
-from chess import Piece, Pawn, Rook, Bishop, Knight, Queen, King
+from chess.geometry import Color, File, Difference, Square
+from chess.material import Piece, Pawn, Rook, Bishop, Knight, Queen, King
 
 
 class Board(list[Piece | None]):

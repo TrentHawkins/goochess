@@ -4,7 +4,7 @@ from __future__ import annotations
 from enum import Enum
 from re import compile
 
-from chess import DEFAULT
+from chess.theme import DEFAULT
 
 
 class Color(int, Enum):
@@ -50,6 +50,10 @@ class Rank(int, Enum):
 
 	def __repr__(self) -> str:
 		return self.name.strip("_").lower()
+
+
+	def final(self, color: Color) -> Rank:
+		return self._1 if color else self._8
 
 
 class Difference(int, Enum):
@@ -102,6 +106,8 @@ class Difference(int, Enum):
 	def __sub__(self, other: int) -> Difference: return Difference(super().__sub__(other))
 	def __mul__(self, other: int) -> Difference: return Difference(super().__mul__(other))
 
+	def __floordiv__(self, other: int) -> Difference: return Difference(super().__floordiv__(other))
+
 	def __pos__(self) -> Difference: return Difference(+super())
 	def __neg__(self) -> Difference: return Difference(-super())
 
@@ -135,10 +141,10 @@ class Square(int, Enum):
 		return DEFAULT.inv(white.fg(representation))
 
 
-	def __add__(self, other: int   ) -> Square: return Square(super().__add__(other))
-	def __sub__(self, other: Square) -> int   : return        super().__sub__(other)
-	def __mul__(self, color: Color ) -> Square:
-		return +self if color else -self
+	def __add__(self, other: Difference) -> Square    : return Square    (super().__add__(other))
+	def __sub__(self, other: Square    ) -> Difference: return Difference(super().__sub__(other))
+	def __mul__(self, color: Color     ) -> Square    :
+		return +self if color else ~self
 
 	def __pos__(self) -> Square: return Square(       self)
 	def __neg__(self) -> Square: return Square(0o77 - self)
@@ -146,9 +152,9 @@ class Square(int, Enum):
 	def __invert__(self) -> Square:
 		return Square(self ^ 0o70)
 
-	def __iadd__(self, other: int   ) -> Square: return self + other
-	def __isub__(self, other: Square) -> int   : return self - other
-	def __imul__(self, color: Color ) -> Square: return self * color
+	def __iadd__(self, other: Difference) -> Square    : return self + other
+	def __isub__(self, other: Square    ) -> Difference: return self - other
+	def __imul__(self, color: Color     ) -> Square    : return self * color
 
 
 	@classmethod

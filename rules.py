@@ -1,54 +1,47 @@
 from __future__ import annotations
 
 
+from typing import TYPE_CHECKING
 from weakref import ref as weakref
 
-from chess import Square
-from chess import Piece
-from chess import Board
+from chess.geometry import Square
+
+if TYPE_CHECKING:
+	from chess.material import Piece, Pawn, Officer
 
 
-class Move(int):
+class Move:
 
-	__slots__ = ("piece", "square")
+	def __init__(self, piece: Piece, square: Square):
+		self.piece = piece
 
+		assert self.piece.square is not None
 
-	def __new__(cls, piece: Piece, square: Square):
-		assert piece.square is not None
-
-		move = super().__new__(cls, square - piece.square)
-
-		move.piece = piece
-		move.square = square
-
-		return move
-
+		self.source = self.piece.square
+		self.target = square
 
 	def __bool__(self) -> bool:
-		assert (board := self.piece.board()) is not None
-		return (other := board[self.square]) is     None
+		assert (board := self.piece.game()) is not None
+		return (other := board[self.target]) is     None
 
 
-class Capture(Move):
+class Capt(Move):
 
 	def __bool__(self) -> bool:
-		assert (board := self.piece.board()) is not None
-		return (other := board[self.square]) is not None and self.piece.color != other.color
+		assert (board := self.piece.game()) is not None
+		return (other := board[self.target]) is not None and self.piece.color != other.color
 
 
-class Rush(Move):
+class Promote(Move):
 
-	...
+	def __init__(self, pawn: Pawn, square: Square, officer: Officer):
+		super().__init__(pawn, square)
 
+		self.officer = officer
 
-class EnPassant(Capture):
-
-	...
-
-
-class Promotion(Move):
-
-	...
+	def __bool__(self) -> bool:
+		assert (board := self.piece.game()) is not None
+		return self.officer.square is None and super().__bool__()
 
 
 class Castle(Move):
