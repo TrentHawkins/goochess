@@ -67,32 +67,34 @@ class Board(list[Piece | None]):
 class Side(list[Piece]):
 
 	def __init__(self, color: Color, game: Game):
+		self.game = game
+
 		super().__init__(
 			[
-				Rook  (color, game),
-				Knight(color, game),
-				Bishop(color, game),
-				Queen (color, game) if color else
-				King  (color, game),
-				King  (color, game) if color else
-				Queen (color, game),
-				Bishop(color, game),
-				Knight(color, game),
-				Rook  (color, game),
+				Rook  (color, self.game),
+				Knight(color, self.game),
+				Bishop(color, self.game),
+				Queen (color, self.game) if color else
+				King  (color, self.game),
+				King  (color, self.game) if color else
+				Queen (color, self.game),
+				Bishop(color, self.game),
+				Knight(color, self.game),
+				Rook  (color, self.game),
 
-				Pawn  (color, game),
-				Pawn  (color, game),
-				Pawn  (color, game),
-				Pawn  (color, game),
-				Pawn  (color, game),
-				Pawn  (color, game),
-				Pawn  (color, game),
-				Pawn  (color, game),
+				Pawn  (color, self.game),
+				Pawn  (color, self.game),
+				Pawn  (color, self.game),
+				Pawn  (color, self.game),
+				Pawn  (color, self.game),
+				Pawn  (color, self.game),
+				Pawn  (color, self.game),
+				Pawn  (color, self.game),
 			]
 		)
 
-		self.game = weakref(game)
 		self.king = self[Square.E8 if color else Square.D8]
+		self.ghost = Piece(color, self.game)
 
 
 	@property
