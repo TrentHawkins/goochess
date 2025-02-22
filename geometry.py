@@ -141,9 +141,9 @@ class Square(int, enum.Enum):
 		return chess.theme.DEFAULT.inv(white.fg(representation))
 
 
-	def __add__(self, other: Difference) -> Square    : return Square    (super().__add__(other))
-	def __sub__(self, other: Square    ) -> Difference: return Difference(super().__sub__(other))
-	def __mul__(self, color: Color     ) -> Square    :
+	def __add__(self, other: int   ) -> Square: return Square    (super().__add__(other))
+	def __sub__(self, other: Square) -> int   : return            super().__sub__(other)
+	def __mul__(self, color: Color ) -> Square:
 		return +self if color else ~self
 
 	def __pos__(self) -> Square: return Square(       self)
@@ -152,9 +152,9 @@ class Square(int, enum.Enum):
 	def __invert__(self) -> Square:
 		return Square(self ^ 0o70)
 
-	def __iadd__(self, other: Difference) -> Square    : return self + other
-	def __isub__(self, other: Square    ) -> Difference: return self - other
-	def __imul__(self, color: Color     ) -> Square    : return self * color
+	def __iadd__(self, other: int   ) -> Square: return self + other
+	def __isub__(self, other: Square) -> int   : return self - other
+	def __imul__(self, color: Color ) -> Square: return self * color
 
 
 	@classmethod
