@@ -71,23 +71,43 @@ class Promote(Move):
 
 class Castle(Rule):
 
+	steps: set[chess.geometry.Difference]
+
+
 	def __bool__(self) -> bool:
-		return not self.side.king.moved
+		assert self.side.king.square is not None
+		return not self.side.king.moved and not {self.side.king.square + step for step in self.steps} <= self.side.opponent.squares
 
 
 class CastleLong(Castle):
+
+	steps: set[chess.geometry.Difference] = {
+		chess.geometry.Difference.O,
+		chess.geometry.Difference.W, chess.geometry.Difference.W2,
+	}
+
+	def __init__(self, *args):
+		super().__init__(*args)
+
+		assert self.side.king.square is not None
+		self.rook = self.game[chess.geometry.Square(self.side.king.square.rank + chess.geometry.File.A_)]
 
 	def __repr__(self) -> str:
 		return "O-O-O"
 
 	def __bool__(self) -> bool:
-		return super().__bool__()
+		return not self.side.left_rook.moved and super().__bool__()
 
 
 class CastleShort(Castle):
+
+	steps: set[chess.geometry.Difference] = {
+		chess.geometry.Difference.O,
+		chess.geometry.Difference.E, chess.geometry.Difference.E2,
+	}
 
 	def __repr__(self) -> str:
 		return "O-O"
 
 	def __bool__(self) -> bool:
-		return super().__bool__()
+		return not self.side.right_rook.moved and super().__bool__()

@@ -207,11 +207,6 @@ class King(Melee, Queen):
 	black: str = "\u265a"
 	white: str = "\u2654"
 
-	specs: set[chess.geometry.Difference] = {
-		chess.geometry.Difference.E2,
-		chess.geometry.Difference.W2,
-	}
-
 
 	@property
 	def squares(self) -> set[chess.geometry.Square]:

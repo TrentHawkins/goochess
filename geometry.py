@@ -58,6 +58,8 @@ class Rank(int, enum.Enum):
 
 class Difference(int, enum.Enum):
 
+	O =  0o00  # null
+
 	N = -0o10  # king queen rook pawn(white)
 	E = +0o01  # king queen rook
 	S = +0o10  # king queen rook pawn(black)

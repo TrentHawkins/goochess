@@ -94,15 +94,32 @@ class Side(list[chess.material.Piece]):
 		)
 
 		self.ghost = chess.material.Piece(game, self)
+
 		self.king = self[
 			chess.geometry.Square.E8 if color else
 			chess.geometry.Square.D8
+		]
+		self.left_rook = self[
+			chess.geometry.Square.A8 if color else
+			chess.geometry.Square.H8
+		]
+		self.right_rook = self[
+			chess.geometry.Square.A8 if color else
+			chess.geometry.Square.H8
 		]
 
 
 	@property
 	def material(self) -> int:
 		return sum(piece.value for piece in self if piece.square is not None)
+
+	@property
+	def squares(self) -> set[chess.geometry.Square]:
+		return NotImplemented
+
+	@property
+	def opponent(self) -> Side:
+		return self.game.white if self is self.game.black else self.game.black
 
 
 class Game(Board):
