@@ -4,7 +4,6 @@ from __future__ import annotations
 from datetime import datetime
 from os import linesep
 from typing import Iterable
-from weakref import ref as weakref
 
 from chess.geometry import Color, File, Difference, Square
 from chess.material import Piece, Pawn, Rook, Bishop, Knight, Queen, King
@@ -71,30 +70,30 @@ class Side(list[Piece]):
 
 		super().__init__(
 			[
-				Rook  (color, self.game),
-				Knight(color, self.game),
-				Bishop(color, self.game),
-				Queen (color, self.game) if color else
-				King  (color, self.game),
-				King  (color, self.game) if color else
-				Queen (color, self.game),
-				Bishop(color, self.game),
-				Knight(color, self.game),
-				Rook  (color, self.game),
+				Rook  (color),
+				Knight(color),
+				Bishop(color),
+				Queen (color) if color else
+				King  (color),
+				King  (color) if color else
+				Queen (color),
+				Bishop(color),
+				Knight(color),
+				Rook  (color),
 
-				Pawn  (color, self.game),
-				Pawn  (color, self.game),
-				Pawn  (color, self.game),
-				Pawn  (color, self.game),
-				Pawn  (color, self.game),
-				Pawn  (color, self.game),
-				Pawn  (color, self.game),
-				Pawn  (color, self.game),
+				Pawn  (color),
+				Pawn  (color),
+				Pawn  (color),
+				Pawn  (color),
+				Pawn  (color),
+				Pawn  (color),
+				Pawn  (color),
+				Pawn  (color),
 			]
 		)
 
 		self.king = self[Square.E8 if color else Square.D8]
-		self.ghost = Piece(color, self.game)
+		self.ghost = Piece(color)
 
 
 	@property

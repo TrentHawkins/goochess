@@ -2,15 +2,10 @@ from __future__ import annotations
 
 
 from itertools import product
-from typing import TYPE_CHECKING
-from weakref import ref as weakref
 
 from chess.theme import DEFAULT
 from chess.geometry import Color, Square, Difference, Difference
 from chess.rules import Move, Capt, Castle
-
-if TYPE_CHECKING:
-	from chess.engine import Game
 
 
 class Piece:
@@ -36,12 +31,11 @@ class Piece:
 	#	cls.value += sum(base.value for base in cls.__bases__)
 
 
-	def __init__(self, color: Color, game: Game,
+	def __init__(self, color: Color,
 		square: Square | None = None,
 	):
 		self.color = color
 		self.square = square
-		self.game = weakref(game)
 
 		self.turn: int = 0
 		self.moved: bool = False
@@ -58,15 +52,6 @@ class Piece:
 	@property
 	def squares(self) -> set[Square]:
 		return set()
-
-	def move(self, square: Square):
-		assert (game := self.game()) is not None
-
-		if square not in self.squares or self.square is None:
-			raise ValueError(f"invalid move of {repr(self)} from {repr(self.square)} to {repr(square)}")
-
-		game[self.square], game[square] = None, self
-		self.moved = True
 
 
 class Officer(Piece):

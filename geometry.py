@@ -52,8 +52,8 @@ class Rank(int, Enum):
 		return self.name.strip("_").lower()
 
 
-	def final(self, color: Color) -> Rank:
-		return self._1 if color else self._8
+	def final(self, color: Color) -> bool:
+		return self == self._1 if color else self == self._8
 
 
 class Difference(int, Enum):
