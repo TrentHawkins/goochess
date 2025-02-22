@@ -71,41 +71,41 @@ class Side(list[chess.material.Piece]):
 
 		super().__init__(
 			[
-				chess.material.Rook  (game, self),
-				chess.material.Knight(game, self),
-				chess.material.Bishop(game, self),
-				chess.material.Queen (game, self) if color else
-				chess.material.King  (game, self),
-				chess.material.King  (game, self) if color else
-				chess.material.Queen (game, self),
-				chess.material.Bishop(game, self),
-				chess.material.Knight(game, self),
-				chess.material.Rook  (game, self),
+				chess.material.Rook  (self.game, self),
+				chess.material.Knight(self.game, self),
+				chess.material.Bishop(self.game, self),
+				chess.material.Queen (self.game, self) if self.color else
+				chess.material.King  (self.game, self),
+				chess.material.King  (self.game, self) if self.color else
+				chess.material.Queen (self.game, self),
+				chess.material.Bishop(self.game, self),
+				chess.material.Knight(self.game, self),
+				chess.material.Rook  (self.game, self),
 
-				chess.material.Pawn  (game, self),
-				chess.material.Pawn  (game, self),
-				chess.material.Pawn  (game, self),
-				chess.material.Pawn  (game, self),
-				chess.material.Pawn  (game, self),
-				chess.material.Pawn  (game, self),
-				chess.material.Pawn  (game, self),
-				chess.material.Pawn  (game, self),
+				chess.material.Pawn  (self.game, self),
+				chess.material.Pawn  (self.game, self),
+				chess.material.Pawn  (self.game, self),
+				chess.material.Pawn  (self.game, self),
+				chess.material.Pawn  (self.game, self),
+				chess.material.Pawn  (self.game, self),
+				chess.material.Pawn  (self.game, self),
+				chess.material.Pawn  (self.game, self),
 			]
 		)
 
-		self.ghost = chess.material.Piece(game, self)
+		self.ghost = chess.material.Piece(self.game, self)
 
 		self.king = self[
-			chess.geometry.Square.E8 if color else
+			chess.geometry.Square.E8 if self.color else
 			chess.geometry.Square.D8
 		]
 		self.left_rook = self[
-			chess.geometry.Square.A8 if color else
+			chess.geometry.Square.A8 if self.color else
 			chess.geometry.Square.H8
 		]
 		self.right_rook = self[
-			chess.geometry.Square.A8 if color else
-			chess.geometry.Square.H8
+			chess.geometry.Square.H8 if self.color else
+			chess.geometry.Square.A8
 		]
 
 
