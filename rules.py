@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 
-import dataclasses
 import typing
 
 import chess.geometry
@@ -10,28 +9,31 @@ if typing.TYPE_CHECKING: import chess.material
 if typing.TYPE_CHECKING: import chess.engine
 
 
-@dataclasses.dataclass
 class Rule:
 
-	game: chess.engine.Game
-	side: chess.engine.Side
+	def __init__(self,
+		game: chess.engine.Game,
+		side: chess.engine.Side,
+	):
+		self.game = game
+		self.side = side
 
 
-@dataclasses.dataclass
-class Move:
+class Move(Rule):
 
-	piece: chess.material.Piece
-	square: chess.geometry.Square
+	def __init__(self,
+		piece: chess.material.Piece,
+		square: chess.geometry.Square,
+	):
+		self.piece = piece
 
-
-	def __post_init__(self):
 		self.game = self.piece.game
 		self.side = self.piece.side
 
 		assert self.piece.square is not None
 
 		self.source = self.piece.square
-		self.target = self.square
+		self.target = square
 
 	def __repr__(self) -> str:
 		return repr(self.piece) + repr(self.source) + "-" + repr(self.target)
@@ -40,7 +42,6 @@ class Move:
 		return self.game[self.target] is None
 
 
-@dataclasses.dataclass
 class Capt(Move):
 
 	def __repr__(self) -> str:
@@ -50,7 +51,12 @@ class Capt(Move):
 		return (other := self.game[self.target]) is not None and self.piece.color != other.color
 
 
-@dataclasses.dataclass
+class Rush(Move):
+
+	def __bool__(self) -> bool:
+		return not self.piece.moved and super().__bool__()
+
+
 class Promote(Move):
 
 	rank: type[chess.material.Officer]
@@ -63,21 +69,25 @@ class Promote(Move):
 		return self.target.rank.final(self.piece.color) and super().__bool__()
 
 
-@dataclasses.dataclass
-class CastleLong(Rule):
+class Castle(Rule):
+
+	def __bool__(self) -> bool:
+		return not self.side.king.moved
+
+
+class CastleLong(Castle):
 
 	def __repr__(self) -> str:
 		return "O-O-O"
 
 	def __bool__(self) -> bool:
-		return not self.side.king.moved
+		return super().__bool__()
 
 
-@dataclasses.dataclass
-class CastleShort(Rule):
+class CastleShort(Castle):
 
 	def __repr__(self) -> str:
 		return "O-O"
 
 	def __bool__(self) -> bool:
-		return not self.side.king.moved
+		return super().__bool__()
