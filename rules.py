@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 
+import dataclasses
 import typing
 
 import chess.geometry
@@ -9,70 +10,77 @@ if typing.TYPE_CHECKING: import chess.material
 if typing.TYPE_CHECKING: import chess.engine
 
 
+@dataclasses.dataclass
 class Move:
 
-	def __init__(self, piece: chess.material.Piece, square: chess.geometry.Square):
-		self.piece = piece
+	game: chess.engine.Game
+	piece: chess.material.Piece
+	square: chess.geometry.Square
 
+
+	def __post_init__(self):
 		assert self.piece.square is not None
 
 		self.source = self.piece.square
-		self.target = square
+		self.target = self.square
 
 	def __repr__(self) -> str:
 		return repr(self.piece) + repr(self.source) + "-" + repr(self.target)
 
 
-	def valid(self, game: chess.engine.Game) -> bool:
-		return game[self.target] is None
+	def __bool__(self) -> bool:
+		return self.game[self.target] is None
 
 
+@dataclasses.dataclass
 class Capt(Move):
 
 	def __repr__(self) -> str:
 		return super().__repr__().replace("-", "×")
 
 
-	def valid(self, game: chess.engine.Game) -> bool:
-		return (other := game[self.target]) is not None and self.piece.color != other.color
+	def __bool__(self) -> bool:
+		return (other := self.game[self.target]) is not None and self.piece.color != other.color
 
 
+@dataclasses.dataclass
 class Promote(Move):
 
-	def __init__(self, pawn: chess.material.Pawn, square: chess.geometry.Square, rank: type[chess.material.Officer]):
-		super().__init__(pawn, square)
+	rank: type[chess.material.Officer]
 
-		self.officer = rank(self.piece.color)
 
 	def __repr__(self) -> str:
-		return super().__repr__() + repr(self.officer)
+		return super().__repr__() + repr(self.rank)
 
 
-	def valid(self, game: chess.engine.Game) -> bool:
-		return self.target.rank.final(self.piece.color) and super().valid(game)
+	def __bool__(self) -> bool:
+		return self.target.rank.final(self.piece.color) and super().__bool__()
 
 
+@dataclasses.dataclass
 class Castle(Move):
 
-	def __init__(self, king: chess.material.King, square: chess.geometry.Square, rook: chess.material.Rook):
-		super().__init__(king, square)
-
-		self.rook = rook
+	def __bool__(self) -> bool:
+		...
 
 
-class CastleL(Move):
-
-	def __init__(self, king: chess.material.King):
-		assert king.square is not None
-
-		super().__init__(king, king.square + chess.geometry.Difference.W2)
-
+@dataclasses.dataclass
+class CastleL(Castle):
 
 	def __repr__(self) -> str:
 		return "O-O-O"
 
 
+	def __bool__(self) -> bool:
+		...
+
+
+@dataclasses.dataclass
 class CastleS(Castle):
 
 	def __repr__(self) -> str:
 		return "O-O"
+
+
+	def __bool__(self) -> bool:
+		...

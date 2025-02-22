@@ -70,30 +70,30 @@ class Side(list[chess.material.Piece]):
 
 		super().__init__(
 			[
-				chess.material.Rook  (color),
-				chess.material.Knight(color),
-				chess.material.Bishop(color),
-				chess.material.Queen (color) if color else
-				chess.material.King  (color),
-				chess.material.King  (color) if color else
-				chess.material.Queen (color),
-				chess.material.Bishop(color),
-				chess.material.Knight(color),
-				chess.material.Rook  (color),
+				chess.material.Rook  (self.game, color),
+				chess.material.Knight(self.game, color),
+				chess.material.Bishop(self.game, color),
+				chess.material.Queen (self.game, color) if color else
+				chess.material.King  (self.game, color),
+				chess.material.King  (self.game, color) if color else
+				chess.material.Queen (self.game, color),
+				chess.material.Bishop(self.game, color),
+				chess.material.Knight(self.game, color),
+				chess.material.Rook  (self.game, color),
 
-				chess.material.Pawn  (color),
-				chess.material.Pawn  (color),
-				chess.material.Pawn  (color),
-				chess.material.Pawn  (color),
-				chess.material.Pawn  (color),
-				chess.material.Pawn  (color),
-				chess.material.Pawn  (color),
-				chess.material.Pawn  (color),
+				chess.material.Pawn  (self.game, color),
+				chess.material.Pawn  (self.game, color),
+				chess.material.Pawn  (self.game, color),
+				chess.material.Pawn  (self.game, color),
+				chess.material.Pawn  (self.game, color),
+				chess.material.Pawn  (self.game, color),
+				chess.material.Pawn  (self.game, color),
+				chess.material.Pawn  (self.game, color),
 			]
 		)
 
 		self.king = self[chess.geometry.Square.E8 if color else chess.geometry.Square.D8]
-		self.ghost = chess.material.Piece(color)
+		self.ghost = chess.material.Piece(self.game, color)
 
 
 	@property

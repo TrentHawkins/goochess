@@ -1,10 +1,10 @@
 from __future__ import annotations
 
 
-from dataclasses import dataclass
+import dataclasses
 
 
-@dataclass
+@dataclasses.dataclass
 class RGB:
 
 	R: int
@@ -35,7 +35,7 @@ class RGB:
 		return f"\x1b[48;2;{self}m{obj}\x1b[49m"
 
 
-@dataclass
+@dataclasses.dataclass
 class Palette:
 
 	black: RGB
@@ -53,7 +53,7 @@ class Palette:
 		)
 
 
-@dataclass
+@dataclasses.dataclass
 class Theme:
 
 	square: Palette
