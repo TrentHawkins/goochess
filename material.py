@@ -21,7 +21,6 @@ class Piece:
 
 	moves: set[chess.geometry.Difference] = set()
 	capts: set[chess.geometry.Difference] = set()
-	specs: set[chess.geometry.Difference] = set()
 
 
 	def __init_subclass__(cls, *args, **kwargs):
@@ -29,17 +28,19 @@ class Piece:
 
 		cls.moves = cls.moves.union(*(base.moves for base in cls.__bases__))
 		cls.capts = cls.capts.union(*(base.moves for base in cls.__bases__)) if not cls.capts else cls.moves
-		cls.specs = cls.specs.union(*(base.moves for base in cls.__bases__))
 
 	#	cls.value += sum(base.value for base in cls.__bases__)
 
 
-	def __init__(self, game: chess.engine.Game, color: chess.geometry.Color,
-		square: chess.geometry.Square | None = None,
+	def __init__(self,
+		game: chess.engine.Game,
+		side: chess.engine.Side, square: chess.geometry.Square | None = None,
 	):
 		self.game = game
-		self.color = color
+		self.side = side
+
 		self.square = square
+		self.color = self.side.color
 
 		self.turn: int = 0
 		self.moved: bool = False
@@ -72,12 +73,12 @@ class Officer(Piece):
 					try:
 						square += move
 
-						if not chess.rules.Move(self.game, self, square):
+						if not chess.rules.Move(self, square):
 							break
 
 						squares.add(square)
 
-						if not chess.rules.Capt(self.game, self, square):
+						if not chess.rules.Capt(self, square):
 							break
 
 					except ValueError:
@@ -104,7 +105,7 @@ class Pawn(Piece):
 	white: str = "\u2659"
 
 	moves = {
-		chess.geometry.Difference.S ,
+		chess.geometry.Difference.S,
 	}
 	capts = {
 		chess.geometry.Difference.SE,
@@ -119,11 +120,11 @@ class Pawn(Piece):
 		if self.square is not None:
 			for move in self.moves:
 				try:
-					if chess.rules.Move(self.game, self, square := self.square + move * self.color):
+					if chess.rules.Move(self, square := self.square + move * self.color):
 						squares.add(square)
 
 					if not self.moved:
-						if chess.rules.Move(self.game, self, square := square + move * self.color):
+						if chess.rules.Move(self, square := square + move * self.color):
 							squares.add(square)
 
 				except ValueError:
@@ -131,7 +132,7 @@ class Pawn(Piece):
 
 			for move in self.capts:
 				try:
-					if chess.rules.Capt(self.game, self, square := self.square + move * self.color):
+					if chess.rules.Capt(self, square := self.square + move * self.color):
 						squares.add(square)
 
 				except ValueError:
@@ -217,9 +218,8 @@ class King(Melee, Queen):
 		squares = super().squares
 
 		if self.square is not None:
-			for spec in self.specs:
-				if chess.rules.Castle(self.game, self, square := self.square + spec):
-					squares.add(square)
+			if chess.rules.CastleShort(self.game, self.side): squares.add(self.square + chess.geometry.Difference.E2)
+			if chess.rules.CastleLong (self.game, self.side): squares.add(self.square + chess.geometry.Difference.W2)
 
 		return squares
 

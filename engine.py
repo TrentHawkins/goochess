@@ -65,35 +65,39 @@ class Board(list[chess.material.Piece | None]):
 
 class Side(list[chess.material.Piece]):
 
-	def __init__(self, color: chess.geometry.Color, game: Game):
+	def __init__(self, game: Game, color: chess.geometry.Color):
 		self.game = game
+		self.color = color
 
 		super().__init__(
 			[
-				chess.material.Rook  (self.game, color),
-				chess.material.Knight(self.game, color),
-				chess.material.Bishop(self.game, color),
-				chess.material.Queen (self.game, color) if color else
-				chess.material.King  (self.game, color),
-				chess.material.King  (self.game, color) if color else
-				chess.material.Queen (self.game, color),
-				chess.material.Bishop(self.game, color),
-				chess.material.Knight(self.game, color),
-				chess.material.Rook  (self.game, color),
+				chess.material.Rook  (game, self),
+				chess.material.Knight(game, self),
+				chess.material.Bishop(game, self),
+				chess.material.Queen (game, self) if color else
+				chess.material.King  (game, self),
+				chess.material.King  (game, self) if color else
+				chess.material.Queen (game, self),
+				chess.material.Bishop(game, self),
+				chess.material.Knight(game, self),
+				chess.material.Rook  (game, self),
 
-				chess.material.Pawn  (self.game, color),
-				chess.material.Pawn  (self.game, color),
-				chess.material.Pawn  (self.game, color),
-				chess.material.Pawn  (self.game, color),
-				chess.material.Pawn  (self.game, color),
-				chess.material.Pawn  (self.game, color),
-				chess.material.Pawn  (self.game, color),
-				chess.material.Pawn  (self.game, color),
+				chess.material.Pawn  (game, self),
+				chess.material.Pawn  (game, self),
+				chess.material.Pawn  (game, self),
+				chess.material.Pawn  (game, self),
+				chess.material.Pawn  (game, self),
+				chess.material.Pawn  (game, self),
+				chess.material.Pawn  (game, self),
+				chess.material.Pawn  (game, self),
 			]
 		)
 
-		self.king = self[chess.geometry.Square.E8 if color else chess.geometry.Square.D8]
-		self.ghost = chess.material.Piece(self.game, color)
+		self.ghost = chess.material.Piece(game, self)
+		self.king = self[
+			chess.geometry.Square.E8 if color else
+			chess.geometry.Square.D8
+		]
 
 
 	@property
@@ -106,8 +110,8 @@ class Game(Board):
 	def __init__(self):
 		super().__init__()
 
-		self.black = Side(chess.geometry.Color.BLACK, self)
-		self.white = Side(chess.geometry.Color.WHITE, self)
+		self.black = Side(self, chess.geometry.Color.BLACK)
+		self.white = Side(self, chess.geometry.Color.WHITE)
 
 		self[+chess.geometry.Square.A8:+chess.geometry.Square.A6:chess.geometry.Difference.E] = self.black
 		self[-chess.geometry.Square.A8:-chess.geometry.Square.A6:chess.geometry.Difference.W] = self.white
