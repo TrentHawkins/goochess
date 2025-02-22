@@ -1,18 +1,17 @@
 from __future__ import annotations
 
 
-from typing import TYPE_CHECKING
+import typing
 
-from chess.geometry import Difference, Square
+import chess.geometry
 
-if TYPE_CHECKING:
-	from chess.material import Piece, Officer, Pawn, Rook, King
-	from chess.engine import Game
+if typing.TYPE_CHECKING: import chess.material
+if typing.TYPE_CHECKING: import chess.engine
 
 
 class Move:
 
-	def __init__(self, piece: Piece, square: Square):
+	def __init__(self, piece: chess.material.Piece, square: chess.geometry.Square):
 		self.piece = piece
 
 		assert self.piece.square is not None
@@ -24,7 +23,7 @@ class Move:
 		return repr(self.piece) + repr(self.source) + "-" + repr(self.target)
 
 
-	def valid(self, game: Game) -> bool:
+	def valid(self, game: chess.engine.Game) -> bool:
 		return game[self.target] is None
 
 
@@ -34,13 +33,13 @@ class Capt(Move):
 		return super().__repr__().replace("-", "×")
 
 
-	def valid(self, game: Game) -> bool:
+	def valid(self, game: chess.engine.Game) -> bool:
 		return (other := game[self.target]) is not None and self.piece.color != other.color
 
 
 class Promote(Move):
 
-	def __init__(self, pawn: Pawn, square: Square, rank: type[Officer]):
+	def __init__(self, pawn: chess.material.Pawn, square: chess.geometry.Square, rank: type[chess.material.Officer]):
 		super().__init__(pawn, square)
 
 		self.officer = rank(self.piece.color)
@@ -49,13 +48,13 @@ class Promote(Move):
 		return super().__repr__() + repr(self.officer)
 
 
-	def valid(self, game: Game) -> bool:
+	def valid(self, game: chess.engine.Game) -> bool:
 		return self.target.rank.final(self.piece.color) and super().valid(game)
 
 
 class Castle(Move):
 
-	def __init__(self, king: King, square: Square, rook: Rook):
+	def __init__(self, king: chess.material.King, square: chess.geometry.Square, rook: chess.material.Rook):
 		super().__init__(king, square)
 
 		self.rook = rook
@@ -63,10 +62,10 @@ class Castle(Move):
 
 class CastleL(Move):
 
-	def __init__(self, king: King):
+	def __init__(self, king: chess.material.King):
 		assert king.square is not None
 
-		super().__init__(king, king.square + Difference.W2)
+		super().__init__(king, king.square + chess.geometry.Difference.W2)
 
 
 	def __repr__(self) -> str:
