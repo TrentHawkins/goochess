@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 
-from chess.geometry import Square
+from chess.algebra import Square
 from chess.material import King, Rook
 from chess.engine import Game
 

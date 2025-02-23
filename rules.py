@@ -3,7 +3,7 @@ from __future__ import annotations
 
 import typing
 
-import chess.geometry
+import chess.algebra
 
 if typing.TYPE_CHECKING: import chess.material
 if typing.TYPE_CHECKING: import chess.engine
@@ -23,7 +23,7 @@ class Move(Rule):
 
 	def __init__(self,
 		piece: chess.material.Piece,
-		square: chess.geometry.Square,
+		square: chess.algebra.Square,
 	):
 		self.piece = piece
 
@@ -71,26 +71,26 @@ class Promote(Move):
 
 class Castle(Rule):
 
-	steps: set[chess.geometry.Difference]
+	steps: set[chess.algebra.Difference]
 
 
 	def __bool__(self) -> bool:
 		assert self.side.king.square is not None
-		return not self.side.king.moved and not {self.side.king.square + step for step in self.steps} <= self.side.opponent.squares
+		return not self.side.king.moved and not {self.side.king.square + step for step in self.steps} <= self.side.other.squares
 
 
 class CastleLong(Castle):
 
-	steps: set[chess.geometry.Difference] = {
-		chess.geometry.Difference.O,
-		chess.geometry.Difference.W, chess.geometry.Difference.W2,
+	steps: set[chess.algebra.Difference] = {
+		chess.algebra.Difference.O,
+		chess.algebra.Difference.W, chess.algebra.Difference.W2,
 	}
 
 	def __init__(self, *args):
 		super().__init__(*args)
 
 		assert self.side.king.square is not None
-		self.rook = self.game[chess.geometry.Square(self.side.king.square.rank + chess.geometry.File.A_)]
+		self.rook = self.game[chess.algebra.Square(self.side.king.square.rank + chess.algebra.File.A_)]
 
 	def __repr__(self) -> str:
 		return "O-O-O"
@@ -101,10 +101,16 @@ class CastleLong(Castle):
 
 class CastleShort(Castle):
 
-	steps: set[chess.geometry.Difference] = {
-		chess.geometry.Difference.O,
-		chess.geometry.Difference.E, chess.geometry.Difference.E2,
+	steps: set[chess.algebra.Difference] = {
+		chess.algebra.Difference.O,
+		chess.algebra.Difference.E, chess.algebra.Difference.E2,
 	}
+
+	def __init__(self, *args):
+		super().__init__(*args)
+
+		assert self.side.king.square is not None
+		self.rook = self.game[chess.algebra.Square(self.side.king.square.rank + chess.algebra.File.H_)]
 
 	def __repr__(self) -> str:
 		return "O-O"

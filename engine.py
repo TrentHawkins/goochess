@@ -5,14 +5,14 @@ from datetime import datetime
 import os
 import typing
 
-import chess.geometry
+import chess.algebra
 import chess.material
 
 
 class Board(list[chess.material.Piece | None]):
 
 	def __init__(self):
-		super().__init__(None for _ in chess.geometry.Square)
+		super().__init__(None for _ in chess.algebra.Square)
 
 	def __repr__(self) -> str:
 		representation  = ""
@@ -20,18 +20,18 @@ class Board(list[chess.material.Piece | None]):
 		representation += "▐▌  A B C D E F G H  ▐▌" + os.linesep
 
 		for index, piece in enumerate(self):
-			square = chess.geometry.Square(index)
+			square = chess.algebra.Square(index)
 			square_representation = str(square)
 
 			if piece is not None:
 				square_representation = square_representation.replace(" ", str(piece))
 
-			if square.file == chess.geometry.File.A_:
+			if square.file == chess.algebra.File.A_:
 				representation += "▐▌" + repr(square.rank)
 
 			representation += square_representation + "\x1b[D"
 
-			if square.file == chess.geometry.File.H_:
+			if square.file == chess.algebra.File.H_:
 				representation += "\x1b[C" + repr(square.rank) + "▐▌" + os.linesep
 
 		representation += "▐▌  A B C D E F G H  ▐▌" + os.linesep
@@ -39,22 +39,22 @@ class Board(list[chess.material.Piece | None]):
 
 		return representation
 
-	def __setitem__(self, key: chess.geometry.Square | slice, value: chess.material.Piece | None | typing.Iterable[chess.material.Piece | None]):
-		if isinstance(key, chess.geometry.Square):	key = slice(key, key + 1, +1)
+	def __setitem__(self, key: chess.algebra.Square | slice, value: chess.material.Piece | None | typing.Iterable[chess.material.Piece | None]):
+		if isinstance(key, chess.algebra.Square):	key = slice(key, key + 1, +1)
 		if isinstance(value, chess.material.Piece | None): value = [value]
 
 		for integer, piece in zip(range(*key.indices(len(self))), value):
-			self.update(chess.geometry.Square(integer), piece)
+			self.update(chess.algebra.Square(integer), piece)
 
 		super().__setitem__(key, value)
 
-	def __delitem__(self, key: chess.geometry.Square | slice):
-		if isinstance(key, chess.geometry.Square):	key = slice(key, key + 1, +1)
+	def __delitem__(self, key: chess.algebra.Square | slice):
+		if isinstance(key, chess.algebra.Square):	key = slice(key, key + 1, +1)
 
 		self[key] = [None] * len(range(*key.indices(len(self))))
 
 
-	def update(self, square: chess.geometry.Square,
+	def update(self, square: chess.algebra.Square,
 		piece: chess.material.Piece | None = None,
 	):
 		other = self[square]
@@ -65,7 +65,7 @@ class Board(list[chess.material.Piece | None]):
 
 class Side(list[chess.material.Piece]):
 
-	def __init__(self, game: Game, color: chess.geometry.Color):
+	def __init__(self, game: Game, color: chess.algebra.Color):
 		self.game = game
 		self.color = color
 
@@ -95,43 +95,56 @@ class Side(list[chess.material.Piece]):
 
 		self.ghost = chess.material.Piece(self.game, self)
 
-		self.king = self[
-			chess.geometry.Square.E8 if self.color else
-			chess.geometry.Square.D8
-		]
-		self.left_rook = self[
-			chess.geometry.Square.A8 if self.color else
-			chess.geometry.Square.H8
-		]
-		self.right_rook = self[
-			chess.geometry.Square.H8 if self.color else
-			chess.geometry.Square.A8
-		]
-
 
 	@property
 	def material(self) -> int:
 		return sum(piece.value for piece in self if piece.square is not None)
 
 	@property
-	def squares(self) -> set[chess.geometry.Square]:
+	def squares(self) -> set[chess.algebra.Square]:
 		return NotImplemented
 
 	@property
-	def opponent(self) -> Side:
-		return self.game.white if self is self.game.black else self.game.black
+	def other(self) -> Side:
+		return self.game.white if self.color else self.game.black
 
+	@property
+	def king(self) -> chess.material.King:
+		return typing.cast(chess.material.King,
+			self[
+				chess.algebra.Square.E8 if self.color else
+				chess.algebra.Square.D8
+			]
+		)
+
+	@property
+	def left_rook(self) -> chess.material.Rook:
+		return typing.cast(chess.material.Rook,
+			self[
+				chess.algebra.Square.A8 if self.color else
+				chess.algebra.Square.H8
+			]
+		)
+
+	@property
+	def right_rook(self) -> chess.material.Rook:
+		return typing.cast(chess.material.Rook,
+			self[
+				chess.algebra.Square.H8 if self.color else
+				chess.algebra.Square.A8
+			]
+		)
 
 class Game(Board):
 
 	def __init__(self):
 		super().__init__()
 
-		self.black = Side(self, chess.geometry.Color.BLACK)
-		self.white = Side(self, chess.geometry.Color.WHITE)
+		self.black = Side(self, chess.algebra.Color.BLACK)
+		self.white = Side(self, chess.algebra.Color.WHITE)
 
-		self[+chess.geometry.Square.A8:+chess.geometry.Square.A6:chess.geometry.Difference.E] = self.black
-		self[-chess.geometry.Square.A8:-chess.geometry.Square.A6:chess.geometry.Difference.W] = self.white
+		self[+chess.algebra.Square.A8:+chess.algebra.Square.A6:chess.algebra.Difference.E] = self.black
+		self[-chess.algebra.Square.A8:-chess.algebra.Square.A6:chess.algebra.Difference.W] = self.white
 
 	def __hash__(self) -> int:
 		return hash(datetime.now().timestamp())
