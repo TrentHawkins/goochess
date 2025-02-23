@@ -19,17 +19,7 @@ class Piece:
 	black: str = " "
 	white: str = " "
 
-	moves: set[chess.algebra.Difference] = set()
-	capts: set[chess.algebra.Difference] = set()
-
-
-	def __init_subclass__(cls, *args, **kwargs):
-		super().__init_subclass__(*args, **kwargs)
-
-		cls.moves = cls.moves.union(*(base.moves for base in cls.__bases__))
-		cls.capts = cls.capts.union(*(base.moves for base in cls.__bases__)) if not cls.capts else cls.moves
-
-	#	cls.value += sum(base.value for base in cls.__bases__)
+	steps: chess.Set[chess.algebra.Difference] = chess.Set()
 
 
 	def __init__(self,
@@ -66,7 +56,7 @@ class Officer(Piece):
 		squares = super().squares
 
 		if self.square is not None:
-			for move in self.moves | self.capts:
+			for move in self.steps.moves | self.steps.capts:
 				square = self.square
 
 				for _ in range(self.range):
@@ -87,12 +77,12 @@ class Officer(Piece):
 		return squares
 
 
-class Melee(Officer):
+class Melee(Piece):
 
 	range: int = 1
 
 
-class Ranged(Officer):
+class Ranged(Piece):
 
 	range: int = 7
 
@@ -104,21 +94,22 @@ class Pawn(Piece):
 	black: str = "\u265f"
 	white: str = "\u2659"
 
-	moves = {
-		chess.algebra.Difference.S,
-	}
-	capts = {
-		chess.algebra.Difference.SE,
-		chess.algebra.Difference.SW,
-	}
-
+	setps = chess.Set(
+		moves = {
+			chess.algebra.Difference.S,
+		},
+		capts = {
+			chess.algebra.Difference.SE,
+			chess.algebra.Difference.SW,
+		},
+	)
 
 	@property
 	def squares(self) -> set[chess.algebra.Square]:
 		squares = super().squares
 
 		if self.square is not None:
-			for move in self.moves:
+			for move in self.steps.moves:
 				try:
 					if chess.rules.Move(self, square := self.square + move * self.color):
 						squares.add(square)
@@ -130,7 +121,7 @@ class Pawn(Piece):
 				except ValueError:
 					continue
 
-			for move in self.capts:
+			for move in self.steps.capts:
 				try:
 					if chess.rules.Capt(self, square := self.square + move * self.color):
 						squares.add(square)
@@ -141,58 +132,69 @@ class Pawn(Piece):
 		return squares
 
 
-class Rook(Ranged):
+class Rook(Ranged, Officer):
 
 	value: int = 5
 
 	black: str = "\u265c"
 	white: str = "\u2656"
 
-	moves: set[chess.algebra.Difference] = {
-		chess.algebra.Difference.N,
-		chess.algebra.Difference.E,
-		chess.algebra.Difference.S,
-		chess.algebra.Difference.W,
-	}
+	steps = chess.Set(
+		moves = {
+			chess.algebra.Difference.N,
+			chess.algebra.Difference.E,
+			chess.algebra.Difference.S,
+			chess.algebra.Difference.W,
+		}
+	)
 
 
-class Bishop(Ranged):
+class Bishop(Ranged, Officer):
 
 	value: int = 3
 
 	black: str = "\u265d"
 	white: str = "\u2657"
 
-	moves: set[chess.algebra.Difference] = {
-		chess.algebra.Difference.NE,
-		chess.algebra.Difference.SE,
-		chess.algebra.Difference.SW,
-		chess.algebra.Difference.NW,
-	}
+	steps = chess.Set(
+		moves = {
+			chess.algebra.Difference.NE,
+			chess.algebra.Difference.SE,
+			chess.algebra.Difference.SW,
+			chess.algebra.Difference.NW,
+		}
+	)
 
-class Knight(Melee):
+class Knight(Melee, Officer):
 
 	value: int = 3
 
 	black: str = "\u265e"
 	white: str = "\u2658"
 
-	moves: set[chess.algebra.Difference] = {
-		straight + diagonal for straight, diagonal in itertools.product(Rook.moves, Bishop.moves)
-	} - Rook.moves
-#	moves: set[chess.geometry.Difference] = {
-#		chess.geometry.Difference.N2E,
-#		chess.geometry.Difference.NE2,
-#		chess.geometry.Difference.SE2,
-#		chess.geometry.Difference.S2E,
-#		chess.geometry.Difference.S2W,
-#		chess.geometry.Difference.SW2,
-#		chess.geometry.Difference.NW2,
-#		chess.geometry.Difference.N2W,
-#	}
+#	moves: set[chess.algebra.Difference] = {
+#		straight + diagonal for straight, diagonal in itertools.product(Rook.steps, Bishop.steps)
+#	} - Rook.steps
+	steps = chess.Set(
+		moves = {
+			chess.algebra.Difference.N2E,
+			chess.algebra.Difference.NE2,
+			chess.algebra.Difference.SE2,
+			chess.algebra.Difference.S2E,
+			chess.algebra.Difference.S2W,
+			chess.algebra.Difference.SW2,
+			chess.algebra.Difference.NW2,
+			chess.algebra.Difference.N2W,
+		}
+	)
 
 
-class Queen(Rook, Bishop):
+class Star(Piece):
+
+	steps = Rook.steps | Bishop.steps
+
+
+class Queen(Star, Ranged, Officer):
 
 	value: int = 9
 
@@ -200,7 +202,7 @@ class Queen(Rook, Bishop):
 	white: str = "\u2655"
 
 
-class King(Melee, Queen):
+class King(Star, Melee):
 
 	value: int = 0
 
