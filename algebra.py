@@ -182,3 +182,74 @@ class Square(int, enum.Enum):
 	@property
 	def color(self) -> Color:
 		return Color((((self.rank >> 0b11) + self.file & 1) << 1) - 1)
+
+
+class Squares:
+
+	def __init__(self,
+		moves: set[Square] = set(),
+		capts: set[Square] = set(),
+		specs: set[Square] = set(),
+	):
+		self.moves = moves
+		self.capts = capts if capts else self.moves
+		self.specs = specs
+
+	def __or__ (self, other: Squares, /) -> Squares: return self.               union(other)
+	def __and__(self, other: Squares, /) -> Squares: return self.        intersection(other)
+	def __sub__(self, other: Squares, /) -> Squares: return self.          difference(other)
+	def __xor__(self, other: Squares, /) -> Squares: return self.symmetric_difference(other)
+
+	def __ior__ (self, other: Squares, /): self.                     update(other); return self
+	def __iand__(self, other: Squares, /): self.        intersection_update(other); return self
+	def __isub__(self, other: Squares, /): self.          difference_update(other); return self
+	def __ixor__(self, other: Squares, /): self.symmetric_difference_update(other); return self
+
+
+	def union(self, *others: Squares) -> Squares:
+		return Squares(
+			self.moves.union(*(other.moves for other in others)),
+			self.capts.union(*(other.capts for other in others)),
+			self.specs.union(*(other.specs for other in others)),
+		)
+
+	def intersection(self, *others: Squares) -> Squares:
+		return Squares(
+			self.moves.intersection(*(other.moves for other in others)),
+			self.capts.intersection(*(other.capts for other in others)),
+			self.specs.intersection(*(other.specs for other in others)),
+		)
+
+	def difference(self, *others: Squares) -> Squares:
+		return Squares(
+			self.moves.difference(*(other.moves for other in others)),
+			self.capts.difference(*(other.capts for other in others)),
+			self.specs.difference(*(other.specs for other in others)),
+		)
+
+	def symmetric_difference(self, *others: Squares) -> Squares:
+		return Squares(
+			self.moves.symmetric_difference(*(other.moves for other in others)),
+			self.capts.symmetric_difference(*(other.capts for other in others)),
+			self.specs.symmetric_difference(*(other.specs for other in others)),
+		)
+
+	def update(self, *others: Squares):
+		self.moves.update(*(other.moves for other in others))
+		self.capts.update(*(other.capts for other in others))
+		self.specs.update(*(other.specs for other in others))
+
+	def intersection_update(self, *others: Squares):
+		self.moves.intersection_update(*(other.moves for other in others))
+		self.capts.intersection_update(*(other.capts for other in others))
+		self.specs.intersection_update(*(other.specs for other in others))
+
+	def difference_update(self, *others: Squares):
+		self.moves.difference_update(*(other.moves for other in others))
+		self.capts.difference_update(*(other.capts for other in others))
+		self.specs.difference_update(*(other.specs for other in others))
+
+	def symmetric_difference_update(self, *others: Squares):
+		self.moves.symmetric_difference_update(*(other.moves for other in others))
+		self.capts.symmetric_difference_update(*(other.capts for other in others))
+		self.specs.symmetric_difference_update(*(other.specs for other in others))
