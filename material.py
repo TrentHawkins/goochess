@@ -13,7 +13,6 @@ if typing.TYPE_CHECKING: import chess.engine
 
 class Piece:
 
-	range: int = 0
 	value: int = 0
 
 	black: str = " "
@@ -45,46 +44,54 @@ class Piece:
 
 
 	@property
-	def squares(self) -> set[chess.algebra.Square]:
-		return set()
+	def squares(self) -> chess.Set[chess.algebra.Square]:
+		return chess.Set()
 
 
 class Officer(Piece):
 
+	...
+
+
+class Melee(Piece):
+
 	@property
-	def squares(self) -> set[chess.algebra.Square]:
+	def squares(self) -> chess.Set[chess.algebra.Square]:
 		squares = super().squares
 
 		if self.square is not None:
-			for move in self.steps.moves | self.steps.capts:
+			for move in self.steps.moves:
+				square = self.square + move
+
+				if chess.rules.Move(self, square): squares      .add(square); continue
+				if chess.rules.Capt(self, square): squares.capts.add(square); continue
+
+		return squares
+
+
+class Ranged(Piece):
+
+	@property
+	def squares(self) -> chess.Set[chess.algebra.Square]:
+		squares = super().squares
+
+		if self.square is not None:
+			for move in self.steps.moves:
 				square = self.square
 
-				for _ in range(self.range):
+				while True:
 					try:
 						square += move
 
-						if not chess.rules.Move(self, square):
-							break
+						if chess.rules.Move(self, square): squares      .add(square); continue
+						if chess.rules.Capt(self, square): squares.capts.add(square); continue
 
-						squares.add(square)
-
-						if not chess.rules.Capt(self, square):
-							break
+						break
 
 					except ValueError:
 						break
 
 		return squares
-
-
-class Melee(Piece):
-
-	range: int = 1
-
-
-class Ranged(Piece):
-
-	range: int = 7
 
 
 class Pawn(Piece):
@@ -105,26 +112,23 @@ class Pawn(Piece):
 	)
 
 	@property
-	def squares(self) -> set[chess.algebra.Square]:
+	def squares(self) -> chess.Set[chess.algebra.Square]:
 		squares = super().squares
 
 		if self.square is not None:
 			for move in self.steps.moves:
-				try:
-					if chess.rules.Move(self, square := self.square + move * self.color):
-						squares.add(square)
+				square = self.square
 
-					if not self.moved:
-						if chess.rules.Move(self, square := square + move * self.color):
-							squares.add(square)
+				try:
+					if chess.rules.Move(self, square := square + move * self.color)                   : squares.moves.add(square)
+					if chess.rules.Move(self, square := square + move * self.color) and not self.moved: squares.moves.add(square)
 
 				except ValueError:
 					continue
 
-			for move in self.steps.capts:
+			for capt in self.steps.capts:
 				try:
-					if chess.rules.Capt(self, square := self.square + move * self.color):
-						squares.add(square)
+					if chess.rules.Capt(self, square := self.square + capt * self.color): squares.capts.add(square)
 
 				except ValueError:
 					continue
@@ -172,29 +176,35 @@ class Knight(Melee, Officer):
 	black: str = "\u265e"
 	white: str = "\u2658"
 
-#	moves: set[chess.algebra.Difference] = {
-#		straight + diagonal for straight, diagonal in itertools.product(Rook.steps, Bishop.steps)
-#	} - Rook.steps
-	steps = chess.Set(
-		moves = {
-			chess.algebra.Difference.N2E,
-			chess.algebra.Difference.NE2,
-			chess.algebra.Difference.SE2,
-			chess.algebra.Difference.S2E,
-			chess.algebra.Difference.S2W,
-			chess.algebra.Difference.SW2,
-			chess.algebra.Difference.NW2,
-			chess.algebra.Difference.N2W,
-		}
-	)
+	steps: chess.Set[chess.algebra.Difference] = Rook.steps + Bishop.steps
+#	steps = chess.Set(
+#		moves = {
+#			chess.algebra.Difference.N2E,
+#			chess.algebra.Difference.NE2,
+#			chess.algebra.Difference.SE2,
+#			chess.algebra.Difference.S2E,
+#			chess.algebra.Difference.S2W,
+#			chess.algebra.Difference.SW2,
+#			chess.algebra.Difference.NW2,
+#			chess.algebra.Difference.N2W,
+#		}
+#	)
 
 
 class Star(Piece):
 
 	steps = Rook.steps | Bishop.steps
+#	steps = chess.Set(
+#		moves = {
+#			chess.algebra.Difference.N, chess.algebra.Difference.NE,
+#			chess.algebra.Difference.E, chess.algebra.Difference.SE,
+#			chess.algebra.Difference.S, chess.algebra.Difference.SW,
+#			chess.algebra.Difference.W, chess.algebra.Difference.NW,
+#		}
+#	)
 
 
-class Queen(Star, Ranged, Officer):
+class Queen(Ranged, Officer, Star):
 
 	value: int = 9
 
@@ -202,7 +212,7 @@ class Queen(Star, Ranged, Officer):
 	white: str = "\u2655"
 
 
-class King(Star, Melee):
+class King(Melee, Star):
 
 	value: int = 0
 
@@ -211,7 +221,7 @@ class King(Star, Melee):
 
 
 	@property
-	def squares(self) -> set[chess.algebra.Square]:
+	def squares(self) -> chess.Set[chess.algebra.Square]:
 		squares = super().squares
 
 		if self.square is not None:
