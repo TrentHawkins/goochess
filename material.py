@@ -21,10 +21,7 @@ class Piece:
 	steps: chess.utils.Set[chess.algebra.Difference] = chess.utils.Set()
 
 
-	def __init__(self,
-		game: chess.engine.Game,
-		side: chess.engine.Side, square: chess.algebra.Square | None = None,
-	):
+	def __init__(self,side: chess.engine.Side, square: chess.algebra.Square | None = None):
 		self.side = side
 		self.square = square
 		self.color = self.side.color
