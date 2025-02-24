@@ -5,6 +5,7 @@ from datetime import datetime
 import os
 import typing
 
+import chess.utils
 import chess.algebra
 import chess.material
 
@@ -39,7 +40,9 @@ class Board(list[chess.material.Piece | None]):
 
 		return representation
 
-	def __setitem__(self, key: chess.algebra.Square | slice, value: chess.material.Piece | None | typing.Iterable[chess.material.Piece | None]):
+	def __setitem__(self,
+		key: chess.algebra.Square | slice,
+		value: chess.material.Piece | None | typing.Iterable[chess.material.Piece | None]):
 		if isinstance(key, chess.algebra.Square): key = slice(key, key + 1, +1)
 		if isinstance(value, chess.material.Piece | None): value = [value]
 
@@ -101,8 +104,8 @@ class Side(list[chess.material.Piece]):
 		return sum(piece.value for piece in self if piece.square is not None)
 
 	@property
-	def squares(self) -> set[chess.algebra.Square]:
-		return NotImplemented
+	def squares(self) -> chess.utils.Set[chess.algebra.Square]:
+		return chess.utils.Set().union(*(piece.squares for piece in self))
 
 	@property
 	def other(self) -> Side:

@@ -105,7 +105,7 @@ class Castle(Rule, abc.ABC):
 		assert self.king.square is not None
 		return \
 		not self.king.moved and \
-		not self.rook.moved and not {self.king.square + step for step in self.steps} & self.side.other.squares
+		not self.rook.moved and not {self.king.square + step for step in self.steps} & self.side.other.squares.capts
 
 
 class CastleLong(Castle):
