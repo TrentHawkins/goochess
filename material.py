@@ -225,8 +225,8 @@ class King(Melee, Star):
 		squares = super().squares
 
 		if self.square is not None:
-			if chess.rules.CastleShort(self.game, self.side): squares.add(self.square + chess.algebra.Difference.E2)
-			if chess.rules.CastleLong (self.game, self.side): squares.add(self.square + chess.algebra.Difference.W2)
+			if chess.rules.CastleShort(self.side): squares.add(self.square + chess.algebra.Difference.E2)
+			if chess.rules.CastleLong (self.side): squares.add(self.square + chess.algebra.Difference.W2)
 
 		return squares
 
