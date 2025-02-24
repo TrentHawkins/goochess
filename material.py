@@ -36,6 +36,17 @@ class Piece:
 
 		return color.bg(self.black)
 
+	def add(self, step: int) -> typing.Self:
+		assert self.square is not None
+		self.game[self.square], self.game[self.square + step] = None, self.game[self.square]
+
+		return self
+
+	def sub(self, step: int) -> typing.Self:
+		assert self.square is not None
+		self.game[self.square], self.game[self.square + step] = self.game[self.square + step], None
+
+		return self
 
 	@property
 	def game(self) -> chess.engine.Game:
@@ -46,7 +57,7 @@ class Piece:
 		return chess.utils.Set()
 
 
-	def moves_from(self, steps: set[chess.algebra.Difference]) -> set[chess.algebra.Square]:
+	def squares_moves_from(self, steps: set[chess.algebra.Difference]) -> set[chess.algebra.Square]:
 		return {self.square + step for step in steps} if self.square is not None else set()
 
 
@@ -232,11 +243,7 @@ class King(Melee, Star):
 
 		return squares
 
-
-	def safe(self,
-		square: chess.algebra.Square | None = None
-	) -> bool:
-		if square is None:
-			square = self.square
-
-		return True
+	@property
+	def safe(self) -> bool:
+		assert self.square is not None
+		return self.square not in self.side.other.squares.capts

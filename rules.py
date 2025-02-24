@@ -28,6 +28,9 @@ class Rule(abc.ABC):
 	def game(self) -> chess.engine.Game:
 		return self.side.game
 
+	@property
+	def king(self) -> chess.material.King:
+		return self.side.king
 
 
 class Move(Rule):
@@ -46,12 +49,24 @@ class Move(Rule):
 		assert self.piece.square is not None
 		return self.piece.square
 
+	@property
+	def step(self) -> int:
+		return self.target - self.source
+
 
 	def __repr__(self) -> str:
 		return repr(self.piece) + repr(self.source) + "-" + repr(self.target)
 
 	def __bool__(self) -> bool:
 		return self.game[self.target] is None
+
+
+	def king_safe(self) -> bool:
+		self.king.add(self.step)
+		safe = self.king.safe
+		self.king.sub(self.step)
+
+		return safe
 
 
 class Capt(Move):
@@ -90,10 +105,6 @@ class Castle(Rule, abc.ABC):
 
 
 	@property
-	def king(self) -> chess.material.King:
-		return self.side.king
-
-	@property
 	def rook(self) -> chess.material.Rook:
 		assert (square := self.king.square) is not None
 		assert (rook := self.game[square.rank + self.rook_file]) is not None
@@ -103,7 +114,7 @@ class Castle(Rule, abc.ABC):
 
 	def __bool__(self) -> bool:
 		assert self.king.square is not None
-		return not self.king.moved and not self.rook.moved and self.king.moves_from(self.steps) <= self.king.squares.moves
+		return not self.king.moved and not self.rook.moved and self.king.squares_moves_from(self.steps) <= self.king.squares.moves
 
 
 class CastleLong(Castle):
