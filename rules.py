@@ -61,12 +61,12 @@ class Move(Rule):
 		return self.game[self.target] is None
 
 
-	def king_safe(self) -> bool:
-		self.king.add(self.step)
-		safe = self.king.safe
-		self.king.sub(self.step)
-
-		return safe
+#	def king_safe(self) -> bool:
+#		self.king.add(self.step)
+#		safe = self.king.safe
+#		self.king.sub(self.step)
+#
+#		return safe
 
 
 class Capt(Move):
@@ -114,7 +114,7 @@ class Castle(Rule, abc.ABC):
 
 	def __bool__(self) -> bool:
 		assert self.king.square is not None
-		return not self.king.moved and not self.rook.moved and self.king.squares_moves_from(self.steps) <= self.king.squares.moves
+		return not self.king.moved and not self.rook.moved and self.king.squares_moves_from(self.steps) <= self.king.targets
 
 
 class CastleLong(Castle):

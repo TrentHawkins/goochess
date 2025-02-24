@@ -5,7 +5,6 @@ from datetime import datetime
 import os
 import typing
 
-import chess.utils
 import chess.algebra
 import chess.material
 
@@ -104,8 +103,8 @@ class Side(list[chess.material.Piece]):
 		return sum(piece.value for piece in self if piece.square is not None)
 
 	@property
-	def squares(self) -> chess.utils.Set[chess.algebra.Square]:
-		return chess.utils.Set().union(*(piece.squares for piece in self))
+	def targets(self) -> set[chess.algebra.Square]:
+		return set().union(*(piece.targets for piece in self))
 
 	@property
 	def other(self) -> Side:
