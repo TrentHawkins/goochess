@@ -65,7 +65,7 @@ class Theme:
 		return f"\x1b[7m{obj}\x1b[27m"
 
 
-DEFAULT = Theme(
+WOOD = Theme(
 	square = Palette.fromhex(
 		black = "#aa9988",
 		white = "#776655",
@@ -75,3 +75,14 @@ DEFAULT = Theme(
 		white = "#ddccbb",
 	),
 )
+METAL = Theme(
+	square = Palette.fromhex(
+		black = "#666666",
+		white = "#999999",
+	),
+	pieces = Palette.fromhex(
+		black = "#333333",
+		white = "#cccccc",
+	),
+)
+DEFAULT = METAL
