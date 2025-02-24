@@ -103,9 +103,7 @@ class Castle(Rule, abc.ABC):
 
 	def __bool__(self) -> bool:
 		assert self.king.square is not None
-		return \
-		not self.king.moved and \
-		not self.rook.moved and not {self.king.square + step for step in self.steps} & self.side.other.squares.capts
+		return not self.king.moved and not self.rook.moved and self.king.moves_from(self.steps) <= self.king.squares.moves
 
 
 class CastleLong(Castle):
@@ -116,6 +114,10 @@ class CastleLong(Castle):
 
 	def __repr__(self) -> str:
 		return "O-O-O"
+
+	def __bool__(self) -> bool:
+		assert self.rook.square is not None
+		return self.game[self.rook.square + chess.Difference.E] is None
 
 
 class CastleShort(Castle):

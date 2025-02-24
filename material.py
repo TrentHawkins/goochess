@@ -46,6 +46,10 @@ class Piece:
 		return chess.utils.Set()
 
 
+	def moves_from(self, steps: set[chess.algebra.Difference]) -> set[chess.algebra.Square]:
+		return {self.square + step for step in steps} if self.square is not None else set()
+
+
 class Officer(Piece):
 
 	...
