@@ -40,7 +40,7 @@ class Board(list[chess.material.Piece | None]):
 		return representation
 
 	def __setitem__(self, key: chess.algebra.Square | slice, value: chess.material.Piece | None | typing.Iterable[chess.material.Piece | None]):
-		if isinstance(key, chess.algebra.Square):	key = slice(key, key + 1, +1)
+		if isinstance(key, chess.algebra.Square): key = slice(key, key + 1, +1)
 		if isinstance(value, chess.material.Piece | None): value = [value]
 
 		for integer, piece in zip(range(*key.indices(len(self))), value):
@@ -49,7 +49,7 @@ class Board(list[chess.material.Piece | None]):
 		super().__setitem__(key, value)
 
 	def __delitem__(self, key: chess.algebra.Square | slice):
-		if isinstance(key, chess.algebra.Square):	key = slice(key, key + 1, +1)
+		if isinstance(key, chess.algebra.Square): key = slice(key, key + 1, +1)
 
 		self[key] = [None] * len(range(*key.indices(len(self))))
 
