@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import typing
 
+import chess.utils
 import chess.theme
 import chess.algebra
 import chess.rules
@@ -17,7 +18,7 @@ class Piece:
 	black: str = " "
 	white: str = " "
 
-	steps: chess.algebra.Set[chess.algebra.Difference] = chess.algebra.Set()
+	steps: chess.utils.Set[chess.algebra.Difference] = chess.utils.Set()
 
 
 	def __init__(self,
@@ -44,8 +45,8 @@ class Piece:
 		return self.side.game
 
 	@property
-	def squares(self) -> chess.algebra.Set[chess.algebra.Square]:
-		return chess.algebra.Set()
+	def squares(self) -> chess.utils.Set[chess.algebra.Square]:
+		return chess.utils.Set()
 
 
 class Officer(Piece):
@@ -56,7 +57,7 @@ class Officer(Piece):
 class Melee(Piece):
 
 	@property
-	def squares(self) -> chess.algebra.Set[chess.algebra.Square]:
+	def squares(self) -> chess.utils.Set[chess.algebra.Square]:
 		squares = super().squares
 
 		if self.square is not None:
@@ -72,7 +73,7 @@ class Melee(Piece):
 class Ranged(Piece):
 
 	@property
-	def squares(self) -> chess.algebra.Set[chess.algebra.Square]:
+	def squares(self) -> chess.utils.Set[chess.algebra.Square]:
 		squares = super().squares
 
 		if self.square is not None:
@@ -101,7 +102,7 @@ class Pawn(Piece):
 	black: str = "\u265f"
 	white: str = "\u2659"
 
-	setps = chess.algebra.Set(
+	setps = chess.utils.Set(
 		moves = {
 			chess.algebra.Difference.S,
 		},
@@ -112,7 +113,7 @@ class Pawn(Piece):
 	)
 
 	@property
-	def squares(self) -> chess.algebra.Set[chess.algebra.Square]:
+	def squares(self) -> chess.utils.Set[chess.algebra.Square]:
 		squares = super().squares
 
 		if self.square is not None:
@@ -143,7 +144,7 @@ class Rook(Ranged, Officer):
 	black: str = "\u265c"
 	white: str = "\u2656"
 
-	steps = chess.algebra.Set(
+	steps = chess.utils.Set(
 		moves = {
 			chess.algebra.Difference.N,
 			chess.algebra.Difference.E,
@@ -160,7 +161,7 @@ class Bishop(Ranged, Officer):
 	black: str = "\u265d"
 	white: str = "\u2657"
 
-	steps = chess.algebra.Set(
+	steps = chess.utils.Set(
 		moves = {
 			chess.algebra.Difference.NE,
 			chess.algebra.Difference.SE,
@@ -176,8 +177,8 @@ class Knight(Melee, Officer):
 	black: str = "\u265e"
 	white: str = "\u2658"
 
-	steps: chess.algebra.Set[chess.algebra.Difference] = Rook.steps + Bishop.steps
-#	steps = chess.algebra.Set(
+	steps: chess.utils.Set[chess.algebra.Difference] = Rook.steps + Bishop.steps
+#	steps = chess.utils.Set(
 #		moves = {
 #			chess.algebra.Difference.N2E,
 #			chess.algebra.Difference.NE2,
@@ -194,7 +195,7 @@ class Knight(Melee, Officer):
 class Star(Piece):
 
 	steps = Rook.steps | Bishop.steps
-#	steps = chess.algebra.Set(
+#	steps = chess.utils.Set(
 #		moves = {
 #			chess.algebra.Difference.N, chess.algebra.Difference.NE,
 #			chess.algebra.Difference.E, chess.algebra.Difference.SE,
@@ -221,7 +222,7 @@ class King(Melee, Star):
 
 
 	@property
-	def squares(self) -> chess.algebra.Set[chess.algebra.Square]:
+	def squares(self) -> chess.utils.Set[chess.algebra.Square]:
 		squares = super().squares
 
 		if self.square is not None:
