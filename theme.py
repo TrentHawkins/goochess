@@ -67,11 +67,11 @@ class Theme:
 
 DEFAULT = Theme(
 	square = Palette.fromhex(
-		black = "#bbaa99",
-		white = "#665544",
+		black = "#aa9988",
+		white = "#776655",
 	),
 	pieces = Palette.fromhex(
-		black = "#000000",
-		white = "#ffffff",
+		black = "#443322",
+		white = "#ddccbb",
 	),
 )
