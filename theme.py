@@ -1,10 +1,10 @@
 from __future__ import annotations
 
 
-from dataclasses import dataclass
+import dataclasses
 
 
-@dataclass
+@dataclasses.dataclass
 class RGB:
 
 	R: int
@@ -35,7 +35,7 @@ class RGB:
 		return f"\x1b[48;2;{self}m{obj}\x1b[49m"
 
 
-@dataclass
+@dataclasses.dataclass
 class Palette:
 
 	black: RGB
@@ -53,7 +53,7 @@ class Palette:
 		)
 
 
-@dataclass
+@dataclasses.dataclass
 class Theme:
 
 	square: Palette
@@ -65,13 +65,24 @@ class Theme:
 		return f"\x1b[7m{obj}\x1b[27m"
 
 
-DEFAULT = Theme(
+WOOD = Theme(
 	square = Palette.fromhex(
-		black = "#bbaa99",
-		white = "#665544",
+		black = "#aa9988",
+		white = "#776655",
 	),
 	pieces = Palette.fromhex(
-		black = "#000000",
-		white = "#ffffff",
+		black = "#443322",
+		white = "#ddccbb",
 	),
 )
+METAL = Theme(
+	square = Palette.fromhex(
+		black = "#666666",
+		white = "#999999",
+	),
+	pieces = Palette.fromhex(
+		black = "#333333",
+		white = "#cccccc",
+	),
+)
+DEFAULT = METAL

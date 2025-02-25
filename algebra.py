@@ -1,13 +1,14 @@
 from __future__ import annotations
 
 
-from enum import Enum
-from re import compile
+import enum
+import re
+import typing
 
-from chess import DEFAULT
+import chess.theme
 
 
-class Color(int, Enum):
+class Color(int, enum.Enum):
 
 	BLACK = +1  # ⬛
 	WHITE = -1  # ⬜
@@ -20,7 +21,7 @@ class Color(int, Enum):
 		return "⬛" if self + 1 else "⬜"
 
 
-class File(int, Enum):
+class File(int, enum.Enum):
 
 	A_ = 0o00  # A
 	B_ = 0o01  # B
@@ -36,7 +37,7 @@ class File(int, Enum):
 		return self.name.strip("_").lower()
 
 
-class Rank(int, Enum):
+class Rank(int, enum.Enum):
 
 	_8 = 0o00  # 8
 	_7 = 0o10  # 7
@@ -52,7 +53,13 @@ class Rank(int, Enum):
 		return self.name.strip("_").lower()
 
 
-class Difference(int, Enum):
+	def final(self, color: Color) -> bool:
+		return self == self._1 if color else self == self._8
+
+
+class Difference(int, enum.Enum):
+
+	O =  0o00  # null
 
 	N = -0o10  # king queen rook pawn(white)
 	E = +0o01  # king queen rook
@@ -89,7 +96,7 @@ class Difference(int, Enum):
 			self.W.name: "◀",  # king queen rook
 		}
 
-		parts = compile(r"([NSWE])(\d*)").findall(self.name)  # Extract movement letters and optional numbers
+		parts = re.compile(r"([NSWE])(\d*)").findall(self.name)  # Extract movement letters and optional numbers
 
 		representation = ""
 
@@ -102,11 +109,13 @@ class Difference(int, Enum):
 	def __sub__(self, other: int) -> Difference: return Difference(super().__sub__(other))
 	def __mul__(self, other: int) -> Difference: return Difference(super().__mul__(other))
 
+	def __floordiv__(self, other: int) -> Difference: return Difference(super().__floordiv__(other))
+
 	def __pos__(self) -> Difference: return Difference(+super())
 	def __neg__(self) -> Difference: return Difference(-super())
 
 
-class Square(int, Enum):
+class Square(int, enum.Enum):
 
 #	A        : B        : C        : D        : E        : F        : G        : H        :
 	A8 = 0o00; B8 = 0o01; C8 = 0o02; D8 = 0o03; E8 = 0o04; F8 = 0o05; G8 = 0o06; H8 = 0o07;  # 8
@@ -125,20 +134,20 @@ class Square(int, Enum):
 	def __str__(self) -> str:
 		representation = "▌ ▐"
 
-		black = DEFAULT.square.black if self.color else DEFAULT.square.white
-		white = DEFAULT.square.white if self.color else DEFAULT.square.black
+		black = chess.theme.DEFAULT.square.black if self.color else chess.theme.DEFAULT.square.white
+		white = chess.theme.DEFAULT.square.white if self.color else chess.theme.DEFAULT.square.black
 
 		if   self.file == File.A_: representation = representation[:1] + black.bg(representation[1:])
 		elif self.file == File.H_: representation = black.bg(representation[:2]) + representation[2:]
 		else                     : representation = black.bg(representation)
 
-		return DEFAULT.inv(white.fg(representation))
+		return chess.theme.DEFAULT.inv(white.fg(representation))
 
 
-	def __add__(self, other: int   ) -> Square: return Square(super().__add__(other))
-	def __sub__(self, other: Square) -> int   : return        super().__sub__(other)
+	def __add__(self, other: int   ) -> Square: return Square    (super().__add__(other))
+	def __sub__(self, other: Square) -> int   : return            super().__sub__(other)
 	def __mul__(self, color: Color ) -> Square:
-		return +self if color else -self
+		return +self if color else ~self
 
 	def __pos__(self) -> Square: return Square(       self)
 	def __neg__(self) -> Square: return Square(0o77 - self)

@@ -2,62 +2,62 @@ from __future__ import annotations
 
 
 from datetime import datetime
-from os import linesep
-from typing import Iterable
-from weakref import ref as weakref
+import os
+import typing
 
-from chess import DEFAULT
-from chess import Color, File, Difference, Square
-from chess import Piece, Pawn, Rook, Bishop, Knight, Queen, King
+import chess.algebra
+import chess.material
 
 
-class Board(list[Piece | None]):
+class Board(list[chess.material.Piece | None]):
 
 	def __init__(self):
-		super().__init__(None for _ in Square)
+		super().__init__(None for _ in chess.algebra.Square)
 
 	def __repr__(self) -> str:
 		representation  = ""
-		representation += "▗▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▖" + linesep
-		representation += "▐▌  A B C D E F G H  ▐▌" + linesep
+		representation += "▗▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▖" + os.linesep
+		representation += "▐▌  A B C D E F G H  ▐▌" + os.linesep
 
 		for index, piece in enumerate(self):
-			square = Square(index)
+			square = chess.algebra.Square(index)
 			square_representation = str(square)
 
 			if piece is not None:
 				square_representation = square_representation.replace(" ", str(piece))
 
-			if square.file == File.A_:
+			if square.file == chess.algebra.File.A_:
 				representation += "▐▌" + repr(square.rank)
 
 			representation += square_representation + "\x1b[D"
 
-			if square.file == File.H_:
-				representation += "\x1b[C" + repr(square.rank) + "▐▌" + linesep
+			if square.file == chess.algebra.File.H_:
+				representation += "\x1b[C" + repr(square.rank) + "▐▌" + os.linesep
 
-		representation += "▐▌  A B C D E F G H  ▐▌" + linesep
+		representation += "▐▌  A B C D E F G H  ▐▌" + os.linesep
 		representation += "▝▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▘"
 
 		return representation
 
-	def __setitem__(self, key: Square | slice, value: Piece | None | Iterable[Piece | None]):
-		if isinstance(key, Square):	key = slice(key, key + 1, +1)
-		if isinstance(value, Piece | None): value = [value]
+	def __setitem__(self,
+		key: chess.algebra.Square | slice,
+		value: chess.material.Piece | None | typing.Iterable[chess.material.Piece | None]):
+		if isinstance(key, chess.algebra.Square): key = slice(key, key + 1, +1)
+		if isinstance(value, chess.material.Piece | None): value = [value]
 
 		for integer, piece in zip(range(*key.indices(len(self))), value):
-			self.update(Square(integer), piece)
+			self.update(chess.algebra.Square(integer), piece)
 
 		super().__setitem__(key, value)
 
-	def __delitem__(self, key: Square | slice):
-		if isinstance(key, Square):	key = slice(key, key + 1, +1)
+	def __delitem__(self, key: chess.algebra.Square | slice):
+		if isinstance(key, chess.algebra.Square): key = slice(key, key + 1, +1)
 
 		self[key] = [None] * len(range(*key.indices(len(self))))
 
 
-	def update(self, square: Square,
-		piece: Piece | None = None,
+	def update(self, square: chess.algebra.Square,
+		piece: chess.material.Piece | None = None,
 	):
 		other = self[square]
 
@@ -65,52 +65,88 @@ class Board(list[Piece | None]):
 		if other is not None: other.square = None
 
 
-class Side(list[Piece]):
+class Side(list[chess.material.Piece]):
 
-	def __init__(self, color: Color, game: Game):
+	def __init__(self, game: Game, color: chess.algebra.Color):
+		self.game = game
+		self.color = color
+
 		super().__init__(
 			[
-				Rook  (color, game),
-				Knight(color, game),
-				Bishop(color, game),
-				Queen (color, game) if color else
-				King  (color, game),
-				King  (color, game) if color else
-				Queen (color, game),
-				Bishop(color, game),
-				Knight(color, game),
-				Rook  (color, game),
+				chess.material.Rook  (self),
+				chess.material.Knight(self),
+				chess.material.Bishop(self),
+				chess.material.Queen (self) if self.color else
+				chess.material.King  (self),
+				chess.material.King  (self) if self.color else
+				chess.material.Queen (self),
+				chess.material.Bishop(self),
+				chess.material.Knight(self),
+				chess.material.Rook  (self),
 
-				Pawn  (color, game),
-				Pawn  (color, game),
-				Pawn  (color, game),
-				Pawn  (color, game),
-				Pawn  (color, game),
-				Pawn  (color, game),
-				Pawn  (color, game),
-				Pawn  (color, game),
+				chess.material.Pawn  (self),
+				chess.material.Pawn  (self),
+				chess.material.Pawn  (self),
+				chess.material.Pawn  (self),
+				chess.material.Pawn  (self),
+				chess.material.Pawn  (self),
+				chess.material.Pawn  (self),
+				chess.material.Pawn  (self),
 			]
 		)
 
-		self.game = weakref(game)
-		self.king = self[Square.E8 if color else Square.D8]
+		self.ghost = chess.material.Piece(self)
 
 
 	@property
 	def material(self) -> int:
 		return sum(piece.value for piece in self if piece.square is not None)
 
+	@property
+	def targets(self) -> set[chess.algebra.Square]:
+		return set().union(*(piece.targets for piece in self))
+
+	@property
+	def other(self) -> Side:
+		return self.game.white if self.color else self.game.black
+
+	@property
+	def king(self) -> chess.material.King:
+		return typing.cast(chess.material.King,
+			self[
+				chess.algebra.Square.E8 if self.color else
+				chess.algebra.Square.D8
+			]
+		)
+
+	@property
+	def left_rook(self) -> chess.material.Rook:
+		return typing.cast(chess.material.Rook,
+			self[
+				chess.algebra.Square.A8 if self.color else
+				chess.algebra.Square.H8
+			]
+		)
+
+	@property
+	def right_rook(self) -> chess.material.Rook:
+		return typing.cast(chess.material.Rook,
+			self[
+				chess.algebra.Square.H8 if self.color else
+				chess.algebra.Square.A8
+			]
+		)
 
 class Game(Board):
 
 	def __init__(self):
 		super().__init__()
 
-		self.black = Side(Color.BLACK, self)
-		self.white = Side(Color.WHITE, self)
+		self.black = Side(self, chess.algebra.Color.BLACK)
+		self.white = Side(self, chess.algebra.Color.WHITE)
 
-		self[+Square.A8:+Square.A6:Difference.E] = self.black
-		self[-Square.A8:-Square.A6:Difference.W] = self.white
+		self[+chess.algebra.Square.A8:+chess.algebra.Square.A6:chess.algebra.Difference.E] = self.black
+		self[-chess.algebra.Square.A8:-chess.algebra.Square.A6:chess.algebra.Difference.W] = self.white
 
 	def __hash__(self) -> int:
 		return hash(datetime.now().timestamp())
