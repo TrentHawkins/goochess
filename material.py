@@ -2,6 +2,7 @@ from __future__ import annotations
 
 
 import contextlib
+import functools
 import itertools
 import typing
 
@@ -10,6 +11,21 @@ import chess.algebra
 import chess.rules
 
 if typing.TYPE_CHECKING: import chess.engine
+
+
+def cleanup(method):
+	@functools.wraps(method)
+	def wrapped(self: Piece, targets: set[chess.algebra.Square]) -> set[chess.algebra.Square]:
+		targets = targets.copy()
+
+		for square in targets:
+			with self.move(square):
+				if not self.side.king.safe:
+					targets.discard(square)
+
+		return targets
+
+	return wrapped
 
 
 class Piece:
@@ -47,22 +63,13 @@ class Piece:
 		return set()
 
 	@property
+	@cleanup
 	def squares(self) -> set[chess.algebra.Square]:
-		squares = self.targets
-
-		return self.cleanup(squares)
+		return self.targets
 
 
 	def squares_from(self, steps: set[chess.algebra.Difference]) -> set[chess.algebra.Square]:
 		return {self.square + step for step in steps} if self.square is not None else set()
-
-	def cleanup(self, targets: set[chess.algebra.Square]) -> set[chess.algebra.Square]:
-		for square in targets:
-			with self.move(square) as piece:
-				if not piece.side.king.safe:
-					targets.discard(square)
-
-		return targets
 
 	@contextlib.contextmanager
 	def move(self, target: chess.algebra.Square):
@@ -144,6 +151,7 @@ class Pawn(Piece):
 
 
 	@property
+	@cleanup
 	def squares(self) -> set[chess.algebra.Square]:
 		squares = self.targets
 
@@ -158,7 +166,7 @@ class Pawn(Piece):
 			except ValueError:
 				...
 
-		return self.cleanup(squares)
+		return squares
 
 
 class Rook(Ranged, Officer):
@@ -239,6 +247,7 @@ class King(Melee, Star):
 
 
 	@property
+	@cleanup
 	def squares(self) -> set[chess.algebra.Square]:
 		squares = self.targets
 
@@ -257,7 +266,7 @@ class King(Melee, Star):
 					try: squares.add(self.square + move)
 					except ValueError: continue
 
-		return self.cleanup(squares)
+		return squares
 
 	@property
 	def safe(self) -> bool:
