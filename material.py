@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 
+import contextlib
 import itertools
 import typing
 
@@ -57,23 +58,18 @@ class Piece:
 
 	def cleanup(self, targets: set[chess.algebra.Square]) -> set[chess.algebra.Square]:
 		for square in targets:
-			with chess.rules.Move(self, square):
-				if not self.side.king.safe:
+			with self.move(square) as piece:
+				if not piece.side.king.safe:
 					targets.discard(square)
 
 		return targets
 
-	def move(self, step: int) -> typing.Self:
-		assert self.square is not None
-		self.game[self.square], self.game[self.square + step] = None, self.game[self.square]
+	@contextlib.contextmanager
+	def move(self, target: chess.algebra.Square):
+		assert (source := self.square) is not None
 
-		return self
-
-	def back(self, step: int) -> typing.Self:
-		assert self.square is not None
-		self.game[self.square], self.game[self.square + step] = self.game[self.square + step], None
-
-		return self
+		self.game[source], self.game[target] = None, self.game[source]; yield self
+		self.game[target], self.game[source] = None, self.game[target]
 
 
 class Officer(Piece):

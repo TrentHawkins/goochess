@@ -23,12 +23,6 @@ class Rule(abc.ABC):
 	def __bool__(self) -> bool:
 		...
 
-	def __enter__(self) -> typing.Self:
-		return self
-
-	def __exit__(self) -> bool | None:
-		...
-
 
 	@property
 	def game(self) -> chess.engine.Game:
@@ -45,6 +39,12 @@ class Move(Rule):
 		self.piece = piece
 		self.target = square
 
+	def __repr__(self) -> str:
+		return repr(self.piece) + repr(self.source) + "-" + repr(self.target)
+
+	def __bool__(self) -> bool:
+		return self.game[self.target] is None
+
 
 	@property
 	def side(self) -> chess.engine.Side:
@@ -58,23 +58,6 @@ class Move(Rule):
 	@property
 	def step(self) -> int:
 		return self.target - self.source
-
-
-	def __repr__(self) -> str:
-		return repr(self.piece) + repr(self.source) + "-" + repr(self.target)
-
-	def __bool__(self) -> bool:
-		return self.game[self.target] is None
-
-	def __enter__(self) -> typing.Self:
-		self.king.move(self.step)
-
-		return super().__enter__()
-
-	def __exit__(self, *exception_args) -> bool | None:
-		self.king.back(self.step)
-
-		return super().__exit__()
 
 
 class Capt(Move):
@@ -112,17 +95,17 @@ class Castle(Rule, abc.ABC):
 	rook_file: chess.algebra.File
 
 
+	def __bool__(self) -> bool:
+		assert self.king.square is not None
+		return not self.king.moved and not self.rook.moved and self.king.squares_from(self.steps) <= self.king.targets
+
+
 	@property
 	def rook(self) -> chess.material.Rook:
 		assert (square := self.king.square) is not None
 		assert (rook := self.game[square.rank + self.rook_file]) is not None
 
 		return typing.cast(chess.material.Rook, rook)
-
-
-	def __bool__(self) -> bool:
-		assert self.king.square is not None
-		return not self.king.moved and not self.rook.moved and self.king.squares_from(self.steps) <= self.king.targets
 
 
 class CastleLong(Castle):
