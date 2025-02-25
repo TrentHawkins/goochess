@@ -18,8 +18,7 @@ class Piece:
 	black: str = " "
 	white: str = " "
 
-	capts: set[chess.algebra.Difference] = set()
-	capts: set[chess.algebra.Difference] = set()
+	moves: set[chess.algebra.Difference] = set()
 
 
 	def __init__(self,side: chess.engine.Side, square: chess.algebra.Square | None = None):
@@ -48,19 +47,29 @@ class Piece:
 
 	@property
 	def squares(self) -> set[chess.algebra.Square]:
-		return self.targets
+		squares = self.targets
+
+		return self.cleanup(squares)
 
 
-	def squares_moves_from(self, steps: set[chess.algebra.Difference]) -> set[chess.algebra.Square]:
+	def squares_from(self, steps: set[chess.algebra.Difference]) -> set[chess.algebra.Square]:
 		return {self.square + step for step in steps} if self.square is not None else set()
 
-	def add(self, step: int) -> typing.Self:
+	def cleanup(self, targets: set[chess.algebra.Square]) -> set[chess.algebra.Square]:
+		for square in targets:
+			with chess.rules.Move(self, square):
+				if not self.side.king.safe:
+					targets.discard(square)
+
+		return targets
+
+	def move(self, step: int) -> typing.Self:
 		assert self.square is not None
 		self.game[self.square], self.game[self.square + step] = None, self.game[self.square]
 
 		return self
 
-	def sub(self, step: int) -> typing.Self:
+	def back(self, step: int) -> typing.Self:
 		assert self.square is not None
 		self.game[self.square], self.game[self.square + step] = self.game[self.square + step], None
 
@@ -79,17 +88,13 @@ class Melee(Piece):
 		targets = super().targets
 
 		if self.square is not None:
-			for capt in self.capts:
-				try:
-					target = self.square + capt
+			for move in self.moves:
+				target = self.square + move
 
-					if   chess.rules.Move(self, target): targets.add(target)
-					elif chess.rules.Capt(self, target): targets.add(target)
-					else:
-						continue
-
-				except ValueError:
-					continue
+				if chess.rules.Move(self, target) \
+				or chess.rules.Capt(self, target):
+					try: targets.add(target)
+					except ValueError: continue
 
 		return targets
 
@@ -101,20 +106,16 @@ class Ranged(Piece):
 		targets = super().targets
 
 		if self.square is not None:
-			for move in self.capts:
+			for move in self.moves:
 				target = self.square
 
-				while True:
-					try:
-						target += move
+				while chess.rules.Move(self, target := target + move):
+					try: targets.add(target)
+					except ValueError: break
 
-						if   chess.rules.Move(self, target): targets.add(target); continue
-						elif chess.rules.Capt(self, target): targets.add(target); break
-						else:
-							break
-
-					except ValueError:
-						break
+				if chess.rules.Capt(self, target):
+					try: targets.add(target)
+					except ValueError: continue
 
 		return targets
 
@@ -126,44 +127,40 @@ class Pawn(Piece):
 	black: str = "\u265f"
 	white: str = "\u2659"
 
-	capts = {
+	moves = {
 		chess.algebra.Difference.SE,
 		chess.algebra.Difference.SW,
 	}
-	moves = {
-		chess.algebra.Difference.S,
-	}
-
 
 	@property
 	def targets(self) -> set[chess.algebra.Square]:
 		targets = super().targets
 
 		if self.square is not None:
-			for capt in self.capts:
-				try:
-					if chess.rules.Capt(self, target := self.square + capt * self.color):
-						targets.add(target)
-
-				except ValueError:
-					continue
+			for move in self.moves:
+				if chess.rules.Capt(self, target := self.square + move * self.color):
+					try: targets.add(target)
+					except ValueError: continue
 
 		return targets
 
+
 	@property
 	def squares(self) -> set[chess.algebra.Square]:
-		squares = super().squares
+		squares = self.targets
 
 		if self.square is not None:
-			for move in self.moves:
-				try:
-					if chess.rules.Move(self, square := self.square + move * self.color)                   : squares.add(square)
-					if chess.rules.Move(self, square :=      square + move * self.color) and not self.moved: squares.add(square)
+			move = chess.algebra.Difference.S * self.color
+			square = self.square
 
-				except ValueError:
-					continue
+			try:
+				if chess.rules.Move(self, square := square + move)                   : squares.add(square)
+				if chess.rules.Move(self, square := square + move) and not self.moved: squares.add(square)
 
-		return squares
+			except ValueError:
+				...
+
+		return self.cleanup(squares)
 
 
 class Rook(Ranged, Officer):
@@ -173,7 +170,7 @@ class Rook(Ranged, Officer):
 	black: str = "\u265c"
 	white: str = "\u2656"
 
-	capts = {
+	moves = {
 		chess.algebra.Difference.N,
 		chess.algebra.Difference.E,
 		chess.algebra.Difference.S,
@@ -188,7 +185,7 @@ class Bishop(Ranged, Officer):
 	black: str = "\u265d"
 	white: str = "\u2657"
 
-	capts = {
+	moves = {
 		chess.algebra.Difference.NE,
 		chess.algebra.Difference.SE,
 		chess.algebra.Difference.SW,
@@ -203,8 +200,8 @@ class Knight(Melee, Officer):
 	black: str = "\u265e"
 	white: str = "\u2658"
 
-	capts = {straight + diagonal for straight, diagonal in itertools.product(Rook.capts, Bishop.capts)}
-#	capts = {
+	moves = {straight + diagonal for straight, diagonal in itertools.product(Rook.moves, Bishop.moves)}
+#	moves = {
 #		chess.algebra.Difference.N2E,
 #		chess.algebra.Difference.NE2,
 #		chess.algebra.Difference.SE2,
@@ -218,8 +215,8 @@ class Knight(Melee, Officer):
 
 class Star(Piece):
 
-	capts = Rook.capts | Bishop.capts
-#	capts = {
+	moves = Rook.moves | Bishop.moves
+#	moves = {
 #		chess.algebra.Difference.N, chess.algebra.Difference.NE,
 #		chess.algebra.Difference.E, chess.algebra.Difference.SE,
 #		chess.algebra.Difference.S, chess.algebra.Difference.SW,
@@ -245,6 +242,26 @@ class King(Melee, Star):
 
 	@property
 	def squares(self) -> set[chess.algebra.Square]:
-		squares = super().squares
+		squares = self.targets
 
-		return squares
+		if self.square is not None:
+			for move, Castle in zip(
+				[
+					chess.algebra.Difference.W2,
+					chess.algebra.Difference.E2,
+				],
+				[
+					chess.rules.CastleLong ,
+					chess.rules.CastleShort,
+				],
+			):
+				if Castle(self.side):
+					try: squares.add(self.square + move)
+					except ValueError: continue
+
+		return self.cleanup(squares)
+
+	@property
+	def safe(self) -> bool:
+		assert self.square is not None
+		return self.square not in self.side.other.targets

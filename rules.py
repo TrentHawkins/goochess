@@ -23,6 +23,12 @@ class Rule(abc.ABC):
 	def __bool__(self) -> bool:
 		...
 
+	def __enter__(self) -> typing.Self:
+		return self
+
+	def __exit__(self) -> bool | None:
+		...
+
 
 	@property
 	def game(self) -> chess.engine.Game:
@@ -60,13 +66,15 @@ class Move(Rule):
 	def __bool__(self) -> bool:
 		return self.game[self.target] is None
 
+	def __enter__(self) -> typing.Self:
+		self.king.move(self.step)
 
-#	def king_safe(self) -> bool:
-#		self.king.add(self.step)
-#		safe = self.king.safe
-#		self.king.sub(self.step)
-#
-#		return safe
+		return super().__enter__()
+
+	def __exit__(self, *exception_args) -> bool | None:
+		self.king.back(self.step)
+
+		return super().__exit__()
 
 
 class Capt(Move):
@@ -114,7 +122,7 @@ class Castle(Rule, abc.ABC):
 
 	def __bool__(self) -> bool:
 		assert self.king.square is not None
-		return not self.king.moved and not self.rook.moved and self.king.squares_moves_from(self.steps) <= self.king.targets
+		return not self.king.moved and not self.rook.moved and self.king.squares_from(self.steps) <= self.king.targets
 
 
 class CastleLong(Castle):
