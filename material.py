@@ -68,8 +68,10 @@ class Piece:
 	def move(self, target: chess.algebra.Square):
 		assert (source := self.square) is not None
 
+		kept = self.game[target]
+
 		self.game[source], self.game[target] = None, self.game[source]; yield self
-		self.game[target], self.game[source] = None, self.game[target]
+		self.game[target], self.game[source] = kept, self.game[target]
 
 
 class Officer(Piece):
