@@ -1,63 +1,70 @@
 from __future__ import annotations
 
 
+from contextlib import contextmanager
 from datetime import datetime
 import os
 import typing
 
+import chess.theme
 import chess.algebra
 import chess.material
 
 
-class Board(list[chess.material.Piece | None]):
+black = chess.theme.DEFAULT.square.black.fg; C = "\x1b[C"
+white = chess.theme.DEFAULT.square.white.bg; D = "\x1b[D"
+
+
+def color(string: str) -> str: return black(white(string))
+
+
+Square = chess.algebra.Square
+Piece = chess.material.Piece | None
+
+
+class Board(list[Piece]):
 
 	def __init__(self):
-		super().__init__(None for _ in chess.algebra.Square)
+		super().__init__(None for _ in Square)
 
 	def __repr__(self) -> str:
-		representation  = ""
-		representation += "▗▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▖" + os.linesep
-		representation += "▐▌  A B C D E F G H  ▐▌" + os.linesep
+		representation = ""
+		representation += black("▗"  +       "▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄"  +       "▖") + os.linesep
+		representation += black("▐") + color("▌  A B C D E F G H  ▐") + black("▌") + os.linesep
 
 		for index, piece in enumerate(self):
-			square = chess.algebra.Square(index)
-			square_representation = str(square)
-
-			if piece is not None:
-				square_representation = square_representation.replace(" ", str(piece))
+			square = Square(index)
 
 			if square.file == chess.algebra.File.A_:
-				representation += "▐▌" + repr(square.rank)
+				representation += black("▐") + color("▌" + repr(square.rank))
 
-			representation += square_representation + "\x1b[D"
+			representation += str(square).replace(" ", str(piece) if piece is not None else " ") + D
 
 			if square.file == chess.algebra.File.H_:
-				representation += "\x1b[C" + repr(square.rank) + "▐▌" + os.linesep
+				representation += C + color(repr(square.rank) + "▐") + black("▌") + os.linesep
 
-		representation += "▐▌  A B C D E F G H  ▐▌" + os.linesep
-		representation += "▝▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▘"
+		representation += black("▐") + color("▌  A B C D E F G H  ▐") + black("▌") + os.linesep
+		representation += black("▝"  +       "▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀"  +       "▘")
 
 		return representation
 
-	def __setitem__(self,
-		key: chess.algebra.Square | slice,
-		value: chess.material.Piece | None | typing.Iterable[chess.material.Piece | None]):
-		if isinstance(key, chess.algebra.Square): key = slice(key, key + 1, +1)
-		if isinstance(value, chess.material.Piece | None): value = [value]
+	def __setitem__(self, key: Square | slice, value: Piece | typing.Iterable[Piece]):
+		if isinstance(key, Square): key = slice(key, key + 1, +1)
+		if isinstance(value, Piece): value = [value]
 
 		for integer, piece in zip(range(*key.indices(len(self))), value):
-			self.update(chess.algebra.Square(integer), piece)
+			self.update(Square(integer), piece)
 
 		super().__setitem__(key, value)
 
-	def __delitem__(self, key: chess.algebra.Square | slice):
-		if isinstance(key, chess.algebra.Square): key = slice(key, key + 1, +1)
+	def __delitem__(self, key: Square | slice):
+		if isinstance(key, Square): key = slice(key, key + 1, +1)
 
 		self[key] = [None] * len(range(*key.indices(len(self))))
 
 
-	def update(self, square: chess.algebra.Square,
-		piece: chess.material.Piece | None = None,
+	def update(self, square: Square,
+		piece: Piece = None,
 	):
 		other = self[square]
 
@@ -103,7 +110,7 @@ class Side(list[chess.material.Piece]):
 		return sum(piece.value for piece in self if piece.square is not None)
 
 	@property
-	def targets(self) -> set[chess.algebra.Square]:
+	def targets(self) -> set[Square]:
 		return set().union(*(piece.targets for piece in self))
 
 	@property
@@ -114,8 +121,8 @@ class Side(list[chess.material.Piece]):
 	def king(self) -> chess.material.King:
 		return typing.cast(chess.material.King,
 			self[
-				chess.algebra.Square.E8 if self.color else
-				chess.algebra.Square.D8
+				Square.E8 if self.color else
+				Square.D8
 			]
 		)
 
@@ -123,8 +130,8 @@ class Side(list[chess.material.Piece]):
 	def left_rook(self) -> chess.material.Rook:
 		return typing.cast(chess.material.Rook,
 			self[
-				chess.algebra.Square.A8 if self.color else
-				chess.algebra.Square.H8
+				Square.A8 if self.color else
+				Square.H8
 			]
 		)
 
@@ -132,8 +139,8 @@ class Side(list[chess.material.Piece]):
 	def right_rook(self) -> chess.material.Rook:
 		return typing.cast(chess.material.Rook,
 			self[
-				chess.algebra.Square.H8 if self.color else
-				chess.algebra.Square.A8
+				Square.H8 if self.color else
+				Square.A8
 			]
 		)
 
@@ -145,8 +152,8 @@ class Game(Board):
 		self.black = Side(self, chess.algebra.Color.BLACK)
 		self.white = Side(self, chess.algebra.Color.WHITE)
 
-		self[+chess.algebra.Square.A8:+chess.algebra.Square.A6:chess.algebra.Difference.E] = self.black
-		self[-chess.algebra.Square.A8:-chess.algebra.Square.A6:chess.algebra.Difference.W] = self.white
+		self[+Square.A8:+Square.A6:chess.algebra.Difference.E] = self.black
+		self[-Square.A8:-Square.A6:chess.algebra.Difference.W] = self.white
 
 	def __hash__(self) -> int:
 		return hash(datetime.now().timestamp())
