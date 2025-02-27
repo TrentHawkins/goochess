@@ -85,4 +85,4 @@ METAL = Theme(
 		white = "#cccccc",
 	),
 )
-DEFAULT = METAL
+DEFAULT = WOOD
