@@ -1,21 +1,12 @@
 from __future__ import annotations
 
 
-from contextlib import contextmanager
 from datetime import datetime
 import os
 import typing
 
-import chess.theme
 import chess.algebra
 import chess.material
-
-
-black = chess.theme.DEFAULT.square.black.fg; C = "\x1b[C"
-white = chess.theme.DEFAULT.square.white.bg; D = "\x1b[D"
-
-
-def color(string: str) -> str: return black(white(string))
 
 
 Square = chess.algebra.Square
@@ -28,23 +19,25 @@ class Board(list[Piece]):
 		super().__init__(None for _ in Square)
 
 	def __repr__(self) -> str:
-		representation = ""
-		representation += black("▗"  +       "▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄"  +       "▖") + os.linesep
-		representation += black("▐") + color("▌  A B C D E F G H  ▐") + black("▌") + os.linesep
+		representation  = ""
+		representation += "▗▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▖" + os.linesep
+		representation += "▐▌  A B C D E F G H  ▐▌" + os.linesep
 
 		for index, piece in enumerate(self):
 			square = Square(index)
+			square_representation = str(square)
 
-			if square.file == chess.algebra.File.A_:
-				representation += black("▐") + color("▌" + repr(square.rank))
+			if piece is not None:
+				square_representation = square_representation.replace(" ", str(piece))
 
-			representation += str(square).replace(" ", str(piece) if piece is not None else " ") + D
+			if square.file == chess.algebra.File.A_: representation += "▐▌" + repr(square.rank)
 
-			if square.file == chess.algebra.File.H_:
-				representation += C + color(repr(square.rank) + "▐") + black("▌") + os.linesep
+			representation += square_representation + "\x1b[D"
 
-		representation += black("▐") + color("▌  A B C D E F G H  ▐") + black("▌") + os.linesep
-		representation += black("▝"  +       "▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀"  +       "▘")
+			if square.file == chess.algebra.File.H_: representation += "\x1b[C" + repr(square.rank) + "▐▌" + os.linesep
+
+		representation += "▐▌  A B C D E F G H  ▐▌" + os.linesep
+		representation += "▝▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▘"
 
 		return representation
 
