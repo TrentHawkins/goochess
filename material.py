@@ -161,12 +161,12 @@ class Pawn(Piece):
 		squares = self.targets
 
 		if self.square is not None:
-			move = chess.algebra.Difference.S * self.color
-			square = self.square
-
 			try:
-				if chess.rules.Move(self, square := square + move)                   : squares.add(square)
-				if chess.rules.Move(self, square := square + move) and not self.moved: squares.add(square)
+				if chess.rules.Move(self, square := self.square + (move := chess.algebra.Difference.S * self.color)):
+					squares.add(square)
+
+					if chess.rules.Rush(self, square := square + move):
+						squares.add(square)
 
 			except ValueError:
 				...
