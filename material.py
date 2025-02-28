@@ -81,6 +81,11 @@ class Piece:
 		self.game[target], self.game[source] = kept, self.game[target]
 
 
+class Ghost(Piece):
+
+	...
+
+
 class Officer(Piece):
 
 	...
