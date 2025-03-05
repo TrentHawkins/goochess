@@ -71,8 +71,8 @@ WOOD = Theme(
 		white = "#776655",
 	),
 	pieces = Palette.fromhex(
-		black = "#443322",
-		white = "#ddccbb",
+		black = "#000000",
+		white = "#ffffff",
 	),
 )
 METAL = Theme(
@@ -81,8 +81,8 @@ METAL = Theme(
 		white = "#999999",
 	),
 	pieces = Palette.fromhex(
-		black = "#333333",
-		white = "#cccccc",
+		black = "#000000",
+		white = "#ffffff",
 	),
 )
 DEFAULT = WOOD
