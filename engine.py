@@ -9,7 +9,10 @@ import chess.algebra
 import chess.material
 
 
-class Board(list[chess.material.Piece | None]):
+Piece = chess.material.Piece | None
+
+
+class Board(list[Piece]):
 
 	def __init__(self):
 		super().__init__(None for _ in chess.algebra.Square)
@@ -26,27 +29,23 @@ class Board(list[chess.material.Piece | None]):
 			if piece is not None:
 				square_representation = square_representation.replace(" ", str(piece))
 
-			if square.file == chess.algebra.File.A_:
-				representation += "▐▌" + repr(square.rank)
+			if square.file == chess.algebra.File.A_: representation += "▐▌" + repr(square.rank)
 
 			representation += square_representation + "\x1b[D"
 
-			if square.file == chess.algebra.File.H_:
-				representation += "\x1b[C" + repr(square.rank) + "▐▌" + os.linesep
+			if square.file == chess.algebra.File.H_: representation += "\x1b[C" + repr(square.rank) + "▐▌" + os.linesep
 
 		representation += "▐▌  A B C D E F G H  ▐▌" + os.linesep
 		representation += "▝▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▘"
 
 		return representation
 
-	def __setitem__(self,
-		key: chess.algebra.Square | slice,
-		value: chess.material.Piece | None | typing.Iterable[chess.material.Piece | None]):
+	def __setitem__(self, key: chess.algebra.Square | slice, value: Piece | typing.Iterable[Piece]):
 		if isinstance(key, chess.algebra.Square): key = slice(key, key + 1, +1)
-		if isinstance(value, chess.material.Piece | None): value = [value]
+		if isinstance(value, Piece): value = [value]
 
-		for integer, piece in zip(range(*key.indices(len(self))), value):
-			self.update(chess.algebra.Square(integer), piece)
+		for index, piece in zip(range(*key.indices(len(self))), value):
+			self.update(chess.algebra.Square(index), piece)
 
 		super().__setitem__(key, value)
 
@@ -57,7 +56,7 @@ class Board(list[chess.material.Piece | None]):
 
 
 	def update(self, square: chess.algebra.Square,
-		piece: chess.material.Piece | None = None,
+		piece: Piece = None,
 	):
 		other = self[square]
 

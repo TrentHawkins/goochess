@@ -43,7 +43,7 @@ class Move(Rule):
 		return repr(self.piece) + repr(self.source) + "-" + repr(self.target)
 
 	def __bool__(self) -> bool:
-		return self.game[self.target] is None
+		return (other := self.game[self.target]) is None or isinstance(other, chess.material.Ghost)
 
 
 	@property
