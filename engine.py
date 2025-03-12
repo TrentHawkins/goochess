@@ -21,8 +21,13 @@ class Board(list[Piece], pygame.sprite.Sprite):
 	def __init__(self):
 		super().__init__(None for _ in chess.algebra.Square)
 
-		self.surf = pygame.transform.smoothscale(pygame.image.load(self.decal).convert(), chess.theme.BOARD)
-		self.rect = self.surf.get_rect()
+		self.surf = pygame.transform.smoothscale(pygame.image.load(self.decal).convert(), chess.theme.WINDOW)
+		self.rect = self.surf.get_rect(
+			center = pygame.Vector2(
+				chess.theme.RESOLUTION // 2,
+				chess.theme.RESOLUTION // 2,
+			)
+		)
 
 	def __repr__(self) -> str:
 		...  # TODO: FEN (part)
@@ -44,7 +49,7 @@ class Board(list[Piece], pygame.sprite.Sprite):
 
 	@property
 	def decal(self) -> pathlib.Path:
-		return pathlib.Path("chess/graphics/board/wood.png")
+		return pathlib.Path("chess/graphics/board/mask.png")
 
 
 	def update(self, square: chess.algebra.Square,
@@ -58,6 +63,11 @@ class Board(list[Piece], pygame.sprite.Sprite):
 	def draw(self, screen: pygame.Surface):
 		for square in chess.algebra.Square:
 			square.draw(screen)
+
+		screen.blit(
+			self.surf,
+			self.rect, special_flags = pygame.BLEND_RGBA_MULT,
+		)
 
 
 class Side(list[chess.material.Piece]):

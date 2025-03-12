@@ -2,6 +2,7 @@ from __future__ import annotations
 
 
 import enum
+import pathlib
 import re
 
 import pygame
@@ -134,19 +135,19 @@ class Square(int, enum.Enum):
 
 		self.black = (
 			153,
-			153,
-			153,
+			136,
+			119,
 		)
 		self.white = (
-			204,
-			204,
-			204,
+			255,
+			238,
+			221,
 		)
 
 		self.rect = pygame.Rect(
 			pygame.Vector2(
 				chess.theme.SQUARE_W * (self.file),
-				chess.theme.SQUARE_H * (self.rank >> 0b11) + chess.theme.BOARD_OFFSET,
+				chess.theme.SQUARE_H * (self.rank >> 0b11) + chess.theme.BOARD_OFFSET * 2 // 3,
 			),
 			pygame.Vector2(*chess.theme.SQUARE),
 		)
@@ -154,8 +155,8 @@ class Square(int, enum.Enum):
 	def __repr__(self) -> str:
 		return self.name.lower()
 
-	def __add__(self, other: int   ) -> Square: return Square (super().__add__(other))
-	def __sub__(self, other: Square) -> int   : return         super().__sub__(other)
+	def __add__(self, other: int   ) -> Square: return Square(super().__add__(other))
+	def __sub__(self, other: Square) -> int   : return        super().__sub__(other)
 	def __mul__(self, color: Color ) -> Square:
 		return +self if color else ~self
 
@@ -194,6 +195,16 @@ class Square(int, enum.Enum):
 	def color(self) -> Color:
 		return Color((((self.rank >> 0b11) + self.file & 1) << 1) - 1)
 
+	@property
+	def decal(self) -> pathlib.Path:
+		return pathlib.Path("chess/graphics/board/bevel.png")
+
 
 	def draw(self, screen: pygame.Surface):
+		self.surf = pygame.transform.smoothscale(pygame.image.load(self.decal).convert_alpha(), chess.theme.SQUARE)
+
 		pygame.draw.rect(screen, self.black if self.color else self.white, self.rect)
+		screen.blit(
+			self.surf,
+			self.rect, special_flags = pygame.BLEND_RGBA_MULT,
+		)

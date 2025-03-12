@@ -38,8 +38,6 @@ class Piece(chess.theme.Decal):
 		try: self.surf = pygame.transform.smoothscale(pygame.image.load(self.decal).convert_alpha(), chess.theme.PIECE)
 		except FileNotFoundError: self.surf = pygame.Surface(chess.theme.PIECE)
 
-		self.rect = self.surf.get_rect()
-
 	def __repr__(self) -> str:
 		return self.black if self.color else self.white
 
@@ -47,6 +45,13 @@ class Piece(chess.theme.Decal):
 	@property
 	def decal(self) -> pathlib.Path:
 		return pathlib.Path("chess/graphics/piece") / self.color.name.lower() / f"{self.__class__.__name__.lower()}.png"
+
+	@property
+	def rect(self) -> pygame.Rect:
+		return self.surf.get_rect(
+			center = self.square.rect.center,
+			bottom = self.square.rect.bottom + 20,
+		) if self.square is not None else self.surf.get_rect()
 
 	@property
 	def color(self) -> chess.algebra.Color:
@@ -86,10 +91,10 @@ class Piece(chess.theme.Decal):
 
 	def draw(self, screen: pygame.Surface):
 		if self.square is not None:
-			rect = self.surf.get_rect(
-				bottom = self.square.rect.bottom
+			screen.blit(
+				self.surf,
+				self.rect,
 			)
-			screen.blit(screen, rect)
 
 
 class Ghost(Piece):
@@ -100,13 +105,6 @@ class Ghost(Piece):
 class Officer(Piece):
 
 	...
-
-
-class Assymetric(Piece):
-
-	@property
-	def decal(self) -> pathlib.Path:
-		return super().decal.with_suffix("flipped" + super().decal.suffix)
 
 
 class Melee(Piece):
@@ -146,6 +144,13 @@ class Ranged(Piece):
 					except ValueError: continue
 
 		return targets
+
+
+class Assymetric(Piece):
+
+	@property
+	def decal(self) -> pathlib.Path:
+		return super().decal.with_suffix(".flipped" + super().decal.suffix) if self.color else super().decal
 
 
 class Pawn(Piece):
@@ -206,7 +211,7 @@ class Rook(Ranged, Officer):
 	}
 
 
-class Bishop(Ranged, Officer):
+class Bishop(Ranged, Assymetric, Officer):
 
 	value: int = 3
 
@@ -221,7 +226,7 @@ class Bishop(Ranged, Officer):
 	}
 
 
-class Knight(Melee, Officer):
+class Knight(Melee, Assymetric, Officer):
 
 	value: int = 3
 
