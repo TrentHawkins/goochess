@@ -3,8 +3,12 @@ from __future__ import annotations
 
 from datetime import datetime
 import os
+import pathlib
 import typing
 
+import pygame
+
+import chess.theme
 import chess.algebra
 import chess.material
 
@@ -12,33 +16,21 @@ import chess.material
 Piece = chess.material.Piece | None
 
 
-class Board(list[Piece]):
+class Board(list[Piece], pygame.sprite.Sprite):
 
 	def __init__(self):
 		super().__init__(None for _ in chess.algebra.Square)
 
+		self.surf = pygame.transform.smoothscale(pygame.image.load(self.decal).convert(), chess.theme.WINDOW)
+		self.rect = self.surf.get_rect(
+			center = pygame.Vector2(
+				chess.theme.RESOLUTION // 2,
+				chess.theme.RESOLUTION // 2,
+			)
+		)
+
 	def __repr__(self) -> str:
-		representation  = ""
-		representation += "▗▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▖" + os.linesep
-		representation += "▐▌  A B C D E F G H  ▐▌" + os.linesep
-
-		for index, piece in enumerate(self):
-			square = chess.algebra.Square(index)
-			square_representation = str(square)
-
-			if piece is not None:
-				square_representation = square_representation.replace(" ", str(piece))
-
-			if square.file == chess.algebra.File.A_: representation += "▐▌" + repr(square.rank)
-
-			representation += square_representation + "\x1b[D"
-
-			if square.file == chess.algebra.File.H_: representation += "\x1b[C" + repr(square.rank) + "▐▌" + os.linesep
-
-		representation += "▐▌  A B C D E F G H  ▐▌" + os.linesep
-		representation += "▝▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▘"
-
-		return representation
+		...  # TODO: FEN (part)
 
 	def __setitem__(self, key: chess.algebra.Square | slice, value: Piece | typing.Iterable[Piece]):
 		if isinstance(key, chess.algebra.Square): key = slice(key, key + 1, +1)
@@ -55,6 +47,11 @@ class Board(list[Piece]):
 		self[key] = [None] * len(range(*key.indices(len(self))))
 
 
+	@property
+	def decal(self) -> pathlib.Path:
+		return pathlib.Path("chess/graphics/board/mask.png")
+
+
 	def update(self, square: chess.algebra.Square,
 		piece: Piece = None,
 	):
@@ -62,6 +59,15 @@ class Board(list[Piece]):
 
 		if piece is not None: piece.square = square
 		if other is not None: other.square = None
+
+	def draw(self, screen: pygame.Surface):
+		for square in chess.algebra.Square:
+			square.draw(screen)
+
+		screen.blit(
+			self.surf,
+			self.rect, special_flags = pygame.BLEND_RGBA_MULT,
+		)
 
 
 class Side(list[chess.material.Piece]):
@@ -136,6 +142,7 @@ class Side(list[chess.material.Piece]):
 			]
 		)
 
+
 class Game(Board):
 
 	def __init__(self):
@@ -147,5 +154,16 @@ class Game(Board):
 		self[+chess.algebra.Square.A8:+chess.algebra.Square.A6:chess.algebra.Difference.E] = self.black
 		self[-chess.algebra.Square.A8:-chess.algebra.Square.A6:chess.algebra.Difference.W] = self.white
 
+	def __repr__(self) -> str:
+		...  # TODO: FEN (full)
+
 	def __hash__(self) -> int:
 		return hash(datetime.now().timestamp())
+
+
+	def draw(self, screen: pygame.Surface):
+		super().draw(screen)
+
+		for piece in self:
+			if piece is not None:
+				piece.draw(screen)

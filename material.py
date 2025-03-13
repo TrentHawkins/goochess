@@ -2,9 +2,11 @@ from __future__ import annotations
 
 
 import contextlib
-import functools
+import pathlib
 import itertools
 import typing
+
+import pygame
 
 import chess.theme
 import chess.algebra
@@ -13,22 +15,7 @@ import chess.rules
 if typing.TYPE_CHECKING: import chess.engine
 
 
-def cleanup(method):
-	@functools.wraps(method)
-	def wrapped(self: Piece, targets: set[chess.algebra.Square]) -> set[chess.algebra.Square]:
-		targets = targets.copy()
-
-		for square in targets:
-			with self.move(square):
-				if not self.side.king.safe:
-					targets.discard(square)
-
-		return targets
-
-	return wrapped
-
-
-class Piece:
+class Piece(chess.theme.Decal):
 
 	value: int = 0
 
@@ -38,21 +25,37 @@ class Piece:
 	moves: set[chess.algebra.Difference] = set()
 
 
-	def __init__(self,side: chess.engine.Side, square: chess.algebra.Square | None = None):
+	def __init__(self, side: chess.engine.Side,
+		square: chess.algebra.Square | None = None,
+	):
 		self.side = side
 		self.square = square
-		self.color = self.side.color
 
 		self.moved: bool = False
+
+		super().__init__()
+
+		try: self.surf = pygame.transform.smoothscale(pygame.image.load(self.decal).convert_alpha(), chess.theme.PIECE)
+		except FileNotFoundError: self.surf = pygame.Surface(chess.theme.PIECE)
 
 	def __repr__(self) -> str:
 		return self.black if self.color else self.white
 
-	def __str__(self) -> str:
-		color = chess.theme.DEFAULT.pieces.black if self.color else chess.theme.DEFAULT.pieces.white
 
-		return color.bg(self.black)
+	@property
+	def decal(self) -> pathlib.Path:
+		return pathlib.Path("chess/graphics/piece") / self.color.name.lower() / f"{self.__class__.__name__.lower()}.png"
 
+	@property
+	def rect(self) -> pygame.Rect:
+		return self.surf.get_rect(
+			center = self.square.rect.center,
+			bottom = self.square.rect.bottom + 20,
+		) if self.square is not None else self.surf.get_rect()
+
+	@property
+	def color(self) -> chess.algebra.Color:
+		return self.side.color
 
 	@property
 	def game(self) -> chess.engine.Game:
@@ -63,9 +66,15 @@ class Piece:
 		return set()
 
 	@property
-	@cleanup
 	def squares(self) -> set[chess.algebra.Square]:
-		return self.targets
+		squares = self.targets.copy()
+
+		for square in squares:
+			with self.move(square):
+				if not self.side.king.safe:
+					squares.discard(square)
+
+		return squares
 
 
 	def squares_from(self, steps: set[chess.algebra.Difference]) -> set[chess.algebra.Square]:
@@ -79,6 +88,13 @@ class Piece:
 
 		self.game[source], self.game[target] = None, self.game[source]; yield self
 		self.game[target], self.game[source] = kept, self.game[target]
+
+	def draw(self, screen: pygame.Surface):
+		if self.square is not None:
+			screen.blit(
+				self.surf,
+				self.rect,
+			)
 
 
 class Ghost(Piece):
@@ -130,6 +146,13 @@ class Ranged(Piece):
 		return targets
 
 
+class Assymetric(Piece):
+
+	@property
+	def decal(self) -> pathlib.Path:
+		return super().decal.with_suffix(".flipped" + super().decal.suffix) if self.color else super().decal
+
+
 class Pawn(Piece):
 
 	value: int = 1
@@ -156,7 +179,6 @@ class Pawn(Piece):
 
 
 	@property
-	@cleanup
 	def squares(self) -> set[chess.algebra.Square]:
 		squares = self.targets
 
@@ -189,7 +211,7 @@ class Rook(Ranged, Officer):
 	}
 
 
-class Bishop(Ranged, Officer):
+class Bishop(Ranged, Assymetric, Officer):
 
 	value: int = 3
 
@@ -204,7 +226,7 @@ class Bishop(Ranged, Officer):
 	}
 
 
-class Knight(Melee, Officer):
+class Knight(Melee, Assymetric, Officer):
 
 	value: int = 3
 
@@ -252,7 +274,6 @@ class King(Melee, Star):
 
 
 	@property
-	@cleanup
 	def squares(self) -> set[chess.algebra.Square]:
 		squares = self.targets
 
