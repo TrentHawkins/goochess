@@ -15,7 +15,7 @@ import chess.rules
 if typing.TYPE_CHECKING: import chess.engine
 
 
-class Piece(chess.theme.Decal):
+class Piece(chess.theme.Highlightable):
 
 	value: int = 0
 
@@ -70,24 +70,31 @@ class Piece(chess.theme.Decal):
 		squares = self.targets.copy()
 
 		for square in squares:
-			with self.move(square):
+			with self.test(square):
 				if not self.side.king.safe:
 					squares.discard(square)
 
 		return squares
 
 
-	def squares_from(self, steps: set[chess.algebra.Difference]) -> set[chess.algebra.Square]:
-		return {self.square + step for step in steps} if self.square is not None else set()
-
 	@contextlib.contextmanager
-	def move(self, target: chess.algebra.Square):
+	def test(self, target: chess.algebra.Square):
 		assert (source := self.square) is not None
 
 		kept = self.game[target]
 
 		self.game[source], self.game[target] = None, self.game[source]; yield self
 		self.game[target], self.game[source] = kept, self.game[target]
+
+
+	def squares_from(self, steps: set[chess.algebra.Difference]) -> set[chess.algebra.Square]:
+		return {self.square + step for step in steps} if self.square is not None else set()
+
+	def clicked(self, event: pygame.event.Event) -> bool:
+		if (selected := self.square is not None and self.square.clicked(event)):
+			self.game.selected = self
+
+		return selected
 
 	def draw(self, screen: pygame.Surface):
 		if self.square is not None:

@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 
-from abc import ABC as AbstractClass, abstractmethod
+from abc import abstractmethod
 
 import pygame
 
@@ -37,8 +37,33 @@ PIECE = (
 PIECE_OFFSET = (PIECE_H - SQUARE_W) // 2
 
 
-class Decal(pygame.sprite.Sprite, AbstractClass):
+class Drawable(pygame.sprite.Sprite):
+
+	def __init__(self, *args, **kwargs):
+		self.surf: pygame.Surface
+		self.rect: pygame.Rect
+
+
+	@property
+	@abstractmethod
+	def decal(self) -> str:
+		raise NotImplementedError
+
+
+	def draw(self, screen: pygame.Surface, *,
+		special_flags: int,
+	):
+		screen.blit(
+			self.surf,
+			self.rect, special_flags = special_flags,
+		)
+
+
+class Highlightable(Drawable):
 
 	@abstractmethod
-	def draw(self, screen: pygame.Surface):
-		...
+	def clicked(self, event: pygame.event.Event) -> bool:
+		raise NotImplementedError
+
+	def highlight(self):
+		pygame.draw.rect(self.surf, (255, 255, 255, 85), self.rect)

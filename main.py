@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 
-import pygame
+import pygame; pygame.init()
 
 import chess.theme
 import chess.engine
@@ -17,8 +17,6 @@ GREY = (
 	85,
 	85,
 )
-
-pygame.init()
 
 screen = pygame.display.set_mode(chess.theme.WINDOW)
 running = True

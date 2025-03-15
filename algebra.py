@@ -117,7 +117,7 @@ class Difference(int, enum.Enum):
 	def __neg__(self) -> Difference: return Difference(-super())
 
 
-class Square(int, enum.Enum):
+class Square(int, chess.theme.Highlightable, enum.Enum):
 
 #	A        : B        : C        : D        : E        : F        : G        : H        :
 	A8 = 0o00; B8 = 0o01; C8 = 0o02; D8 = 0o03; E8 = 0o04; F8 = 0o05; G8 = 0o06; H8 = 0o07;  # 8
@@ -144,6 +144,7 @@ class Square(int, enum.Enum):
 			221,
 		)
 
+		self.surf = pygame.transform.smoothscale(pygame.image.load(self.decal).convert_alpha(), chess.theme.SQUARE)
 		self.rect = pygame.Rect(
 			pygame.Vector2(
 				chess.theme.SQUARE_W * (self.file),
@@ -200,11 +201,12 @@ class Square(int, enum.Enum):
 		return pathlib.Path("chess/graphics/board/bevel.png")
 
 
-	def draw(self, screen: pygame.Surface):
-		self.surf = pygame.transform.smoothscale(pygame.image.load(self.decal).convert_alpha(), chess.theme.SQUARE)
+	def clicked(self, event: pygame.event.Event) -> bool:
+		return event.type == pygame.MOUSEBUTTONDOWN and event.button == 1 and self.rect.collidepoint(event.pos)
 
+	def draw(self, screen: pygame.Surface):
 		pygame.draw.rect(screen, self.black if self.color else self.white, self.rect)
-		screen.blit(
-			self.surf,
-			self.rect, special_flags = pygame.BLEND_RGBA_MULT,
+
+		super().draw(screen,
+			special_flags = pygame.BLEND_RGBA_MULT,
 		)

@@ -16,17 +16,19 @@ import chess.material
 Piece = chess.material.Piece | None
 
 
-class Board(list[Piece], pygame.sprite.Sprite):
+class Board(list[Piece], chess.theme.Drawable):
 
 	def __init__(self):
 		super().__init__(None for _ in chess.algebra.Square)
 
+		self.selected: chess.material.Piece | None = None
+
 		self.surf = pygame.transform.smoothscale(pygame.image.load(self.decal).convert(), chess.theme.WINDOW)
 		self.rect = self.surf.get_rect(
-			center = pygame.Vector2(
-				chess.theme.RESOLUTION // 2,
-				chess.theme.RESOLUTION // 2,
-			)
+		#	center = pygame.Vector2(
+		#		chess.theme.RESOLUTION // 2,
+		#		chess.theme.RESOLUTION // 2,
+		#	)
 		)
 
 	def __repr__(self) -> str:
@@ -49,7 +51,7 @@ class Board(list[Piece], pygame.sprite.Sprite):
 
 	@property
 	def decal(self) -> pathlib.Path:
-		return pathlib.Path("chess/graphics/board/mask.png")
+		return pathlib.Path("chess/graphics/board/stone1.png")
 
 
 	def update(self, square: chess.algebra.Square,
@@ -64,10 +66,16 @@ class Board(list[Piece], pygame.sprite.Sprite):
 		for square in chess.algebra.Square:
 			square.draw(screen)
 
-		screen.blit(
-			self.surf,
-			self.rect, special_flags = pygame.BLEND_RGBA_MULT,
+		super().draw(screen,
+			special_flags = pygame.BLEND_RGBA_MULT,
 		)
+
+		for piece in self:
+			if piece is not None:
+				piece.draw(screen)
+
+		if self.selected is not None:
+			self.selected.highlight()
 
 
 class Side(list[chess.material.Piece]):
@@ -159,11 +167,3 @@ class Game(Board):
 
 	def __hash__(self) -> int:
 		return hash(datetime.now().timestamp())
-
-
-	def draw(self, screen: pygame.Surface):
-		super().draw(screen)
-
-		for piece in self:
-			if piece is not None:
-				piece.draw(screen)
