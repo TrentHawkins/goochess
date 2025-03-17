@@ -2,6 +2,7 @@ from __future__ import annotations
 
 
 from abc import abstractmethod
+from copy import copy
 
 import pygame
 
@@ -72,12 +73,11 @@ class Highlightable(Drawable):
 
 	@abstractmethod
 	def clicked(self, event: pygame.event.Event) -> bool:
-		raise NotImplementedError
+		return NotImplemented
 
 	def highlight(self, screen: pygame.Surface):
-		surf = self.surf.copy()
+		surf = copy(self.surf)
 		surf.fill(self.highlight_color,
 			special_flags = pygame.BLEND_RGB_ADD,
 		)
 		screen.blit(surf, self.rect)
-

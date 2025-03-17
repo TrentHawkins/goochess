@@ -114,6 +114,12 @@ class Piece(chess.theme.Highlightable):
 				self.rect,
 			)
 
+	def highlight(self, screen: pygame.Surface):
+		if self.square is not None:
+			self.square.highlight(screen)
+
+		super().highlight(screen)
+
 
 class Ghost(Piece):
 
@@ -133,12 +139,14 @@ class Melee(Piece):
 
 		if self.square is not None:
 			for move in self.moves:
-				target = self.square + move
+				try:
+					target = self.square + move
 
-				if chess.rules.Move(self, target) \
-				or chess.rules.Capt(self, target):
-					try: targets.add(target)
-					except ValueError: continue
+					if chess.rules.Move(self, target) \
+					or chess.rules.Capt(self, target): targets.add(target)
+
+				except ValueError:
+					continue
 
 		return targets
 
@@ -153,13 +161,18 @@ class Ranged(Piece):
 			for move in self.moves:
 				target = self.square
 
-				while chess.rules.Move(self, target := target + move):
-					try: targets.add(target)
-					except ValueError: break
+				while True:
+					try:
+						target += move
+
+						if chess.rules.Move(self, target): targets.add(target)
+						else: break
+
+					except ValueError:
+						break
 
 				if chess.rules.Capt(self, target):
-					try: targets.add(target)
-					except ValueError: continue
+					targets.add(target)
 
 		return targets
 

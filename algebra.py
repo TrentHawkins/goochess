@@ -204,9 +204,14 @@ class Square(int, chess.theme.Highlightable, enum.Enum):
 		return event.type == pygame.MOUSEBUTTONDOWN and event.button == 1 and self.rect.collidepoint(event.pos)
 
 	def draw(self, screen: pygame.Surface):
-		self.surf = pygame.transform.smoothscale(pygame.image.load(self.decal).convert_alpha(), chess.theme.SQUARE)
-		pygame.draw.rect(screen, self.black if self.color else self.white, self.rect)
+		self.surf = pygame.transform.smoothscale(pygame.image.load(self.decal).convert(), chess.theme.SQUARE)
+		screen.fill(self.black if self.color else self.white, self.rect)
 
 		super().draw(screen,
 			special_flags = pygame.BLEND_RGBA_MULT,
+		)
+
+	def highlight(self, screen: pygame.Surface):
+		screen.fill(self.highlight_color, self.rect,
+			special_flags = pygame.BLEND_RGB_ADD,
 		)

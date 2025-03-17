@@ -35,7 +35,7 @@ class Board(list[Piece], chess.theme.Drawable):
 		...  # TODO: FEN (part)
 
 	def __setitem__(self, key: chess.algebra.Square | slice, value: Piece | typing.Iterable[Piece]):
-		if isinstance(key, chess.algebra.Square): key = slice(key, key + 1, +1)
+		if isinstance(key, chess.algebra.Square): key = slice(int(key), int(key) + 1, +1)
 		if isinstance(value, Piece): value = [value]
 
 		for index, piece in zip(range(*key.indices(len(self))), value):
@@ -44,7 +44,7 @@ class Board(list[Piece], chess.theme.Drawable):
 		super().__setitem__(key, value)
 
 	def __delitem__(self, key: chess.algebra.Square | slice):
-		if isinstance(key, chess.algebra.Square): key = slice(key, key + 1, +1)
+		if isinstance(key, chess.algebra.Square): key = slice(int(key), int(key) + 1, +1)
 
 		self[key] = [None] * len(range(*key.indices(len(self))))
 
@@ -77,6 +77,10 @@ class Board(list[Piece], chess.theme.Drawable):
 			special_flags = pygame.BLEND_RGBA_MULT,
 		)
 
+		if self.selected is not None:
+			for square in self.selected.targets:
+				square.highlight(screen)
+
 		for piece in self:
 			if piece is not None:
 				piece.draw(screen)
@@ -85,8 +89,6 @@ class Board(list[Piece], chess.theme.Drawable):
 					piece.highlight(screen)
 
 	def clicked(self, event: pygame.event.Event) -> bool:
-		clicked = False
-
 		for square in chess.algebra.Square:
 			if square.clicked(event):
 				if self.selected is not None:
@@ -98,11 +100,9 @@ class Board(list[Piece], chess.theme.Drawable):
 				else:
 					self.selected = self[square]
 
-				clicked = True
+				return True
 
-				break
-
-		return clicked
+		return False
 
 
 class Side(list[chess.material.Piece]):
