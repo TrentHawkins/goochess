@@ -83,8 +83,19 @@ class Piece(chess.theme.Highlightable):
 
 		kept = self.game[target]
 
-		self.game[source], self.game[target] = None, self.game[source]; yield self
-		self.game[target], self.game[source] = kept, self.game[target]
+		self.move(target); yield self
+		self.move(source,
+			kept = kept,
+		)
+
+	def move(self, target: chess.algebra.Square,
+		kept: Piece | None = None,
+	) -> typing.Self:
+		assert (source := self.square) is not None
+
+		self.game[source], self.game[target] = kept, self.game[source]
+
+		return self
 
 
 	def squares_from(self, steps: set[chess.algebra.Difference]) -> set[chess.algebra.Square]:

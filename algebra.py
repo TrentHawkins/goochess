@@ -144,7 +144,6 @@ class Square(int, chess.theme.Highlightable, enum.Enum):
 			221,
 		)
 
-		self.surf = pygame.transform.smoothscale(pygame.image.load(self.decal).convert_alpha(), chess.theme.SQUARE)
 		self.rect = pygame.Rect(
 			pygame.Vector2(
 				chess.theme.SQUARE_W * (self.file),
@@ -205,6 +204,7 @@ class Square(int, chess.theme.Highlightable, enum.Enum):
 		return event.type == pygame.MOUSEBUTTONDOWN and event.button == 1 and self.rect.collidepoint(event.pos)
 
 	def draw(self, screen: pygame.Surface):
+		self.surf = pygame.transform.smoothscale(pygame.image.load(self.decal).convert_alpha(), chess.theme.SQUARE)
 		pygame.draw.rect(screen, self.black if self.color else self.white, self.rect)
 
 		super().draw(screen,

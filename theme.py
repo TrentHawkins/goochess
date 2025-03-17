@@ -6,6 +6,7 @@ from abc import abstractmethod
 import pygame
 
 
+
 RESOLUTION = 1152
 WINDOW = (
 	RESOLUTION,
@@ -61,9 +62,22 @@ class Drawable(pygame.sprite.Sprite):
 
 class Highlightable(Drawable):
 
+	highlight_color = (
+		85,
+		85,
+		85,
+		85,
+	)
+
+
 	@abstractmethod
 	def clicked(self, event: pygame.event.Event) -> bool:
 		raise NotImplementedError
 
-	def highlight(self):
-		pygame.draw.rect(self.surf, (255, 255, 255, 85), self.rect)
+	def highlight(self, screen: pygame.Surface):
+		surf = self.surf.copy()
+		surf.fill(self.highlight_color,
+			special_flags = pygame.BLEND_RGB_ADD,
+		)
+		screen.blit(surf, self.rect)
+

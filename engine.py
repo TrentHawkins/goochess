@@ -51,7 +51,7 @@ class Board(list[Piece], chess.theme.Drawable):
 
 	@property
 	def decal(self) -> pathlib.Path:
-		return pathlib.Path("chess/graphics/board/stone1.png")
+		return pathlib.Path("chess/graphics/board/stone1.jpg")
 
 
 	def update(self, square: chess.algebra.Square,
@@ -61,6 +61,13 @@ class Board(list[Piece], chess.theme.Drawable):
 
 		if piece is not None: piece.square = square
 		if other is not None: other.square = None
+
+	def move(self,
+		source: chess.algebra.Square,
+		target: chess.algebra.Square,
+	):
+		if target != source and (piece := self[source]):
+			piece.move(target)
 
 	def draw(self, screen: pygame.Surface):
 		for square in chess.algebra.Square:
@@ -74,8 +81,28 @@ class Board(list[Piece], chess.theme.Drawable):
 			if piece is not None:
 				piece.draw(screen)
 
-		if self.selected is not None:
-			self.selected.highlight()
+				if piece is self.selected:
+					piece.highlight(screen)
+
+	def clicked(self, event: pygame.event.Event) -> bool:
+		clicked = False
+
+		for square in chess.algebra.Square:
+			if square.clicked(event):
+				if self.selected is not None:
+					if self.selected.square != square:
+						self.selected.move(square)
+
+					self.selected = None
+
+				else:
+					self.selected = self[square]
+
+				clicked = True
+
+				break
+
+		return clicked
 
 
 class Side(list[chess.material.Piece]):
