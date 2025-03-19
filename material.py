@@ -142,8 +142,13 @@ class Melee(Piece):
 				try:
 					target = self.square + move
 
-					if chess.rules.Move(self, target) \
-					or chess.rules.Capt(self, target): targets.add(target)
+					if chess.rules.Move(self, target):
+						target.highlight_color = chess.theme.GREEN
+						targets.add(target)
+
+					if chess.rules.Capt(self, target):
+						target.highlight_color = chess.theme.RED
+						targets.add(target)
 
 				except ValueError:
 					continue
@@ -165,13 +170,18 @@ class Ranged(Piece):
 					try:
 						target += move
 
-						if chess.rules.Move(self, target): targets.add(target)
-						else: break
+						if chess.rules.Move(self, target):
+							target.highlight_color = chess.theme.GREEN
+							targets.add(target)
+
+						else:
+							break
 
 					except ValueError:
 						break
 
 				if chess.rules.Capt(self, target):
+					target.highlight_color = chess.theme.RED
 					targets.add(target)
 
 		return targets
@@ -264,7 +274,7 @@ class Knight(Melee, Assymetric, Officer):
 	black: str = "\u265e"
 	white: str = "\u2658"
 
-	moves = {straight + diagonal for straight, diagonal in itertools.product(Rook.moves, Bishop.moves)}
+	moves = {straight + diagonal for straight, diagonal in itertools.product(Rook.moves, Bishop.moves)} - Rook.moves
 #	moves = {
 #		chess.algebra.Difference.N2E,
 #		chess.algebra.Difference.NE2,

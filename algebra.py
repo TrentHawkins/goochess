@@ -133,16 +133,8 @@ class Square(int, chess.theme.Highlightable, enum.Enum):
 	def __init__(self, *args):
 		super().__init__(*args)
 
-		self.black = (
-			153,
-			136,
-			119,
-		)
-		self.white = (
-			255,
-			238,
-			221,
-		)
+		self.black = chess.theme.BLACK
+		self.white = chess.theme.WHITE
 
 		self.rect = pygame.Rect(
 			pygame.Vector2(
@@ -151,6 +143,8 @@ class Square(int, chess.theme.Highlightable, enum.Enum):
 			),
 			pygame.Vector2(*chess.theme.SQUARE),
 		)
+
+		self.highlight_color = chess.theme.BLUE
 
 	def __repr__(self) -> str:
 		return self.name.lower()
@@ -213,5 +207,5 @@ class Square(int, chess.theme.Highlightable, enum.Enum):
 
 	def highlight(self, screen: pygame.Surface):
 		screen.fill(self.highlight_color, self.rect,
-			special_flags = pygame.BLEND_RGB_ADD,
+			special_flags = pygame.BLEND_RGB_MULT,
 		)

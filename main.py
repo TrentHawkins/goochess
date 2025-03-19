@@ -10,17 +10,6 @@ import chess.engine
 pygame.init()
 screen = pygame.display.set_mode(chess.theme.WINDOW)
 
-BACKGROUND = (
-	204,
-	187,
-	170,
-)
-GREY = (
-	85,
-	85,
-	85,
-)
-
 running = True
 
 game = chess.engine.Game()
@@ -32,8 +21,8 @@ while running:
 
 		game.clicked(event)
 
-	screen.fill(BACKGROUND)
-	screen.fill(GREY, special_flags = pygame.BLEND_RGBA_MULT)
+	screen.fill(chess.theme.EMPTY)
+	screen.fill(chess.theme.BRIGHT, special_flags = pygame.BLEND_RGBA_MULT)
 
 	game.draw(screen)
 

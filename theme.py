@@ -38,6 +38,47 @@ PIECE = (
 )
 PIECE_OFFSET = (PIECE_H - SQUARE_W) // 2
 
+BRIGHT = (
+	0x66,
+	0x66,
+	0x66,
+)
+DARK = (
+	0x33,
+	0x33,
+	0x33,
+)
+RED = (
+	0x99,
+	0x00,
+	0x00,
+)
+GREEN = (
+	0x66,
+	0x99,
+	0x33,
+)
+BLUE = (
+	0x33,
+	0x66,
+	0x99,
+)
+
+WHITE = (
+	0xFF,
+	0xEE,
+	0xDD,
+)
+EMPTY = (
+	0xCC,
+	0xBB,
+	0xAA,
+)
+BLACK = (
+	0x99,
+	0x88,
+	0x77,
+)
 
 class Drawable(pygame.sprite.Sprite):
 
@@ -63,12 +104,11 @@ class Drawable(pygame.sprite.Sprite):
 
 class Highlightable(Drawable):
 
-	highlight_color = (
-		85,
-		85,
-		85,
-		85,
-	)
+	highlight_color: tuple[
+		int,
+		int,
+		int,
+	] = BRIGHT
 
 
 	@abstractmethod
