@@ -15,7 +15,7 @@ import chess.rules
 if typing.TYPE_CHECKING: import chess.engine
 
 
-class Piece(chess.theme.Decal):
+class Piece(chess.theme.Highlightable):
 
 	value: int = 0
 
@@ -70,24 +70,42 @@ class Piece(chess.theme.Decal):
 		squares = self.targets.copy()
 
 		for square in squares:
-			with self.move(square):
+			with self.test(square):
 				if not self.side.king.safe:
 					squares.discard(square)
 
 		return squares
 
 
-	def squares_from(self, steps: set[chess.algebra.Difference]) -> set[chess.algebra.Square]:
-		return {self.square + step for step in steps} if self.square is not None else set()
-
 	@contextlib.contextmanager
-	def move(self, target: chess.algebra.Square):
+	def test(self, target: chess.algebra.Square):
 		assert (source := self.square) is not None
 
 		kept = self.game[target]
 
-		self.game[source], self.game[target] = None, self.game[source]; yield self
-		self.game[target], self.game[source] = kept, self.game[target]
+		self.move(target); yield self
+		self.move(source,
+			kept = kept,
+		)
+
+	def move(self, target: chess.algebra.Square,
+		kept: Piece | None = None,
+	) -> typing.Self:
+		assert (source := self.square) is not None
+
+		self.game[source], self.game[target] = kept, self.game[source]
+
+		return self
+
+
+	def squares_from(self, steps: set[chess.algebra.Difference]) -> set[chess.algebra.Square]:
+		return {self.square + step for step in steps} if self.square is not None else set()
+
+	def clicked(self, event: pygame.event.Event) -> bool:
+		if (selected := self.square is not None and self.square.clicked(event)):
+			self.game.selected = self
+
+		return selected
 
 	def draw(self, screen: pygame.Surface):
 		if self.square is not None:
@@ -95,6 +113,12 @@ class Piece(chess.theme.Decal):
 				self.surf,
 				self.rect,
 			)
+
+	def highlight(self, screen: pygame.Surface):
+		if self.square is not None:
+			self.square.highlight(screen)
+
+		super().highlight(screen)
 
 
 class Ghost(Piece):
@@ -115,12 +139,19 @@ class Melee(Piece):
 
 		if self.square is not None:
 			for move in self.moves:
-				target = self.square + move
+				try:
+					target = self.square + move
 
-				if chess.rules.Move(self, target) \
-				or chess.rules.Capt(self, target):
-					try: targets.add(target)
-					except ValueError: continue
+					if chess.rules.Move(self, target):
+						target.highlight_color = chess.theme.GREEN
+						targets.add(target)
+
+					if chess.rules.Capt(self, target):
+						target.highlight_color = chess.theme.RED
+						targets.add(target)
+
+				except ValueError:
+					continue
 
 		return targets
 
@@ -135,13 +166,23 @@ class Ranged(Piece):
 			for move in self.moves:
 				target = self.square
 
-				while chess.rules.Move(self, target := target + move):
-					try: targets.add(target)
-					except ValueError: break
+				while True:
+					try:
+						target += move
+
+						if chess.rules.Move(self, target):
+							target.highlight_color = chess.theme.GREEN
+							targets.add(target)
+
+						else:
+							break
+
+					except ValueError:
+						break
 
 				if chess.rules.Capt(self, target):
-					try: targets.add(target)
-					except ValueError: continue
+					target.highlight_color = chess.theme.RED
+					targets.add(target)
 
 		return targets
 
@@ -233,7 +274,7 @@ class Knight(Melee, Assymetric, Officer):
 	black: str = "\u265e"
 	white: str = "\u2658"
 
-	moves = {straight + diagonal for straight, diagonal in itertools.product(Rook.moves, Bishop.moves)}
+	moves = {straight + diagonal for straight, diagonal in itertools.product(Rook.moves, Bishop.moves)} - Rook.moves
 #	moves = {
 #		chess.algebra.Difference.N2E,
 #		chess.algebra.Difference.NE2,
