@@ -15,7 +15,7 @@ WINDOW = (
 )
 
 BOARD_W = RESOLUTION
-BOARD_H = BOARD_W * 7 // 8
+BOARD_H = BOARD_W * 8 // 9
 BOARD = (
 	BOARD_W,
 	BOARD_H,
@@ -59,9 +59,9 @@ GREEN = (
 	0x33,
 )
 BLUE = (
-	0x33,
 	0x66,
 	0x99,
+	0xCC,
 )
 
 WHITE = (
@@ -82,7 +82,9 @@ BLACK = (
 
 class Drawable(pygame.sprite.Sprite):
 
-	def __init__(self, *args, **kwargs):
+	def __init__(self, *args):
+		super().__init__()
+
 		self.surf: pygame.Surface
 		self.rect: pygame.Rect
 

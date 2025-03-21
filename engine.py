@@ -186,8 +186,8 @@ class Game(Board):
 		self.black = Side(self, chess.algebra.Color.BLACK)
 		self.white = Side(self, chess.algebra.Color.WHITE)
 
-		self[+chess.algebra.Square.A8:+chess.algebra.Square.A6:chess.algebra.Difference.E] = self.black
-		self[-chess.algebra.Square.A8:-chess.algebra.Square.A6:chess.algebra.Difference.W] = self.white
+		self[+chess.algebra.Square.A8:+chess.algebra.Square.A6:chess.algebra.Color.BLACK] = self.black
+		self[-chess.algebra.Square.A8:-chess.algebra.Square.A6:chess.algebra.Color.WHITE] = self.white
 
 	def __repr__(self) -> str:
 		...  # TODO: FEN (full)

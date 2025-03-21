@@ -22,7 +22,7 @@ while running:
 		game.clicked(event)
 
 	screen.fill(chess.theme.EMPTY)
-	screen.fill(chess.theme.BRIGHT, special_flags = pygame.BLEND_RGBA_MULT)
+	screen.fill(chess.theme.DARK, special_flags = pygame.BLEND_RGBA_MULT)
 
 	game.draw(screen)
 
