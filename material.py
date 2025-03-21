@@ -114,14 +114,6 @@ class Piece(chess.theme.Highlightable):
 				self.rect,
 			)
 
-#	def highlight(self, screen: pygame.Surface,
-#		highlight_color: chess.theme.RGB | None = None,
-#	):
-#		if self.square is not None:
-#			self.square.highlight(screen, highlight_color)
-#
-#		super().highlight(screen, highlight_color)
-
 
 class Ghost(Piece):
 
@@ -144,13 +136,8 @@ class Melee(Piece):
 				try:
 					target = self.square + move
 
-					if chess.rules.Move(self, target):
-						target.highlight_color = chess.theme.GREEN
-						targets.add(target)
-
-					if chess.rules.Capt(self, target):
-						target.highlight_color = chess.theme.RED
-						targets.add(target)
+					if chess.rules.Move(self, target): targets.add(target)
+					if chess.rules.Capt(self, target): targets.add(target)
 
 				except ValueError:
 					continue
@@ -173,7 +160,6 @@ class Ranged(Piece):
 						target += move
 
 						if chess.rules.Move(self, target):
-							target.highlight_color = chess.theme.GREEN
 							targets.add(target)
 
 						else:
@@ -183,7 +169,6 @@ class Ranged(Piece):
 						break
 
 				if chess.rules.Capt(self, target):
-					target.highlight_color = chess.theme.RED
 					targets.add(target)
 
 		return targets
@@ -283,17 +268,17 @@ class Knight(Melee, Assymetric, Officer):
 	black: str = "\u265e"
 	white: str = "\u2658"
 
-#	moves = {straight + diagonal for straight, diagonal in itertools.product(Rook.moves, Bishop.moves)} - Rook.moves
-	moves = {
-		chess.algebra.Vector.N2E,
-		chess.algebra.Vector.NE2,
-		chess.algebra.Vector.SE2,
-		chess.algebra.Vector.S2E,
-		chess.algebra.Vector.S2W,
-		chess.algebra.Vector.SW2,
-		chess.algebra.Vector.NW2,
-		chess.algebra.Vector.N2W,
-	}
+	moves = {straight + diagonal for straight, diagonal in itertools.product(Rook.moves, Bishop.moves)} - Rook.moves
+#	moves = {
+#		chess.algebra.Vector.N2E,
+#		chess.algebra.Vector.NE2,
+#		chess.algebra.Vector.SE2,
+#		chess.algebra.Vector.S2E,
+#		chess.algebra.Vector.S2W,
+#		chess.algebra.Vector.SW2,
+#		chess.algebra.Vector.NW2,
+#		chess.algebra.Vector.N2W,
+#	}
 
 
 class Star(Piece):

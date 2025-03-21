@@ -183,8 +183,6 @@ class Square(int, chess.theme.Highlightable, enum.Enum):
 			pygame.Vector2(*chess.theme.SQUARE),
 		)
 
-		self.highlight_color = chess.theme.BLUE
-
 	def __repr__(self) -> str:
 		return self.name.lower()
 
