@@ -1,9 +1,12 @@
 from __future__ import annotations
 
 
+from copy import copy
 import enum
+from numbers import Number
 import pathlib
 import re
+from typing import Self
 
 import pygame
 
@@ -59,14 +62,59 @@ class Rank(int, enum.Enum):
 		return self == self._1 if color else self == self._8
 
 
-class Difference(int, enum.Enum):
+class Vector_(tuple[int, ...]):
 
-	O =  0o00  # null
+	dimension: int
 
-	N = -0o10  # king queen rook pawn(white)
-	E = +0o01  # king queen rook
-	S = +0o10  # king queen rook pawn(black)
-	W = -0o01  # king queen rook
+	def __init_subclass__(cls, *args,
+		dimension: int,
+	**kwargs):
+		cls.dimension = dimension
+
+		return super().__init_subclass__(*args, **kwargs)
+
+	def __new__(cls, *components) -> Self:
+		return super().__new__(cls, components[:cls.dimension])
+
+	def __repr__(self) -> str:
+		return super().__repr__()
+
+	def __add__(self, other: Self) -> Self: return self.__class__(*(left + right for left, right in zip(self, other)))
+	def __sub__(self, other: Self) -> Self: return self.__class__(*(left - right for left, right in zip(self, other)))
+	def __mul__(self, times:  int) -> Self: return self.__class__(*(left * times for left        in     self        ))
+
+	def __pos__(self) -> Self: return self.__class__(*(+left for left in self))
+	def __neg__(self) -> Self: return self.__class__(*(-left for left in self))
+
+
+	@property
+	def pygame(self) -> pygame.Vector2:
+		return pygame.Vector2(self)
+
+
+class Vector2(Vector_,
+	dimension = 2,
+):
+
+	@property
+	def file(self) -> int:
+		return self[0]
+
+	@property
+	def rank(self) -> int:
+		return self[1] << 3
+
+
+class Vector(Vector2, enum.Enum,
+	dimension = 2,
+):
+
+	O = Vector2( 0,  0)  # null
+
+	N = Vector2( 0, -1)  # king queen rook pawn(white)
+	E = Vector2(+1,  0)  # king queen rook
+	S = Vector2( 0, +1)  # king queen rook pawn(black)
+	W = Vector2(-1,  0)  # king queen rook
 
 	N2 = N * 2  # pawn(white leap)
 	S2 = S * 2  # pawn(black leap)
@@ -107,17 +155,8 @@ class Difference(int, enum.Enum):
 
 		return representation
 
-	def __add__(self, other: int) -> Difference: return Difference(super().__add__(other))
-	def __sub__(self, other: int) -> Difference: return Difference(super().__sub__(other))
-	def __mul__(self, other: int) -> Difference: return Difference(super().__mul__(other))
 
-	def __floordiv__(self, other: int) -> Difference: return Difference(super().__floordiv__(other))
-
-	def __pos__(self) -> Difference: return Difference(+super())
-	def __neg__(self) -> Difference: return Difference(-super())
-
-
-class Square(int, enum.Enum):
+class Square(int, chess.theme.Highlightable, enum.Enum):
 
 #	A        : B        : C        : D        : E        : F        : G        : H        :
 	A8 = 0o00; B8 = 0o01; C8 = 0o02; D8 = 0o03; E8 = 0o04; F8 = 0o05; G8 = 0o06; H8 = 0o07;  # 8
@@ -133,21 +172,13 @@ class Square(int, enum.Enum):
 	def __init__(self, *args):
 		super().__init__(*args)
 
-		self.black = (
-			153,
-			136,
-			119,
-		)
-		self.white = (
-			255,
-			238,
-			221,
-		)
+		self.black = chess.theme.BLACK
+		self.white = chess.theme.WHITE
 
 		self.rect = pygame.Rect(
 			pygame.Vector2(
 				chess.theme.SQUARE_W * (self.file),
-				chess.theme.SQUARE_H * (self.rank >> 0b11) + chess.theme.BOARD_OFFSET * 2 // 3,
+				chess.theme.SQUARE_H * (self.rank >> 3) + chess.theme.BOARD_OFFSET * 2 // 3,
 			),
 			pygame.Vector2(*chess.theme.SQUARE),
 		)
@@ -155,27 +186,27 @@ class Square(int, enum.Enum):
 	def __repr__(self) -> str:
 		return self.name.lower()
 
-	def __add__(self, other: int   ) -> Square: return Square(super().__add__(other))
-	def __sub__(self, other: Square) -> int   : return        super().__sub__(other)
-	def __mul__(self, color: Color ) -> Square:
+	def __add__(self, other: Vector) -> Square: return Square(File(self.file + other.file) + Rank(self.rank + other.rank))
+	def __sub__(self, other: Square) -> Vector: return Vector(     self.file - other.file,        self.rank - other.rank )
+
+	def __mul__(self, color: Color) -> Square:
 		return +self if color else ~self
 
-	def __pos__(self) -> Square: return Square(       self)
-	def __neg__(self) -> Square: return Square(0o77 - self)
+	def __pos__   (self) -> Square: return Square(       self)
+	def __neg__   (self) -> Square: return Square(0o77 - self)
+	def __invert__(self) -> Square: return Square(self ^ 0o70)
 
-	def __invert__(self) -> Square:
-		return Square(self ^ 0o70)
+	def __iadd__(self, other: Vector) -> Square: return self + other
+	def __isub__(self, other: Square) -> Vector: return self - other
 
-	def __iadd__(self, other: int   ) -> Square: return self + other
-	def __isub__(self, other: Square) -> int   : return self - other
-	def __imul__(self, color: Color ) -> Square: return self * color
+	def __imul__(self, color: Color) -> Square: return self * color
 
 
 	@classmethod
 	def fromnotation(cls, notation: str) -> Square:
 		file, rank = notation
 
-		return cls((0o10 - int(rank) << 0b11) + ord(file) - ord("a"))
+		return cls((0o10 - int(rank) << 3) + ord(file) - ord("a"))
 
 	@classmethod
 	def range(cls, *args):
@@ -185,26 +216,35 @@ class Square(int, enum.Enum):
 
 	@property
 	def rank(self) -> Rank:
-		return Rank(self >> 0b11 << 0b11)
+		return Rank(self & 0o70)
 
 	@property
 	def file(self) -> File:
-		return File(self - self.rank)
+		return File(self & 0o07)
 
 	@property
 	def color(self) -> Color:
-		return Color((((self.rank >> 0b11) + self.file & 1) << 1) - 1)
+		return Color((((self.rank >> 3) + self.file & 1) << 1) - 1)
 
 	@property
 	def decal(self) -> pathlib.Path:
 		return pathlib.Path("chess/graphics/board/bevel.png")
 
 
-	def draw(self, screen: pygame.Surface):
-		self.surf = pygame.transform.smoothscale(pygame.image.load(self.decal).convert_alpha(), chess.theme.SQUARE)
+	def clicked(self, event: pygame.event.Event) -> bool:
+		return event.type == pygame.MOUSEBUTTONDOWN and event.button == 1 and self.rect.collidepoint(event.pos)
 
-		pygame.draw.rect(screen, self.black if self.color else self.white, self.rect)
-		screen.blit(
-			self.surf,
-			self.rect, special_flags = pygame.BLEND_RGBA_MULT,
+	def draw(self, screen: pygame.Surface):
+		self.surf = pygame.transform.smoothscale(pygame.image.load(self.decal).convert(), chess.theme.SQUARE)
+		screen.fill(self.black if self.color else self.white, self.rect)
+
+		super().draw(screen,
+			special_flags = pygame.BLEND_RGBA_MULT,
+		)
+
+	def highlight(self, screen: pygame.Surface,
+		highlight_color: chess.theme.RGB | None = None,
+	):
+		screen.fill(highlight_color if highlight_color is not None else self.highlight_color, self.rect,
+			special_flags = pygame.BLEND_RGB_MULT,
 		)

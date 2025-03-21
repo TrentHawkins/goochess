@@ -56,7 +56,7 @@ class Move(Rule):
 		return self.piece.square
 
 	@property
-	def step(self) -> int:
+	def step(self) -> chess.algebra.Vector2:
 		return self.target - self.source
 
 
@@ -91,7 +91,7 @@ class Promote(Move):
 
 class Castle(Rule, abc.ABC):
 
-	steps: set[chess.algebra.Difference] = {chess.algebra.Difference.O}
+	steps: set[chess.algebra.Vector] = {chess.algebra.Vector.O}
 	rook_file: chess.algebra.File
 
 
@@ -110,7 +110,7 @@ class Castle(Rule, abc.ABC):
 
 class CastleLong(Castle):
 
-	steps: set[chess.algebra.Difference] = Castle.steps | {chess.algebra.Difference.W, chess.algebra.Difference.W2}
+	steps: set[chess.algebra.Vector] = Castle.steps | {chess.algebra.Vector.W, chess.algebra.Vector.W2}
 	rook_file: chess.algebra.File = chess.algebra.File.A_
 
 
@@ -119,12 +119,12 @@ class CastleLong(Castle):
 
 	def __bool__(self) -> bool:
 		assert self.rook.square is not None
-		return self.game[self.rook.square + chess.Difference.E] is None
+		return self.game[self.rook.square + chess.algebra.Vector.E] is None
 
 
 class CastleShort(Castle):
 
-	steps: set[chess.algebra.Difference] = Castle.steps | {chess.algebra.Difference.E, chess.algebra.Difference.E2}
+	steps: set[chess.algebra.Vector] = Castle.steps | {chess.algebra.Vector.E, chess.algebra.Vector.E2}
 	rook_file: chess.algebra.File = chess.algebra.File.H_
 
 

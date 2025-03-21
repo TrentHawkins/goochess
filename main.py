@@ -1,26 +1,15 @@
 from __future__ import annotations
 
 
-import pygame
+import pygame;
 
 import chess.theme
 import chess.engine
 
 
-BACKGROUND = (
-	204,
-	187,
-	170,
-)
-GREY = (
-	85,
-	85,
-	85,
-)
-
 pygame.init()
-
 screen = pygame.display.set_mode(chess.theme.WINDOW)
+
 running = True
 
 game = chess.engine.Game()
@@ -30,8 +19,10 @@ while running:
 		if event.type == pygame.QUIT:
 			running = False
 
-	screen.fill(BACKGROUND)
-	screen.fill(GREY, special_flags = pygame.BLEND_RGBA_MULT)
+		game.clicked(event)
+
+	screen.fill(chess.theme.EMPTY)
+	screen.fill(chess.theme.DARK, special_flags = pygame.BLEND_RGBA_MULT)
 
 	game.draw(screen)
 

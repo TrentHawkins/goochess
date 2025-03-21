@@ -16,24 +16,26 @@ import chess.material
 Piece = chess.material.Piece | None
 
 
-class Board(list[Piece], pygame.sprite.Sprite):
+class Board(list[Piece], chess.theme.Drawable):
 
 	def __init__(self):
 		super().__init__(None for _ in chess.algebra.Square)
 
+		self.selected: chess.material.Piece | None = None
+
 		self.surf = pygame.transform.smoothscale(pygame.image.load(self.decal).convert(), chess.theme.WINDOW)
 		self.rect = self.surf.get_rect(
-			center = pygame.Vector2(
-				chess.theme.RESOLUTION // 2,
-				chess.theme.RESOLUTION // 2,
-			)
+		#	center = pygame.Vector2(
+		#		chess.theme.RESOLUTION // 2,
+		#		chess.theme.RESOLUTION // 2,
+		#	)
 		)
 
 	def __repr__(self) -> str:
 		...  # TODO: FEN (part)
 
 	def __setitem__(self, key: chess.algebra.Square | slice, value: Piece | typing.Iterable[Piece]):
-		if isinstance(key, chess.algebra.Square): key = slice(key, key + 1, +1)
+		if isinstance(key, chess.algebra.Square): key = slice(int(key), int(key) + 1, +1)
 		if isinstance(value, Piece): value = [value]
 
 		for index, piece in zip(range(*key.indices(len(self))), value):
@@ -42,14 +44,14 @@ class Board(list[Piece], pygame.sprite.Sprite):
 		super().__setitem__(key, value)
 
 	def __delitem__(self, key: chess.algebra.Square | slice):
-		if isinstance(key, chess.algebra.Square): key = slice(key, key + 1, +1)
+		if isinstance(key, chess.algebra.Square): key = slice(int(key), int(key) + 1, +1)
 
 		self[key] = [None] * len(range(*key.indices(len(self))))
 
 
 	@property
 	def decal(self) -> pathlib.Path:
-		return pathlib.Path("chess/graphics/board/mask.png")
+		return pathlib.Path("chess/graphics/board/stone1.jpg")
 
 
 	def update(self, square: chess.algebra.Square,
@@ -60,14 +62,50 @@ class Board(list[Piece], pygame.sprite.Sprite):
 		if piece is not None: piece.square = square
 		if other is not None: other.square = None
 
+	def move(self,
+		source: chess.algebra.Square,
+		target: chess.algebra.Square,
+	):
+		if target != source and (piece := self[source]):
+			piece.move(target)
+
 	def draw(self, screen: pygame.Surface):
+		def target_color(piece: chess.material.Piece, square: chess.algebra.Square) -> chess.theme.RGB:
+			return chess.theme.RED if (other := self[square]) is not None and piece.color != other.color else chess.theme.GREEN
+
 		for square in chess.algebra.Square:
 			square.draw(screen)
 
-		screen.blit(
-			self.surf,
-			self.rect, special_flags = pygame.BLEND_RGBA_MULT,
+		super().draw(screen,
+			special_flags = pygame.BLEND_RGBA_MULT,
 		)
+
+		if self.selected is not None:
+			for square in self.selected.targets:
+				square.highlight(screen, target_color(self.selected, square))
+
+		for piece in self:
+			if piece is not None:
+				piece.draw(screen)
+
+				if piece is self.selected:
+					piece.highlight(screen)
+
+	def clicked(self, event: pygame.event.Event) -> bool:
+		for square in chess.algebra.Square:
+			if square.clicked(event):
+				if self.selected is not None:
+					if self.selected.square != square:
+						self.selected.move(square)
+
+					self.selected = None
+
+				else:
+					self.selected = self[square]
+
+				return True
+
+		return False
 
 
 class Side(list[chess.material.Piece]):
@@ -151,19 +189,11 @@ class Game(Board):
 		self.black = Side(self, chess.algebra.Color.BLACK)
 		self.white = Side(self, chess.algebra.Color.WHITE)
 
-		self[+chess.algebra.Square.A8:+chess.algebra.Square.A6:chess.algebra.Difference.E] = self.black
-		self[-chess.algebra.Square.A8:-chess.algebra.Square.A6:chess.algebra.Difference.W] = self.white
+		self[+chess.algebra.Square.A8:+chess.algebra.Square.A6:chess.algebra.Color.BLACK] = self.black
+		self[-chess.algebra.Square.A8:-chess.algebra.Square.A6:chess.algebra.Color.WHITE] = self.white
 
 	def __repr__(self) -> str:
 		...  # TODO: FEN (full)
 
 	def __hash__(self) -> int:
 		return hash(datetime.now().timestamp())
-
-
-	def draw(self, screen: pygame.Surface):
-		super().draw(screen)
-
-		for piece in self:
-			if piece is not None:
-				piece.draw(screen)
