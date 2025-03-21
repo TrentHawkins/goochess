@@ -81,18 +81,16 @@ class Piece(chess.theme.Highlightable):
 	def test(self, target: chess.algebra.Square):
 		assert (source := self.square) is not None
 
-		kept = self.game[target]
-
-		self.move(target); yield self
-		self.move(source,
-			kept = kept,
-		)
+		self.move(target, move = False                          ); yield self
+		self.move(source, move = False, kept = self.game[target])
 
 	def move(self, target: chess.algebra.Square,
+		move: bool = True,
 		kept: Piece | None = None,
 	) -> typing.Self:
 		assert (source := self.square) is not None
 
+		self.moved = self.moved or move
 		self.game[source], self.game[target] = kept, self.game[source]
 
 		return self

@@ -81,7 +81,7 @@ class Board(list[Piece], chess.theme.Drawable):
 		)
 
 		if self.selected is not None:
-			for square in self.selected.targets:
+			for square in self.selected.squares:
 				square.highlight(screen, target_color(self.selected, square))
 
 		for piece in self:
