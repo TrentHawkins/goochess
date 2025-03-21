@@ -7,6 +7,11 @@ from copy import copy
 import pygame
 
 
+type RGB = tuple[
+	int,
+	int,
+	int,
+]
 
 RESOLUTION = 1152
 WINDOW = (
@@ -15,7 +20,7 @@ WINDOW = (
 )
 
 BOARD_W = RESOLUTION
-BOARD_H = BOARD_W * 7 // 8
+BOARD_H = BOARD_W * 8 // 9
 BOARD = (
 	BOARD_W,
 	BOARD_H,
@@ -59,9 +64,9 @@ GREEN = (
 	0x33,
 )
 BLUE = (
-	0x33,
 	0x66,
 	0x99,
+	0xCC,
 )
 
 WHITE = (
@@ -82,7 +87,9 @@ BLACK = (
 
 class Drawable(pygame.sprite.Sprite):
 
-	def __init__(self, *args, **kwargs):
+	def __init__(self, *args):
+		super().__init__()
+
 		self.surf: pygame.Surface
 		self.rect: pygame.Rect
 
@@ -104,20 +111,18 @@ class Drawable(pygame.sprite.Sprite):
 
 class Highlightable(Drawable):
 
-	highlight_color: tuple[
-		int,
-		int,
-		int,
-	] = BRIGHT
+	highlight_color: RGB = BRIGHT
 
 
 	@abstractmethod
 	def clicked(self, event: pygame.event.Event) -> bool:
 		return NotImplemented
 
-	def highlight(self, screen: pygame.Surface):
+	def highlight(self, screen: pygame.Surface,
+		highlight_color: RGB | None = None,
+	):
 		surf = copy(self.surf)
-		surf.fill(self.highlight_color,
+		surf.fill(highlight_color if highlight_color is not None else self.highlight_color,
 			special_flags = pygame.BLEND_RGB_ADD,
 		)
 		screen.blit(surf, self.rect)

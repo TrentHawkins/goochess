@@ -22,7 +22,7 @@ class Piece(chess.theme.Highlightable):
 	black: str = " "
 	white: str = " "
 
-	moves: set[chess.algebra.Difference] = set()
+	moves: set[chess.algebra.Vector] = set()
 
 
 	def __init__(self, side: chess.engine.Side,
@@ -98,7 +98,7 @@ class Piece(chess.theme.Highlightable):
 		return self
 
 
-	def squares_from(self, steps: set[chess.algebra.Difference]) -> set[chess.algebra.Square]:
+	def squares_from(self, steps: set[chess.algebra.Vector]) -> set[chess.algebra.Square]:
 		return {self.square + step for step in steps} if self.square is not None else set()
 
 	def clicked(self, event: pygame.event.Event) -> bool:
@@ -113,12 +113,6 @@ class Piece(chess.theme.Highlightable):
 				self.surf,
 				self.rect,
 			)
-
-	def highlight(self, screen: pygame.Surface):
-		if self.square is not None:
-			self.square.highlight(screen)
-
-		super().highlight(screen)
 
 
 class Ghost(Piece):
@@ -142,13 +136,8 @@ class Melee(Piece):
 				try:
 					target = self.square + move
 
-					if chess.rules.Move(self, target):
-						target.highlight_color = chess.theme.GREEN
-						targets.add(target)
-
-					if chess.rules.Capt(self, target):
-						target.highlight_color = chess.theme.RED
-						targets.add(target)
+					if chess.rules.Move(self, target): targets.add(target)
+					if chess.rules.Capt(self, target): targets.add(target)
 
 				except ValueError:
 					continue
@@ -171,7 +160,6 @@ class Ranged(Piece):
 						target += move
 
 						if chess.rules.Move(self, target):
-							target.highlight_color = chess.theme.GREEN
 							targets.add(target)
 
 						else:
@@ -181,7 +169,6 @@ class Ranged(Piece):
 						break
 
 				if chess.rules.Capt(self, target):
-					target.highlight_color = chess.theme.RED
 					targets.add(target)
 
 		return targets
@@ -202,8 +189,8 @@ class Pawn(Piece):
 	white: str = "\u2659"
 
 	moves = {
-		chess.algebra.Difference.SE,
-		chess.algebra.Difference.SW,
+		chess.algebra.Vector.SE,
+		chess.algebra.Vector.SW,
 	}
 
 	@property
@@ -212,9 +199,13 @@ class Pawn(Piece):
 
 		if self.square is not None:
 			for move in self.moves:
-				if chess.rules.Capt(self, target := self.square + move * self.color):
-					try: targets.add(target)
-					except ValueError: continue
+				try:
+					target = self.square + move * self.color
+
+					if chess.rules.Capt(self, target):
+						targets.add(target)
+
+				except ValueError: continue
 
 		return targets
 
@@ -225,10 +216,13 @@ class Pawn(Piece):
 
 		if self.square is not None:
 			try:
-				if chess.rules.Move(self, square := self.square + (move := chess.algebra.Difference.S * self.color)):
-					squares.add(square)
+				square = self.square + (move := chess.algebra.Vector.S * self.color)
 
-					if chess.rules.Rush(self, square := square + move):
+				if chess.rules.Move(self, square):
+					squares.add(square)
+					square += move
+
+					if chess.rules.Rush(self, square):
 						squares.add(square)
 
 			except ValueError:
@@ -245,10 +239,10 @@ class Rook(Ranged, Officer):
 	white: str = "\u2656"
 
 	moves = {
-		chess.algebra.Difference.N,
-		chess.algebra.Difference.E,
-		chess.algebra.Difference.S,
-		chess.algebra.Difference.W,
+		chess.algebra.Vector.N,
+		chess.algebra.Vector.E,
+		chess.algebra.Vector.S,
+		chess.algebra.Vector.W,
 	}
 
 
@@ -260,10 +254,10 @@ class Bishop(Ranged, Assymetric, Officer):
 	white: str = "\u2657"
 
 	moves = {
-		chess.algebra.Difference.NE,
-		chess.algebra.Difference.SE,
-		chess.algebra.Difference.SW,
-		chess.algebra.Difference.NW,
+		chess.algebra.Vector.NE,
+		chess.algebra.Vector.SE,
+		chess.algebra.Vector.SW,
+		chess.algebra.Vector.NW,
 	}
 
 
@@ -276,14 +270,14 @@ class Knight(Melee, Assymetric, Officer):
 
 	moves = {straight + diagonal for straight, diagonal in itertools.product(Rook.moves, Bishop.moves)} - Rook.moves
 #	moves = {
-#		chess.algebra.Difference.N2E,
-#		chess.algebra.Difference.NE2,
-#		chess.algebra.Difference.SE2,
-#		chess.algebra.Difference.S2E,
-#		chess.algebra.Difference.S2W,
-#		chess.algebra.Difference.SW2,
-#		chess.algebra.Difference.NW2,
-#		chess.algebra.Difference.N2W,
+#		chess.algebra.Vector.N2E,
+#		chess.algebra.Vector.NE2,
+#		chess.algebra.Vector.SE2,
+#		chess.algebra.Vector.S2E,
+#		chess.algebra.Vector.S2W,
+#		chess.algebra.Vector.SW2,
+#		chess.algebra.Vector.NW2,
+#		chess.algebra.Vector.N2W,
 #	}
 
 
@@ -291,10 +285,10 @@ class Star(Piece):
 
 	moves = Rook.moves | Bishop.moves
 #	moves = {
-#		chess.algebra.Difference.N, chess.algebra.Difference.NE,
-#		chess.algebra.Difference.E, chess.algebra.Difference.SE,
-#		chess.algebra.Difference.S, chess.algebra.Difference.SW,
-#		chess.algebra.Difference.W, chess.algebra.Difference.NW,
+#		chess.algebra.Vectors.N, chess.algebra.Vectors.NE,
+#		chess.algebra.Vectors.E, chess.algebra.Vectors.SE,
+#		chess.algebra.Vectors.S, chess.algebra.Vectors.SW,
+#		chess.algebra.Vectors.W, chess.algebra.Vectors.NW,
 #	}
 
 
@@ -321,8 +315,8 @@ class King(Melee, Star):
 		if self.square is not None:
 			for move, Castle in zip(
 				[
-					chess.algebra.Difference.W2,
-					chess.algebra.Difference.E2,
+					chess.algebra.Vector.W2,
+					chess.algebra.Vector.E2,
 				],
 				[
 					chess.rules.CastleLong ,
