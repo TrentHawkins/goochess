@@ -114,11 +114,13 @@ class Piece(chess.theme.Highlightable):
 				self.rect,
 			)
 
-	def highlight(self, screen: pygame.Surface):
-		if self.square is not None:
-			self.square.highlight(screen)
-
-		super().highlight(screen)
+#	def highlight(self, screen: pygame.Surface,
+#		highlight_color: chess.theme.RGB | None = None,
+#	):
+#		if self.square is not None:
+#			self.square.highlight(screen, highlight_color)
+#
+#		super().highlight(screen, highlight_color)
 
 
 class Ghost(Piece):

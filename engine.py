@@ -70,6 +70,9 @@ class Board(list[Piece], chess.theme.Drawable):
 			piece.move(target)
 
 	def draw(self, screen: pygame.Surface):
+		def target_color(piece: chess.material.Piece, square: chess.algebra.Square) -> chess.theme.RGB:
+			return chess.theme.RED if (other := self[square]) is not None and piece.color != other.color else chess.theme.GREEN
+
 		for square in chess.algebra.Square:
 			square.draw(screen)
 
@@ -79,7 +82,7 @@ class Board(list[Piece], chess.theme.Drawable):
 
 		if self.selected is not None:
 			for square in self.selected.targets:
-				square.highlight(screen)
+				square.highlight(screen, target_color(self.selected, square))
 
 		for piece in self:
 			if piece is not None:

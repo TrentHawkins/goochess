@@ -244,7 +244,9 @@ class Square(int, chess.theme.Highlightable, enum.Enum):
 			special_flags = pygame.BLEND_RGBA_MULT,
 		)
 
-	def highlight(self, screen: pygame.Surface):
-		screen.fill(self.highlight_color, self.rect,
+	def highlight(self, screen: pygame.Surface,
+		highlight_color: chess.theme.RGB | None = None,
+	):
+		screen.fill(highlight_color if highlight_color is not None else self.highlight_color, self.rect,
 			special_flags = pygame.BLEND_RGB_MULT,
 		)
