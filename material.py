@@ -81,8 +81,10 @@ class Piece(chess.theme.Highlightable):
 	def test(self, target: chess.algebra.Square):
 		assert (source := self.square) is not None
 
-		self.move(target, move = False                          ); yield self
-		self.move(source, move = False, kept = self.game[target])
+		kept = self.game[target]
+
+		self.move(target, move = False             ); yield self
+		self.move(source, move = False, kept = kept)
 
 	def move(self, target: chess.algebra.Square,
 		move: bool = True,
