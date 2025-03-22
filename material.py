@@ -67,7 +67,7 @@ class Piece(chess.theme.Highlightable):
 
 	@property
 	def squares(self) -> set[chess.algebra.Square]:
-		squares = self.targets.copy()
+		squares = self.targets
 
 		for square in squares:
 			with self.test(square):
