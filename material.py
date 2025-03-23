@@ -62,17 +62,21 @@ class Piece(chess.theme.Highlightable):
 		return self.side.game
 
 	@property
+	def king(self) -> King:
+		return self.side.king
+
+	@property
 	def targets(self) -> set[chess.algebra.Square]:
 		return set()
 
 	@property
 	def squares(self) -> set[chess.algebra.Square]:
-		squares = set()
+		squares = self.targets.copy()
 
 		for square in self.targets:
 			with self.test(square):
-				if self.side.king.safe:
-					squares.add(square)
+				if not self.king.safe:
+					squares.discard(square)
 
 		return squares
 
@@ -212,19 +216,23 @@ class Pawn(Piece):
 
 	@property
 	def squares(self) -> set[chess.algebra.Square]:
-		squares = set()
+		squares = super().squares
 
 		if self.square is not None:
 			try:
 				square = self.square + (move := chess.algebra.Vector.S * self.color)
 
-				with self.test(square):
-					if chess.rules.Move(self, square) and self.side.king.safe:
-						squares.add(square)
-						square += move
-
-						if chess.rules.Rush(self, square) and self.side.king.safe:
+				if chess.rules.Move(self, square):
+					with self.test(square):
+						if self.king.safe:
 							squares.add(square)
+
+					square += move
+
+					if chess.rules.Rush(self, square):
+						with self.test(square):
+							if self.king.safe:
+								squares.add(square)
 
 			except ValueError:
 				...
