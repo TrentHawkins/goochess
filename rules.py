@@ -10,7 +10,7 @@ if typing.TYPE_CHECKING: import chess.material
 if typing.TYPE_CHECKING: import chess.engine
 
 
-class Rule(abc.ABC):
+class Base(abc.ABC):
 
 	def __init__(self,side: chess.engine.Side):
 		self.side = side
@@ -33,7 +33,7 @@ class Rule(abc.ABC):
 		return self.side.king
 
 
-class Move(Rule):
+class Move(Base):
 
 	def __init__(self, piece: chess.material.Piece, square: chess.algebra.Square):
 		self.piece = piece
@@ -94,7 +94,7 @@ class Promote(Move):
 		return self.target.rank.final(self.piece.color) and super().__bool__()
 
 
-class Castle(Rule, abc.ABC):
+class Castle(Base, abc.ABC):
 
 	steps: set[chess.algebra.Vector] = {chess.algebra.Vector.O}
 	rook_file: chess.algebra.File

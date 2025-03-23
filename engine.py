@@ -76,13 +76,13 @@ class Board(list[Piece], chess.theme.Drawable):
 		for square in chess.algebra.Square:
 			square.draw(screen)
 
-		if self.selected is not None:
-			for square in self.selected.squares:
-				square.draw(screen, target_color(self.selected, square))
-
 		super().draw(screen,
 			special_flags = pygame.BLEND_RGBA_MULT,
 		)
+
+		if self.selected is not None:
+			for square in self.selected.squares:
+				square.highlight(screen, target_color(self.selected, square))
 
 		for piece in self:
 			if piece is not None:
