@@ -240,6 +240,11 @@ class Pawn(Piece):
 		return squares
 
 
+	def promote(self, to: type):
+		if issubclass(to, Officer):
+			self.__class__ = to  # type: ignore
+
+
 class Rook(Ranged, Officer):
 
 	value: int = 5
@@ -319,22 +324,11 @@ class King(Melee, Star):
 
 	@property
 	def squares(self) -> set[chess.algebra.Square]:
-		squares = self.targets
+		squares = super().squares
 
 		if self.square is not None:
-			for move, Castle in zip(
-				[
-					chess.algebra.Vector.W2,
-					chess.algebra.Vector.E2,
-				],
-				[
-					chess.rules.CastleLong ,
-					chess.rules.CastleShort,
-				],
-			):
-				if Castle(self.side):
-					try: squares.add(self.square + move)
-					except ValueError: continue
+			if chess.rules.CastleLong(self.side): squares.add(self.square + chess.algebra.Vector.W2)
+			if chess.rules.CastleLong(self.side): squares.add(self.square + chess.algebra.Vector.W2)
 
 		return squares
 

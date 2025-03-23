@@ -102,7 +102,7 @@ class Castle(Base, abc.ABC):
 
 	def __bool__(self) -> bool:
 		assert self.king.square is not None
-		return not self.king.moved and not self.rook.moved and self.king.squares_from(self.steps) <= self.king.targets
+		return not self.king.moved and not self.rook.moved and not self.king.squares_from(self.steps) <= self.side.other.targets
 
 
 	@property
@@ -123,8 +123,7 @@ class CastleLong(Castle):
 		return "O-O-O"
 
 	def __bool__(self) -> bool:
-		assert self.rook.square is not None
-		return self.game[self.rook.square + chess.algebra.Vector.E] is None
+		return self.rook.square is not None and self.game[self.rook.square + chess.algebra.Vector.E] is None
 
 
 class CastleShort(Castle):
@@ -135,3 +134,6 @@ class CastleShort(Castle):
 
 	def __repr__(self) -> str:
 		return "O-O"
+
+	def __bool__(self) -> bool:
+		return self.rook.square is not None and self.game[self.rook.square + chess.algebra.Vector.W] is None
