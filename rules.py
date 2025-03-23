@@ -59,6 +59,11 @@ class Move(Rule):
 	def step(self) -> chess.algebra.Vector2:
 		return self.target - self.source
 
+	@property
+	def with_safe_king(self) -> bool:
+		with self.piece.test(self.target):
+			return bool(self) and self.king.safe
+
 
 class Capt(Move):
 

@@ -66,7 +66,7 @@ class Board(list[Piece], chess.theme.Drawable):
 		source: chess.algebra.Square,
 		target: chess.algebra.Square,
 	):
-		if target != source and (piece := self[source]):
+		if target != source and (piece := self[source]) is not None:
 			piece.move(target)
 
 	def draw(self, screen: pygame.Surface):
@@ -81,7 +81,7 @@ class Board(list[Piece], chess.theme.Drawable):
 		)
 
 		if self.selected is not None:
-			for square in self.selected.targets:
+			for square in self.selected.squares:
 				square.highlight(screen, target_color(self.selected, square))
 
 		for piece in self:
@@ -95,7 +95,7 @@ class Board(list[Piece], chess.theme.Drawable):
 		for square in chess.algebra.Square:
 			if square.clicked(event):
 				if self.selected is not None:
-					if self.selected.square != square:
+					if square in self.selected.squares:
 						self.selected.move(square)
 
 					self.selected = None
