@@ -10,7 +10,7 @@ if typing.TYPE_CHECKING: import chess.material
 if typing.TYPE_CHECKING: import chess.engine
 
 
-class Rule(abc.ABC):
+class Base(abc.ABC):
 
 	def __init__(self,side: chess.engine.Side):
 		self.side = side
@@ -33,7 +33,7 @@ class Rule(abc.ABC):
 		return self.side.king
 
 
-class Move(Rule):
+class Move(Base):
 
 	def __init__(self, piece: chess.material.Piece, square: chess.algebra.Square):
 		self.piece = piece
@@ -58,6 +58,11 @@ class Move(Rule):
 	@property
 	def step(self) -> chess.algebra.Vector2:
 		return self.target - self.source
+
+	@property
+	def with_safe_king(self) -> bool:
+		with self.piece.test(self.target):
+			return bool(self) and self.king.safe
 
 
 class Capt(Move):
@@ -89,7 +94,7 @@ class Promote(Move):
 		return self.target.rank.final(self.piece.color) and super().__bool__()
 
 
-class Castle(Rule, abc.ABC):
+class Castle(Base, abc.ABC):
 
 	steps: set[chess.algebra.Vector] = {chess.algebra.Vector.O}
 	rook_file: chess.algebra.File
@@ -97,7 +102,7 @@ class Castle(Rule, abc.ABC):
 
 	def __bool__(self) -> bool:
 		assert self.king.square is not None
-		return not self.king.moved and not self.rook.moved and self.king.squares_from(self.steps) <= self.king.targets
+		return not self.king.moved and not self.rook.moved and not self.king.squares_from(self.steps) <= self.side.other.targets
 
 
 	@property
@@ -118,8 +123,7 @@ class CastleLong(Castle):
 		return "O-O-O"
 
 	def __bool__(self) -> bool:
-		assert self.rook.square is not None
-		return self.game[self.rook.square + chess.algebra.Vector.E] is None
+		return self.rook.square is not None and self.game[self.rook.square + chess.algebra.Vector.E] is None
 
 
 class CastleShort(Castle):
@@ -130,3 +134,6 @@ class CastleShort(Castle):
 
 	def __repr__(self) -> str:
 		return "O-O"
+
+	def __bool__(self) -> bool:
+		return self.rook.square is not None and self.game[self.rook.square + chess.algebra.Vector.W] is None
