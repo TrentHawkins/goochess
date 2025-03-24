@@ -102,7 +102,7 @@ class Castle(Base, abc.ABC):
 
 	def __bool__(self) -> bool:
 		assert self.king.square is not None
-		return not self.king.moved and not self.rook.moved and not self.king.squares_from(self.steps) <= self.side.other.targets
+		return not self.king.moved and not self.rook.moved  # and not self.king.squares_from(self.steps) <= self.side.other.targets
 
 
 	@property

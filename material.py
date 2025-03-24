@@ -133,11 +133,11 @@ class Melee(Piece):
 		targets = super().targets
 
 		if self.square is not None:
-			for step in self.steps:
+			for move in self.steps.moves:
 				target = self.square
 
 				try:
-					target += step
+					target += move
 
 					if chess.rules.Move(self, target): targets.moves.add(target)
 					if chess.rules.Capt(self, target): targets.capts.add(target)
@@ -203,42 +203,28 @@ class Pawn(Piece):
 		targets = super().targets
 
 		if self.square is not None:
-			for move in self.moves:
-				try:
-					target = self.square + move * self.color
-
-					if chess.rules.Capt(self, target):
-						targets.add(target)
-
-				except ValueError: continue
-
-		return targets
-
-
-	@property
-	def squares(self) -> chess.algebra.Squares:
-		squares = super().squares
-
-		if self.square is not None:
 			try:
-				square = self.square + (move := chess.algebra.Vector.S * self.color)
+				if chess.rules.Move(self, target := self.square + (move := chess.algebra.Vector.S * self.color)):
+					targets.moves.add(target)
 
-				if chess.rules.Move(self, square):
-					with self.test(square):
-						if self.king.safe:
-							squares.add(square)
+					target += move
 
-					square += move
-
-					if chess.rules.Rush(self, square):
-						with self.test(square):
-							if self.king.safe:
-								squares.add(square)
+					if chess.rules.Rush(self, target := target + move):
+						targets.specs.add(target)
 
 			except ValueError:
 				...
 
-		return squares
+			for capt in self.steps.capts:
+				try:
+					target = self.square + capt * self.color
+
+					if chess.rules.Capt(self, target):
+						targets.capts.add(target)
+
+				except ValueError: continue
+
+		return targets
 
 
 	def promote(self, to: type):
@@ -336,8 +322,8 @@ class King(Melee, Star):
 		squares = super().squares
 
 		if self.square is not None:
-			if chess.rules.CastleLong(self.side): squares.add(self.square + chess.algebra.Vector.W2)
-			if chess.rules.CastleLong(self.side): squares.add(self.square + chess.algebra.Vector.W2)
+			if chess.rules.CastleLong(self.side): squares.specs.add(self.square + chess.algebra.Vector.W2)
+			if chess.rules.CastleLong(self.side): squares.specs.add(self.square + chess.algebra.Vector.W2)
 
 		return squares
 

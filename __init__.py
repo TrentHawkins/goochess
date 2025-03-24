@@ -12,7 +12,7 @@ class collection[T]:
 		specs: Iterable[T] = [],
 	):
 		self.moves = set(moves)
-		self.capts = set(capts)
+		self.capts = set(capts) if capts else self.moves.copy()
 		self.specs = set(specs)
 
 	def __len__(self) -> int:
