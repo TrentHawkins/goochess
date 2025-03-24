@@ -22,7 +22,7 @@ class Piece(chess.theme.Highlightable):
 	black: str = " "
 	white: str = " "
 
-	moves: set[chess.algebra.Vector] = set()
+	steps: chess.algebra.Vectors
 
 
 	def __init__(self, side: chess.engine.Side,
@@ -66,11 +66,11 @@ class Piece(chess.theme.Highlightable):
 		return self.side.king
 
 	@property
-	def targets(self) -> set[chess.algebra.Square]:
-		return set()
+	def targets(self) -> chess.algebra.Squares:
+		return chess.algebra.Squares()
 
 	@property
-	def squares(self) -> set[chess.algebra.Square]:
+	def squares(self) -> chess.algebra.Squares:
 		squares = self.targets.copy()
 
 		for square in self.targets:
@@ -102,9 +102,6 @@ class Piece(chess.theme.Highlightable):
 		return self
 
 
-	def squares_from(self, steps: set[chess.algebra.Vector]) -> set[chess.algebra.Square]:
-		return {self.square + step for step in steps} if self.square is not None else set()
-
 	def clicked(self, event: pygame.event.Event) -> bool:
 		if (selected := self.square is not None and self.square.clicked(event)):
 			self.game.selected = self
@@ -132,16 +129,18 @@ class Officer(Piece):
 class Melee(Piece):
 
 	@property
-	def targets(self) -> set[chess.algebra.Square]:
+	def targets(self) -> chess.algebra.Squares:
 		targets = super().targets
 
 		if self.square is not None:
-			for move in self.moves:
-				try:
-					target = self.square + move
+			for step in self.steps:
+				target = self.square
 
-					if chess.rules.Move(self, target): targets.add(target)
-					if chess.rules.Capt(self, target): targets.add(target)
+				try:
+					target += step
+
+					if chess.rules.Move(self, target): targets.moves.add(target)
+					if chess.rules.Capt(self, target): targets.capts.add(target)
 
 				except ValueError:
 					continue
@@ -152,28 +151,22 @@ class Melee(Piece):
 class Ranged(Piece):
 
 	@property
-	def targets(self) -> set[chess.algebra.Square]:
+	def targets(self) -> chess.algebra.Squares:
 		targets = super().targets
 
 		if self.square is not None:
-			for move in self.moves:
+			for step in self.steps:
 				target = self.square
 
-				while True:
-					try:
-						target += move
+				try:
+					while chess.rules.Move(self, target := target + step):
+						targets.moves.add(target)
 
-						if chess.rules.Move(self, target):
-							targets.add(target)
-
-						else:
-							break
-
-					except ValueError:
-						break
+				except ValueError:
+					break
 
 				if chess.rules.Capt(self, target):
-					targets.add(target)
+					targets.capts.add(target)
 
 		return targets
 
@@ -192,13 +185,21 @@ class Pawn(Piece):
 	black: str = "\u265f"
 	white: str = "\u2659"
 
-	moves = {
-		chess.algebra.Vector.SE,
-		chess.algebra.Vector.SW,
-	}
+	steps = chess.algebra.Vectors(
+		moves = {
+			chess.algebra.Vector.S,
+		},
+		capts = {
+			chess.algebra.Vector.SE,
+			chess.algebra.Vector.SW,
+		},
+		specs = {
+			chess.algebra.Vector.S2,
+		},
+	)
 
 	@property
-	def targets(self) -> set[chess.algebra.Square]:
+	def targets(self) -> chess.algebra.Squares:
 		targets = super().targets
 
 		if self.square is not None:
@@ -215,7 +216,7 @@ class Pawn(Piece):
 
 
 	@property
-	def squares(self) -> set[chess.algebra.Square]:
+	def squares(self) -> chess.algebra.Squares:
 		squares = super().squares
 
 		if self.square is not None:
@@ -252,12 +253,14 @@ class Rook(Ranged, Officer):
 	black: str = "\u265c"
 	white: str = "\u2656"
 
-	moves = {
-		chess.algebra.Vector.N,
-		chess.algebra.Vector.E,
-		chess.algebra.Vector.S,
-		chess.algebra.Vector.W,
-	}
+	steps = chess.algebra.Vectors(
+		moves = {
+			chess.algebra.Vector.N,
+			chess.algebra.Vector.E,
+			chess.algebra.Vector.S,
+			chess.algebra.Vector.W,
+		}
+	)
 
 
 class Bishop(Ranged, Assymetric, Officer):
@@ -267,12 +270,14 @@ class Bishop(Ranged, Assymetric, Officer):
 	black: str = "\u265d"
 	white: str = "\u2657"
 
-	moves = {
-		chess.algebra.Vector.NE,
-		chess.algebra.Vector.SE,
-		chess.algebra.Vector.SW,
-		chess.algebra.Vector.NW,
-	}
+	steps = chess.algebra.Vectors(
+		moves = {
+			chess.algebra.Vector.NE,
+			chess.algebra.Vector.SE,
+			chess.algebra.Vector.SW,
+			chess.algebra.Vector.NW,
+		}
+	)
 
 
 class Knight(Melee, Assymetric, Officer):
@@ -282,28 +287,32 @@ class Knight(Melee, Assymetric, Officer):
 	black: str = "\u265e"
 	white: str = "\u2658"
 
-	moves = {straight + diagonal for straight, diagonal in itertools.product(Rook.moves, Bishop.moves)} - Rook.moves
-#	moves = {
-#		chess.algebra.Vector.N2E,
-#		chess.algebra.Vector.NE2,
-#		chess.algebra.Vector.SE2,
-#		chess.algebra.Vector.S2E,
-#		chess.algebra.Vector.S2W,
-#		chess.algebra.Vector.SW2,
-#		chess.algebra.Vector.NW2,
-#		chess.algebra.Vector.N2W,
-#	}
+#	steps = chess.algebra.Vectors(
+#		moves = {
+#			chess.algebra.Vector.N2E,
+#			chess.algebra.Vector.NE2,
+#			chess.algebra.Vector.SE2,
+#			chess.algebra.Vector.S2E,
+#			chess.algebra.Vector.S2W,
+#			chess.algebra.Vector.SW2,
+#			chess.algebra.Vector.NW2,
+#			chess.algebra.Vector.N2W,
+#		}
+#	)
+	steps = Rook.steps * Bishop.steps - Rook.steps
 
 
 class Star(Piece):
 
-	moves = Rook.moves | Bishop.moves
-#	moves = {
-#		chess.algebra.Vectors.N, chess.algebra.Vectors.NE,
-#		chess.algebra.Vectors.E, chess.algebra.Vectors.SE,
-#		chess.algebra.Vectors.S, chess.algebra.Vectors.SW,
-#		chess.algebra.Vectors.W, chess.algebra.Vectors.NW,
-#	}
+#	steps = chess.algebra.Vectors(
+#		moves = {
+#			chess.algebra.Vector.N, chess.algebra.Vector.NE,
+#			chess.algebra.Vector.E, chess.algebra.Vector.SE,
+#			chess.algebra.Vector.S, chess.algebra.Vector.SW,
+#			chess.algebra.Vector.W, chess.algebra.Vector.NW,
+#		}
+#	)
+	steps = Rook.steps | Bishop.steps
 
 
 class Queen(Ranged, Officer, Star):
@@ -323,7 +332,7 @@ class King(Melee, Star):
 
 
 	@property
-	def squares(self) -> set[chess.algebra.Square]:
+	def squares(self) -> chess.algebra.Squares:
 		squares = super().squares
 
 		if self.square is not None:

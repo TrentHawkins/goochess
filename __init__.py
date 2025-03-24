@@ -66,6 +66,11 @@ class collection[T]:
 		self.capts.clear()
 		self.specs.clear()
 
+	def discard(self, item: T):
+		self.moves.discard(item)
+		self.capts.discard(item)
+		self.specs.discard(item)
+
 
 	def union(self, *others: Self) -> Self:
 		return self.__class__(

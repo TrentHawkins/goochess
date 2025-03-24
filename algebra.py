@@ -158,7 +158,15 @@ class Vector(Vector2, Enum,
 
 class Vectors(chess.collection[Vector]):
 
-	...
+	def __mul__(self, other: Self, /) -> Self: return self.product(other)
+
+
+	def product(self, other: Self, /) -> Self:
+		return self.__class__(
+			(left + right for left, right in product(self.moves, other.moves)),
+			(left + right for left, right in product(self.capts, other.capts)),
+			(left + right for left, right in product(self.specs, other.specs)),
+		)
 
 
 class Square(int, chess.theme.Highlightable, Enum):
@@ -258,10 +266,10 @@ class Square(int, chess.theme.Highlightable, Enum):
 class Squares(chess.collection[Square]):
 
 	def __add__(self, other: Vectors, /) -> Self:
-		return self.extend(other)
+		return self.sum(other)
 
 
-	def extend(self, other: Vectors, /) -> Self:
+	def sum(self, other: Vectors, /) -> Self:
 		return self.__class__(
 			(square + vector for square, vector in product(self.moves, other.moves)),
 			(square + vector for square, vector in product(self.capts, other.capts)),
