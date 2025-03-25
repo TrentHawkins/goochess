@@ -311,7 +311,7 @@ class King(Melee, Star):
 
 		if self.square is not None:
 			if chess.rules.CastleWest(self.side): targets.specs.add(self.square + chess.algebra.Vector.W2)
-			if chess.rules.CastleEast(self.side): targets.specs.add(self.square + chess.algebra.Vector.W2)
+			if chess.rules.CastleEast(self.side): targets.specs.add(self.square + chess.algebra.Vector.E2)
 
 		return targets
 

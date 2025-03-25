@@ -275,3 +275,8 @@ class Squares(chess.collection[Square]):
 			(square + vector for square, vector in product(self.capts, other.capts)),
 			(square + vector for square, vector in product(self.specs, other.specs)),
 		)
+
+	def highlight(self, screen: pygame.Surface):
+		for square in self.moves: square.highlight(screen, chess.theme.GREEN)
+		for square in self.moves: square.highlight(screen, chess.theme.RED  )
+		for square in self.specs: square.highlight(screen, chess.theme.BLUE )
