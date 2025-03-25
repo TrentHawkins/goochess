@@ -278,5 +278,5 @@ class Squares(chess.collection[Square]):
 
 	def highlight(self, screen: pygame.Surface):
 		for square in self.moves: square.highlight(screen, chess.theme.GREEN)
-		for square in self.moves: square.highlight(screen, chess.theme.RED  )
+		for square in self.capts: square.highlight(screen, chess.theme.RED  )
 		for square in self.specs: square.highlight(screen, chess.theme.BLUE )

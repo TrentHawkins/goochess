@@ -7,13 +7,13 @@ from typing import Iterable, Self
 class collection[T]:
 
 	def __init__(self,
-		moves: Iterable[T] = [],
-		capts: Iterable[T] = [],
-		specs: Iterable[T] = [],
+		moves: Iterable[T] | None = None,
+		capts: Iterable[T] | None = None,
+		specs: Iterable[T] | None = None,
 	):
-		self.moves = set(moves)
-		self.capts = set(capts) if capts else self.moves
-		self.specs = set(specs)
+		self.moves = set(moves) if moves is not None else set()
+		self.capts = set(capts) if capts is not None else self.moves.copy()
+		self.specs = set(specs) if specs is not None else set()
 
 	def __len__(self) -> int:
 		return len(self.moves) + len(self.capts) + len(self.specs)
