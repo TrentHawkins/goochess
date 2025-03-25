@@ -147,7 +147,7 @@ class Side(list[chess.material.Piece]):
 
 	@property
 	def targets(self) -> chess.algebra.Squares:
-		return chess.algebra.Squares.any(piece.targets for piece in self)
+		return chess.algebra.Squares.union(*(piece.targets for piece in self))
 
 	@property
 	def other(self) -> Side:

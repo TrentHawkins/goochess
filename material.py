@@ -138,9 +138,6 @@ class Melee(Piece):
 					if chess.rules.Move(self, target := self.square + (move := move * self.color)):
 						targets.moves.add(target)
 
-						if chess.rules.Rush(self, target := target + move):
-							targets.specs.add(target)
-
 				except ValueError:
 					continue
 
@@ -149,7 +146,8 @@ class Melee(Piece):
 					if chess.rules.Capt(self, target := self.square + capt * self.color):
 						targets.capts.add(target)
 
-				except ValueError: continue
+				except ValueError:
+					continue
 
 		return targets
 
@@ -308,14 +306,14 @@ class King(Melee, Star):
 
 
 	@property
-	def squares(self) -> chess.algebra.Squares:
-		squares = super().squares
+	def targets(self) -> chess.algebra.Squares:
+		targets = super().targets
 
 		if self.square is not None:
-			if chess.rules.CastleWest(self.side): squares.specs.add(self.square + chess.algebra.Vector.W2)
-			if chess.rules.CastleWest(self.side): squares.specs.add(self.square + chess.algebra.Vector.W2)
+			if chess.rules.CastleWest(self.side): targets.specs.add(self.square + chess.algebra.Vector.W2)
+			if chess.rules.CastleEast(self.side): targets.specs.add(self.square + chess.algebra.Vector.W2)
 
-		return squares
+		return targets
 
 	@property
 	def safe(self) -> bool:
