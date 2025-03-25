@@ -86,7 +86,6 @@ class Promote(Move):
 	def __init__(self, rank: type[chess.material.Officer]):
 		self.rank = rank
 
-
 	def __repr__(self) -> str:
 		return super().__repr__() + repr(self.rank)
 
@@ -96,44 +95,58 @@ class Promote(Move):
 
 class Castle(Base, abc.ABC):
 
-	steps: set[chess.algebra.Vector] = {chess.algebra.Vector.O}
-	rook_file: chess.algebra.File
+	steps: set[chess.algebra.Vector] = {
+		chess.algebra.Vector.O,
+	}
 
 
 	def __bool__(self) -> bool:
 		assert self.king.square is not None
-		return not self.king.moved and not self.rook.moved  # and not self.king.squares_from(self.steps) <= self.side.other.targets
+		return not self.king.moved and not self.rook.moved and \
+			all(self.king.square + step not in self.side.other.targets.capts for step in self.steps)
 
 
 	@property
+	@abc.abstractmethod
 	def rook(self) -> chess.material.Rook:
-		assert (square := self.king.square) is not None
-		assert (rook := self.game[square.rank + self.rook_file]) is not None
-
-		return typing.cast(chess.material.Rook, rook)
+		...
 
 
-class CastleLong(Castle):
+class CastleWest(Castle):
 
-	steps: set[chess.algebra.Vector] = Castle.steps | {chess.algebra.Vector.W, chess.algebra.Vector.W2}
-	rook_file: chess.algebra.File = chess.algebra.File.A_
+	steps = Castle.steps | {
+		chess.algebra.Vector.W ,
+		chess.algebra.Vector.W2,
+	}
 
 
 	def __repr__(self) -> str:
 		return "O-O-O"
 
 	def __bool__(self) -> bool:
-		return self.rook.square is not None and self.game[self.rook.square + chess.algebra.Vector.E] is None
+		return self.rook.square is not None and bool(Move(self.rook, self.rook.square + chess.algebra.Vector.E))
 
 
-class CastleShort(Castle):
+	@property
+	def rook(self) -> chess.material.Rook:
+		return self.side.west_rook
 
-	steps: set[chess.algebra.Vector] = Castle.steps | {chess.algebra.Vector.E, chess.algebra.Vector.E2}
-	rook_file: chess.algebra.File = chess.algebra.File.H_
+
+class CastleEast(Castle):
+
+	steps = Castle.steps | {
+		chess.algebra.Vector.E ,
+		chess.algebra.Vector.E2,
+	}
 
 
 	def __repr__(self) -> str:
 		return "O-O"
 
 	def __bool__(self) -> bool:
-		return self.rook.square is not None and self.game[self.rook.square + chess.algebra.Vector.W] is None
+		return self.rook.square is not None
+
+
+	@property
+	def rook(self) -> chess.material.Rook:
+		return self.side.east_rook

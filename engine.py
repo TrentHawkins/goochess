@@ -146,8 +146,8 @@ class Side(list[chess.material.Piece]):
 		return sum(piece.value for piece in self if piece.square is not None)
 
 	@property
-	def targets(self) -> set[chess.algebra.Square]:
-		return set().union(*(piece.targets for piece in self))
+	def targets(self) -> chess.algebra.Squares:
+		return chess.algebra.Squares.any(piece.targets for piece in self)
 
 	@property
 	def other(self) -> Side:
@@ -163,7 +163,7 @@ class Side(list[chess.material.Piece]):
 		)
 
 	@property
-	def left_rook(self) -> chess.material.Rook:
+	def west_rook(self) -> chess.material.Rook:
 		return typing.cast(chess.material.Rook,
 			self[
 				chess.algebra.Square.A8 if self.color else
@@ -172,7 +172,7 @@ class Side(list[chess.material.Piece]):
 		)
 
 	@property
-	def right_rook(self) -> chess.material.Rook:
+	def east_rook(self) -> chess.material.Rook:
 		return typing.cast(chess.material.Rook,
 			self[
 				chess.algebra.Square.H8 if self.color else

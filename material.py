@@ -134,16 +134,22 @@ class Melee(Piece):
 
 		if self.square is not None:
 			for move in self.steps.moves:
-				target = self.square
-
 				try:
-					target += move
+					if chess.rules.Move(self, target := self.square + (move := move * self.color)):
+						targets.moves.add(target)
 
-					if chess.rules.Move(self, target): targets.moves.add(target)
-					if chess.rules.Capt(self, target): targets.capts.add(target)
+						if chess.rules.Rush(self, target := target + move):
+							targets.specs.add(target)
 
 				except ValueError:
 					continue
+
+			for capt in self.steps.capts:
+				try:
+					if chess.rules.Capt(self, target := self.square + capt * self.color):
+						targets.capts.add(target)
+
+				except ValueError: continue
 
 		return targets
 
@@ -163,7 +169,7 @@ class Ranged(Piece):
 						targets.moves.add(target)
 
 				except ValueError:
-					break
+					continue
 
 				if chess.rules.Capt(self, target):
 					targets.capts.add(target)
@@ -178,7 +184,7 @@ class Assymetric(Piece):
 		return super().decal.with_suffix(".flipped" + super().decal.suffix) if self.color else super().decal
 
 
-class Pawn(Piece):
+class Pawn(Melee):
 
 	value: int = 1
 
@@ -203,26 +209,10 @@ class Pawn(Piece):
 		targets = super().targets
 
 		if self.square is not None:
-			try:
-				if chess.rules.Move(self, target := self.square + (move := chess.algebra.Vector.S * self.color)):
-					targets.moves.add(target)
-
-					target += move
-
-					if chess.rules.Rush(self, target := target + move):
-						targets.specs.add(target)
-
-			except ValueError:
-				...
-
-			for capt in self.steps.capts:
-				try:
-					target = self.square + capt * self.color
-
-					if chess.rules.Capt(self, target):
-						targets.capts.add(target)
-
-				except ValueError: continue
+			for move in self.steps.moves:
+				if  chess.rules.Move(self, target := self.square + (move := move * self.color)) \
+				and chess.rules.Rush(self, target :=      target +  move):
+					targets.specs.add(target)
 
 		return targets
 
@@ -322,8 +312,8 @@ class King(Melee, Star):
 		squares = super().squares
 
 		if self.square is not None:
-			if chess.rules.CastleLong(self.side): squares.specs.add(self.square + chess.algebra.Vector.W2)
-			if chess.rules.CastleLong(self.side): squares.specs.add(self.square + chess.algebra.Vector.W2)
+			if chess.rules.CastleWest(self.side): squares.specs.add(self.square + chess.algebra.Vector.W2)
+			if chess.rules.CastleWest(self.side): squares.specs.add(self.square + chess.algebra.Vector.W2)
 
 		return squares
 

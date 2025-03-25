@@ -54,6 +54,15 @@ class collection[T]:
 	def __ne__(self, other: Self, /): return not self == other
 
 
+	@classmethod
+	def any(cls, others: Iterable[Self]) -> Self:
+		return cls().union(*others)
+
+	@classmethod
+	def all(cls, others: Iterable[Self]) -> Self:
+		return cls().intersection(*others)
+
+
 	def copy(self):
 		return self.__class__(
 			self.moves,
