@@ -36,7 +36,9 @@ class Piece(chess.theme.Highlightable):
 		super().__init__()
 
 		try: self.surf = pygame.transform.smoothscale(pygame.image.load(self.decal).convert_alpha(), chess.theme.PIECE)
-		except FileNotFoundError: self.surf = pygame.Surface(chess.theme.PIECE)
+		except FileNotFoundError: self.surf = pygame.Surface(chess.theme.PIECE,
+			flags = pygame.SRCALPHA,
+		)
 
 	def __repr__(self) -> str:
 		return self.black if self.color else self.white
@@ -214,6 +216,16 @@ class Pawn(Melee):
 
 		return squares
 
+	def move(self, target: chess.algebra.Square,
+		move: bool = True,
+		kept: Piece | None = None,
+	) -> typing.Self:
+		assert (source := self.square) is not None
+
+		if target == source + chess.algebra.Vector.S2 * self.color:
+			self.side.ghost = self.game[source + chess.algebra.Vector.S * self.color] = Piece(self.side)
+
+		return super().move(target, move, kept)
 
 	def promote(self, to: type):
 		if issubclass(to, Officer):
@@ -322,9 +334,7 @@ class King(Melee, Star):
 			if target == source + chess.algebra.Vector.E2: self.side.east_rook.move(target + chess.algebra.Vector.W, move, kept)
 			if target == source + chess.algebra.Vector.W2: self.side.west_rook.move(target + chess.algebra.Vector.E, move, kept)
 
-		super().move(target, move, kept)
-
-		return self
+		return super().move(target, move, kept)
 
 
 	@property
