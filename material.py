@@ -340,4 +340,4 @@ class King(Melee, Star):
 	@property
 	def safe(self) -> bool:
 		assert self.square is not None
-		return self.square not in self.side.other.targets
+		return self.square not in self.side.other.targets.capts

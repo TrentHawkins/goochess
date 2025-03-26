@@ -113,7 +113,7 @@ class Castle(Base, abc.ABC):
 		assert self.king.square is not None
 		return \
 			not self.king.moved and \
-			not self.rook.moved and all(self.king.square + step not in self.side.other.targets.capts for step in self.steps)
+			not self.rook.moved and all(self.king.square + step not in self.side.other.p_targets.capts for step in self.steps)
 
 
 	@property
