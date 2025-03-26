@@ -11,12 +11,18 @@ class collection[T]:
 		capts: Iterable[T] | None = None,
 		specs: Iterable[T] | None = None,
 	):
-		self.moves = set(moves) if moves is not None else set()
+		self.moves = set(moves) if moves is not None else set[T]()
 		self.capts = set(capts) if capts is not None else self.moves.copy()
-		self.specs = set(specs) if specs is not None else set()
+		self.specs = set(specs) if specs is not None else set[T]()
 
 	def __len__(self) -> int:
-		return len(self.moves) + len(self.capts) + len(self.specs)
+		return sum(
+			[
+				len(self.moves),
+				len(self.capts),
+				len(self.specs),
+			]
+		)
 
 	def __iter__(self):
 		for move in self.moves: yield move
@@ -24,10 +30,13 @@ class collection[T]:
 		for spec in self.specs: yield spec
 
 	def __contains__(self, item: T) -> bool:
-		return \
-			item in self.moves or \
-			item in self.capts or \
-			item in self.specs
+		return any(
+			[
+				item in self.moves,
+				item in self.capts,
+				item in self.specs,
+			]
+		)
 
 	def  __or__(self, other: Self, /) -> Self: return self.               union(other)
 	def __and__(self, other: Self, /) -> Self: return self.        intersection(other)
@@ -132,20 +141,29 @@ class collection[T]:
 
 
 	def isdisjoint(self, other: Self, /) -> bool:
-		return \
-			self.moves.isdisjoint(other.moves) and \
-			self.capts.isdisjoint(other.capts) and \
-			self.specs.isdisjoint(other.specs)
+		return all(
+			[
+				self.moves.isdisjoint(other.moves),
+				self.capts.isdisjoint(other.capts),
+				self.specs.isdisjoint(other.specs),
+			]
+		)
 
 	def issubset(self, other: Self, /) -> bool:
-		return \
-			self.moves.issubset(other.moves) and \
-			self.capts.issubset(other.capts) and \
-			self.specs.issubset(other.specs)
+		return all(
+			[
+				self.moves.issubset(other.moves),
+				self.capts.issubset(other.capts),
+				self.specs.issubset(other.specs),
+			]
+		)
 
 	def issuperset(self, other: Self, /) -> bool:
-		return \
-			self.moves.issuperset(other.moves) and \
-			self.capts.issuperset(other.capts) and \
-			self.specs.issuperset(other.specs)
+		return all(
+			[
+				self.moves.issuperset(other.moves),
+				self.capts.issuperset(other.capts),
+				self.specs.issuperset(other.specs),
+			]
+		)
 

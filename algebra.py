@@ -81,7 +81,12 @@ class Vector_(tuple[int, ...]):
 
 	def __add__(self, other: Self) -> Self: return self.__class__(*(left + right for left, right in zip(self, other)))
 	def __sub__(self, other: Self) -> Self: return self.__class__(*(left - right for left, right in zip(self, other)))
-	def __mul__(self, times:  int) -> Self: return self.__class__(*(left * times for left        in     self        ))
+
+	def __mul__(self, times: int) -> Self:
+		return self.__class__(*(left * times for left in self))
+
+	def __floordiv__(self, times: int) -> Self:
+		return self.__class__(*(left // times for left in self))
 
 	def __pos__(self) -> Self: return self.__class__(*(+left for left in self))
 	def __neg__(self) -> Self: return self.__class__(*(-left for left in self))
@@ -165,7 +170,7 @@ class Vectors(chess.collection[Vector]):
 		return self.__class__(
 			(left + right for left, right in product(self.moves, other.moves)),
 			(left + right for left, right in product(self.capts, other.capts)),
-			(left + right for left, right in product(self.specs, other.specs)),
+		#	(left + right for left, right in product(self.specs, other.specs)),
 		)
 
 
@@ -259,7 +264,7 @@ class Square(int, chess.theme.Highlightable, Enum):
 		highlight_color: chess.theme.RGB | None = None,
 	):
 		screen.fill(highlight_color if highlight_color is not None else self.highlight_color, self.rect,
-			special_flags = pygame.BLEND_RGB_MULT,
+			special_flags = pygame.BLEND_RGB_ADD,
 		)
 
 

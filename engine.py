@@ -150,6 +150,10 @@ class Side(list[chess.material.Piece]):
 		return chess.algebra.Squares.union(*(piece.targets for piece in self))
 
 	@property
+	def p_targets(self) -> chess.algebra.Squares:
+		return chess.algebra.Squares.union(*(piece.targets for piece in self if piece is not self.king))
+
+	@property
 	def other(self) -> Side:
 		return self.game.white if self.color else self.game.black
 

@@ -83,12 +83,6 @@ class Capt(Move):
 		return (other := self.game[self.target]) is not None and self.piece.color != other.color
 
 
-class Rush(Move):
-
-	def __bool__(self) -> bool:
-		return not self.piece.moved and super().__bool__()
-
-
 class Promote(Move):
 
 
@@ -104,16 +98,18 @@ class Promote(Move):
 
 class Castle(Base, abc.ABC):
 
-	steps: set[chess.algebra.Vector] = {
-		chess.algebra.Vector.O,
-	}
+	steps = chess.algebra.Vectors(
+		capts = {
+			chess.algebra.Vector.O
+		},
+	)
 
 
 	def __bool__(self) -> bool:
 		assert self.king.square is not None
-		return \
-			not self.king.moved and \
-			not self.rook.moved and all(self.king.square + step not in self.side.other.targets.capts for step in self.steps)
+		return self.rook.square is not None and not self.rook.moved \
+			and all(self.game[self.king.square + move]    is None                    for move in self.steps.moves) \
+			and all(          self.king.square + capt not in self.side.other.targets for capt in self.steps.capts)
 
 
 	@property
@@ -124,10 +120,17 @@ class Castle(Base, abc.ABC):
 
 class CastleWest(Castle):
 
-	steps = Castle.steps | {
-		chess.algebra.Vector.W ,
-		chess.algebra.Vector.W2,
-	}
+	steps = Castle.steps | chess.algebra.Vectors(
+		moves = {
+			chess.algebra.Vector.W ,
+			chess.algebra.Vector.W2,
+			chess.algebra.Vector.W3,
+		},
+		capts = {
+			chess.algebra.Vector.W ,
+			chess.algebra.Vector.W2,
+		},
+	)
 
 
 	def __repr__(self) -> str:
@@ -137,10 +140,6 @@ class CastleWest(Castle):
 		assert self.king.square is not None; self.king.move(self.king.square + chess.algebra.Vector.W2)
 		assert self.rook.square is not None; self.rook.move(self.rook.square + chess.algebra.Vector.E2)
 
-	def __bool__(self) -> bool:
-		return super().__bool__() and self.rook.square is not None and \
-			bool(Move(self.rook, self.rook.square + chess.algebra.Vector.E))
-
 
 	@property
 	def rook(self) -> chess.material.Rook:
@@ -149,10 +148,16 @@ class CastleWest(Castle):
 
 class CastleEast(Castle):
 
-	steps = Castle.steps | {
-		chess.algebra.Vector.E ,
-		chess.algebra.Vector.E2,
-	}
+	steps = Castle.steps | chess.algebra.Vectors(
+		moves = {
+			chess.algebra.Vector.E ,
+			chess.algebra.Vector.E2,
+		},
+		capts = {
+			chess.algebra.Vector.E ,
+			chess.algebra.Vector.E2,
+		},
+	)
 
 
 	def __repr__(self) -> str:
@@ -161,9 +166,6 @@ class CastleEast(Castle):
 	def __call__(self):
 		assert self.king.square is not None; self.king.move(self.king.square + chess.algebra.Vector.E2)
 		assert self.rook.square is not None; self.rook.move(self.rook.square + chess.algebra.Vector.W2)
-
-	def __bool__(self) -> bool:
-		return super().__bool__() and self.rook.square is not None
 
 
 	@property
