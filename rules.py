@@ -111,8 +111,9 @@ class Castle(Base, abc.ABC):
 
 	def __bool__(self) -> bool:
 		assert self.king.square is not None
-		return not self.king.moved and not self.rook.moved and \
-			all(self.king.square + step not in self.side.other.targets.capts for step in self.steps)
+		return \
+			not self.king.moved and \
+			not self.rook.moved and all(self.king.square + step not in self.side.other.targets.capts for step in self.steps)
 
 
 	@property
@@ -137,7 +138,8 @@ class CastleWest(Castle):
 		assert self.rook.square is not None; self.rook.move(self.rook.square + chess.algebra.Vector.E2)
 
 	def __bool__(self) -> bool:
-		return self.rook.square is not None and bool(Move(self.rook, self.rook.square + chess.algebra.Vector.E))
+		return super().__bool__() and self.rook.square is not None and \
+			bool(Move(self.rook, self.rook.square + chess.algebra.Vector.E))
 
 
 	@property
@@ -161,7 +163,7 @@ class CastleEast(Castle):
 		assert self.rook.square is not None; self.rook.move(self.rook.square + chess.algebra.Vector.W2)
 
 	def __bool__(self) -> bool:
-		return self.rook.square is not None
+		return super().__bool__() and self.rook.square is not None
 
 
 	@property
