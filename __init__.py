@@ -13,21 +13,30 @@ class collection[T]:
 	):
 		self.moves = set(moves) if moves is not None else set()
 		self.capts = set(capts) if capts is not None else self.moves.copy()
-		self.specs = set(specs) if specs is not None else set()
+	#	self.specs = set(specs) if specs is not None else set()
 
 	def __len__(self) -> int:
-		return len(self.moves) + len(self.capts) + len(self.specs)
+		return sum(
+			[
+				len(self.moves),
+				len(self.capts),
+			#	len(self.specs),
+			]
+		)
 
 	def __iter__(self):
 		for move in self.moves: yield move
 		for capt in self.capts: yield capt
-		for spec in self.specs: yield spec
+	#	for spec in self.specs: yield spec
 
 	def __contains__(self, item: T) -> bool:
-		return \
-			item in self.moves or \
-			item in self.capts or \
-			item in self.specs
+		return any(
+			[
+				item in self.moves,
+				item in self.capts,
+			#	item in self.specs,
+			]
+		)
 
 	def  __or__(self, other: Self, /) -> Self: return self.               union(other)
 	def __and__(self, other: Self, /) -> Self: return self.        intersection(other)
@@ -67,85 +76,94 @@ class collection[T]:
 		return self.__class__(
 			self.moves,
 			self.capts,
-			self.specs,
+		#	self.specs,
 		)
 
 	def clear(self):
 		self.moves.clear()
 		self.capts.clear()
-		self.specs.clear()
+	#	self.specs.clear()
 
 	def discard(self, item: T):
 		self.moves.discard(item)
 		self.capts.discard(item)
-		self.specs.discard(item)
+	#	self.specs.discard(item)
 
 
 	def union(self, *others: Self) -> Self:
 		return self.__class__(
 			self.moves.union(*(other.moves for other in others)),
 			self.capts.union(*(other.capts for other in others)),
-			self.specs.union(*(other.specs for other in others)),
+		#	self.specs.union(*(other.specs for other in others)),
 		)
 
 	def intersection(self, *others: Self) -> Self:
 		return self.__class__(
 			self.moves.intersection(*(other.moves for other in others)),
 			self.capts.intersection(*(other.capts for other in others)),
-			self.specs.intersection(*(other.specs for other in others)),
+		#	self.specs.intersection(*(other.specs for other in others)),
 		)
 
 	def difference(self, *others: Self) -> Self:
 		return self.__class__(
 			self.moves.difference(*(other.moves for other in others)),
 			self.capts.difference(*(other.capts for other in others)),
-			self.specs.difference(*(other.specs for other in others)),
+		#	self.specs.difference(*(other.specs for other in others)),
 		)
 
 	def symmetric_difference(self, other: Self, /) -> Self:
 		return self.__class__(
 			self.moves.symmetric_difference(other.moves),
 			self.capts.symmetric_difference(other.capts),
-			self.specs.symmetric_difference(other.specs),
+		#	self.specs.symmetric_difference(other.specs),
 		)
 
 
 	def update(self, *others: Self):
 		self.moves.update(*(other.moves for other in others))
 		self.capts.update(*(other.capts for other in others))
-		self.specs.update(*(other.specs for other in others))
+	#	self.specs.update(*(other.specs for other in others))
 
 	def intersection_update(self, *others: Self):
 		self.moves.intersection_update(*(other.moves for other in others))
 		self.capts.intersection_update(*(other.capts for other in others))
-		self.specs.intersection_update(*(other.specs for other in others))
+	#	self.specs.intersection_update(*(other.specs for other in others))
 
 	def difference_update(self, *others: Self):
 		self.moves.difference_update(*(other.moves for other in others))
 		self.capts.difference_update(*(other.capts for other in others))
-		self.specs.difference_update(*(other.specs for other in others))
+	#	self.specs.difference_update(*(other.specs for other in others))
 
 	def symmetric_difference_update(self, other: Self, /):
 		self.moves.symmetric_difference_update(other.moves)
 		self.capts.symmetric_difference_update(other.capts)
-		self.specs.symmetric_difference_update(other.specs)
+	#	self.specs.symmetric_difference_update(other.specs)
 
 
 	def isdisjoint(self, other: Self, /) -> bool:
-		return \
-			self.moves.isdisjoint(other.moves) and \
-			self.capts.isdisjoint(other.capts) and \
-			self.specs.isdisjoint(other.specs)
+		return all(
+			[
+				self.moves.isdisjoint(other.moves),
+				self.capts.isdisjoint(other.capts),
+			#	self.specs.isdisjoint(other.specs),
+			]
+		)
 
 	def issubset(self, other: Self, /) -> bool:
-		return \
-			self.moves.issubset(other.moves) and \
-			self.capts.issubset(other.capts) and \
-			self.specs.issubset(other.specs)
+		return all(
+			[
+				self.moves.issubset(other.moves),
+				self.capts.issubset(other.capts),
+			#	self.specs.issubset(other.specs),
+			]
+		)
 
 	def issuperset(self, other: Self, /) -> bool:
-		return \
-			self.moves.issuperset(other.moves) and \
-			self.capts.issuperset(other.capts) and \
-			self.specs.issuperset(other.specs)
+		return all(
+			[
+				self.moves.issuperset(other.moves),
+				self.capts.issuperset(other.capts),
+			#	self.specs.issuperset(other.specs),
+			]
+		)
 

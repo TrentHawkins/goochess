@@ -165,7 +165,7 @@ class Vectors(chess.collection[Vector]):
 		return self.__class__(
 			(left + right for left, right in product(self.moves, other.moves)),
 			(left + right for left, right in product(self.capts, other.capts)),
-			(left + right for left, right in product(self.specs, other.specs)),
+		#	(left + right for left, right in product(self.specs, other.specs)),
 		)
 
 
@@ -259,7 +259,7 @@ class Square(int, chess.theme.Highlightable, Enum):
 		highlight_color: chess.theme.RGB | None = None,
 	):
 		screen.fill(highlight_color if highlight_color is not None else self.highlight_color, self.rect,
-			special_flags = pygame.BLEND_RGB_MULT,
+			special_flags = pygame.BLEND_RGB_ADD,
 		)
 
 
@@ -273,10 +273,10 @@ class Squares(chess.collection[Square]):
 		return self.__class__(
 			(square + vector for square, vector in product(self.moves, other.moves)),
 			(square + vector for square, vector in product(self.capts, other.capts)),
-			(square + vector for square, vector in product(self.specs, other.specs)),
+		#	(square + vector for square, vector in product(self.specs, other.specs)),
 		)
 
 	def highlight(self, screen: pygame.Surface):
 		for square in self.moves: square.highlight(screen, chess.theme.GREEN)
 		for square in self.capts: square.highlight(screen, chess.theme.RED  )
-		for square in self.specs: square.highlight(screen, chess.theme.BLUE )
+	#	for square in self.specs: square.highlight(screen, chess.theme.BLUE )

@@ -324,18 +324,17 @@ class King(Melee, Star):
 
 
 	@property
-	def targets(self) -> chess.algebra.Squares:
-		targets = super().targets
-
+	def squares(self) -> chess.algebra.Squares:
+		squares = super().squares
 		if self.square is not None:
 			try:
-				if chess.rules.CastleWest(self.side): targets.specs.add(self.square + chess.algebra.Vector.W2)
-				if chess.rules.CastleEast(self.side): targets.specs.add(self.square + chess.algebra.Vector.E2)
+				if chess.rules.CastleWest(self.side): squares.moves.add(self.square + chess.algebra.Vector.W2)
+				if chess.rules.CastleEast(self.side): squares.moves.add(self.square + chess.algebra.Vector.E2)
 
 			except:
 				...
 
-		return targets
+		return squares
 
 	@property
 	def safe(self) -> bool:
