@@ -108,8 +108,8 @@ class Castle(Base, abc.ABC):
 	def __bool__(self) -> bool:
 		assert self.king.square is not None
 		return self.rook.square is not None and not self.rook.moved \
-			and all(self.game[self.king.square + move]    is None                          for move in self.steps.moves) \
-			and all(          self.king.square + capt not in self.side.other.targets.capts for capt in self.steps.capts)
+			and all(self.game[self.king.square + move]    is None                    for move in self.steps.moves) \
+			and all(          self.king.square + capt not in self.side.other.targets for capt in self.steps.capts)
 
 
 	@property
