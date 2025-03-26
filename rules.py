@@ -20,6 +20,10 @@ class Base(abc.ABC):
 		...
 
 	@abc.abstractmethod
+	def __call__(self, *args, **kwargs):
+		...
+
+	@abc.abstractmethod
 	def __bool__(self) -> bool:
 		...
 
@@ -41,6 +45,11 @@ class Move(Base):
 
 	def __repr__(self) -> str:
 		return repr(self.piece) + repr(self.source) + "-" + repr(self.target)
+
+	def __call__(self,
+		target: chess.algebra.Square | None = None,
+	):
+		self.piece.move(target if target is not None else self.target)
 
 	def __bool__(self) -> bool:
 		return (other := self.game[self.target]) is None or isinstance(other, chess.material.Ghost)
@@ -123,6 +132,10 @@ class CastleWest(Castle):
 	def __repr__(self) -> str:
 		return "O-O-O"
 
+	def __call__(self):
+		assert self.king.square is not None; self.king.move(self.king.square + chess.algebra.Vector.W2)
+		assert self.rook.square is not None; self.rook.move(self.rook.square + chess.algebra.Vector.E2)
+
 	def __bool__(self) -> bool:
 		return self.rook.square is not None and bool(Move(self.rook, self.rook.square + chess.algebra.Vector.E))
 
@@ -142,6 +155,10 @@ class CastleEast(Castle):
 
 	def __repr__(self) -> str:
 		return "O-O"
+
+	def __call__(self):
+		assert self.king.square is not None; self.king.move(self.king.square + chess.algebra.Vector.E2)
+		assert self.rook.square is not None; self.rook.move(self.rook.square + chess.algebra.Vector.W2)
 
 	def __bool__(self) -> bool:
 		return self.rook.square is not None

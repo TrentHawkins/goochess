@@ -8,6 +8,7 @@ import typing
 
 import pygame
 
+import chess.rules
 import chess.theme
 import chess.algebra
 import chess.material
@@ -47,6 +48,9 @@ class Board(list[Piece], chess.theme.Drawable):
 		if isinstance(key, chess.algebra.Square): key = slice(int(key), int(key) + 1, +1)
 
 		self[key] = [None] * len(range(*key.indices(len(self))))
+
+	def __iadd__(self, rule: chess.rules.Base) -> typing.Self:
+		rule(); return self
 
 
 	@property

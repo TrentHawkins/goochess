@@ -73,7 +73,7 @@ class Piece(chess.theme.Highlightable):
 	def squares(self) -> chess.algebra.Squares:
 		squares = self.targets.copy()
 
-		for square in self.targets:
+		for square in self.targets.moves | self.targets.capts:
 			with self.test(square):
 				if not self.king.safe:
 					squares.discard(square)
@@ -210,7 +210,7 @@ class Pawn(Melee):
 			for move in self.steps.moves:
 				if  chess.rules.Move(self, target := self.square + (move := move * self.color)) \
 				and chess.rules.Rush(self, target :=      target +  move):
-					targets.specs.add(target)
+					targets.moves.add(target)
 
 		return targets
 
@@ -305,13 +305,35 @@ class King(Melee, Star):
 	white: str = "\u2654"
 
 
+	def move(self, target: chess.algebra.Square,
+		move: bool = True,
+		kept: Piece | None = None,
+	) -> typing.Self:
+		assert (source := self.square) is not None
+
+		try:
+			if target == source + chess.algebra.Vector.E2: self.side.east_rook.move(target + chess.algebra.Vector.W, move, kept)
+			if target == source + chess.algebra.Vector.W2: self.side.west_rook.move(target + chess.algebra.Vector.E, move, kept)
+
+		except:
+			...
+
+		super().move(target, move, kept)
+
+		return self
+
+
 	@property
 	def targets(self) -> chess.algebra.Squares:
 		targets = super().targets
 
 		if self.square is not None:
-			if chess.rules.CastleWest(self.side): targets.specs.add(self.square + chess.algebra.Vector.W2)
-			if chess.rules.CastleEast(self.side): targets.specs.add(self.square + chess.algebra.Vector.E2)
+			try:
+				if chess.rules.CastleWest(self.side): targets.specs.add(self.square + chess.algebra.Vector.W2)
+				if chess.rules.CastleEast(self.side): targets.specs.add(self.square + chess.algebra.Vector.E2)
+
+			except:
+				...
 
 		return targets
 

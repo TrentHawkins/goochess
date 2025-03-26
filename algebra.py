@@ -76,8 +76,8 @@ class Vector_(tuple[int, ...]):
 	def __new__(cls, *components) -> Self:
 		return super().__new__(cls, components[:cls.dimension])
 
-	def __repr__(self) -> str:
-		return super().__repr__()
+	def __bool__(self,) -> bool:
+		return bool(sum(self))
 
 	def __add__(self, other: Self) -> Self: return self.__class__(*(left + right for left, right in zip(self, other)))
 	def __sub__(self, other: Self) -> Self: return self.__class__(*(left - right for left, right in zip(self, other)))
