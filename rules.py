@@ -83,12 +83,6 @@ class Capt(Move):
 		return (other := self.game[self.target]) is not None and self.piece.color != other.color
 
 
-class Rush(Move):
-
-	def __bool__(self) -> bool:
-		return not self.piece.moved and super().__bool__()
-
-
 class Promote(Move):
 
 
@@ -111,9 +105,7 @@ class Castle(Base, abc.ABC):
 
 	def __bool__(self) -> bool:
 		assert self.king.square is not None
-		return \
-			not self.king.moved and \
-			not self.rook.moved and all(self.king.square + step not in self.side.other.targets.capts for step in self.steps)
+		return not self.rook.moved and all(self.king.square + step not in self.side.other.targets.capts for step in self.steps)
 
 
 	@property

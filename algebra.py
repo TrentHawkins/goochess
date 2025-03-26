@@ -81,7 +81,12 @@ class Vector_(tuple[int, ...]):
 
 	def __add__(self, other: Self) -> Self: return self.__class__(*(left + right for left, right in zip(self, other)))
 	def __sub__(self, other: Self) -> Self: return self.__class__(*(left - right for left, right in zip(self, other)))
-	def __mul__(self, times:  int) -> Self: return self.__class__(*(left * times for left        in     self        ))
+
+	def __mul__(self, times: int) -> Self:
+		return self.__class__(*(left * times for left in self))
+
+	def __floordiv__(self, times: int) -> Self:
+		return self.__class__(*(left // times for left in self))
 
 	def __pos__(self) -> Self: return self.__class__(*(+left for left in self))
 	def __neg__(self) -> Self: return self.__class__(*(-left for left in self))
@@ -273,10 +278,10 @@ class Squares(chess.collection[Square]):
 		return self.__class__(
 			(square + vector for square, vector in product(self.moves, other.moves)),
 			(square + vector for square, vector in product(self.capts, other.capts)),
-		#	(square + vector for square, vector in product(self.specs, other.specs)),
+			(square + vector for square, vector in product(self.specs, other.specs)),
 		)
 
 	def highlight(self, screen: pygame.Surface):
 		for square in self.moves: square.highlight(screen, chess.theme.GREEN)
 		for square in self.capts: square.highlight(screen, chess.theme.RED  )
-	#	for square in self.specs: square.highlight(screen, chess.theme.BLUE )
+		for square in self.specs: square.highlight(screen, chess.theme.BLUE )

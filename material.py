@@ -203,16 +203,16 @@ class Pawn(Melee):
 	)
 
 	@property
-	def targets(self) -> chess.algebra.Squares:
-		targets = super().targets
+	def squares(self) -> chess.algebra.Squares:
+		squares = super().squares
 
-		if self.square is not None:
+		if self.square is not None and not self.moved:
 			for move in self.steps.moves:
-				if  chess.rules.Move(self, target := self.square + (move := move * self.color)) \
-				and chess.rules.Rush(self, target :=      target +  move):
-					targets.moves.add(target)
+				if  chess.rules.Move(self, square := self.square + move * self.color) \
+				and chess.rules.Move(self, square :=      square + move * self.color):
+					squares.specs.add(square)
 
-		return targets
+		return squares
 
 
 	def promote(self, to: type):
@@ -304,6 +304,13 @@ class King(Melee, Star):
 	black: str = "\u265a"
 	white: str = "\u2654"
 
+	steps = Star.steps | chess.algebra.Vectors(
+		specs = {
+			chess.algebra.Vector.W2,
+			chess.algebra.Vector.E2,
+		}
+	)
+
 
 	def move(self, target: chess.algebra.Square,
 		move: bool = True,
@@ -311,12 +318,9 @@ class King(Melee, Star):
 	) -> typing.Self:
 		assert (source := self.square) is not None
 
-		try:
+		if not self.moved and move:
 			if target == source + chess.algebra.Vector.E2: self.side.east_rook.move(target + chess.algebra.Vector.W, move, kept)
 			if target == source + chess.algebra.Vector.W2: self.side.west_rook.move(target + chess.algebra.Vector.E, move, kept)
-
-		except:
-			...
 
 		super().move(target, move, kept)
 
@@ -326,13 +330,10 @@ class King(Melee, Star):
 	@property
 	def squares(self) -> chess.algebra.Squares:
 		squares = super().squares
-		if self.square is not None:
-			try:
-				if chess.rules.CastleWest(self.side): squares.moves.add(self.square + chess.algebra.Vector.W2)
-				if chess.rules.CastleEast(self.side): squares.moves.add(self.square + chess.algebra.Vector.E2)
 
-			except:
-				...
+		if self.square is not None and not self.moved:
+			if chess.rules.CastleWest(self.side): squares.specs.add(self.square + chess.algebra.Vector.W2)
+			if chess.rules.CastleEast(self.side): squares.specs.add(self.square + chess.algebra.Vector.E2)
 
 		return squares
 
