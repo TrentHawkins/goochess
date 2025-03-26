@@ -1,88 +1,133 @@
 from __future__ import annotations
 
 
-import dataclasses
+from abc import abstractmethod
+from copy import copy
+
+import pygame
 
 
-@dataclasses.dataclass
-class RGB:
+type RGB = tuple[
+	int,
+	int,
+	int,
+]
 
-	R: int
-	G: int
-	B: int
+RESOLUTION = 1152
+WINDOW = (
+	RESOLUTION,
+	RESOLUTION,
+)
 
+BOARD_W = RESOLUTION
+BOARD_H = BOARD_W * 8 // 9
+BOARD = (
+	BOARD_W,
+	BOARD_H,
+)
+BOARD_OFFSET = BOARD_W - BOARD_H
 
-	def __repr__(self) -> str:
-		return f"{self.R};{self.G};{self.B}"
+SQUARE_W = BOARD_W // 8
+SQUARE_H = BOARD_H // 8
+SQUARE = (
+	SQUARE_W,
+	SQUARE_H,
+)
+SQUARE_OFFSET = SQUARE_W // 2
 
+PIECE_W = BOARD_W *   5 //  32
+PIECE_H = PIECE_W * 460 // 360
+PIECE = (
+	PIECE_W,
+	PIECE_H,
+)
+PIECE_OFFSET = (PIECE_H - SQUARE_W) // 2
 
-	@classmethod
-	def fromhex(cls, color: str) -> RGB:
-		color = color.lstrip("#")
+BRIGHT = (
+	0x66,
+	0x66,
+	0x66,
+)
+DARK = (
+	0x33,
+	0x33,
+	0x33,
+)
+RED = (
+	0x33,
+	0x00,
+	0x00,
+)
+GREEN = (
+	0x11,
+	0x22,
+	0x00,
+)
+GOLD = (
+	0x33,
+	0x22,
+	0x11,
+)
+BLUE = (
+	0x11,
+	0x22,
+	0x33,
+)
 
-		return cls(*(int(color[i:i+2], 16) for i in (0, 2, 4)))
+WHITE = (
+	0xFF,
+	0xEE,
+	0xDD,
+)
+EMPTY = (
+	0xCC,
+	0xBB,
+	0xAA,
+)
+BLACK = (
+	0x99,
+	0x88,
+	0x77,
+)
+
+class Drawable(pygame.sprite.Sprite):
+
+	def __init__(self, *args):
+		super().__init__()
+
+		self.surf: pygame.Surface
+		self.rect: pygame.Rect
 
 
 	@property
-	def hex(self) -> str:
-		return f"#{self.R:02x}{self.G:02x}{self.B:02x}"
+	@abstractmethod
+	def decal(self) -> str:
+		raise NotImplementedError
 
 
-	def fg(self, obj) -> str:
-		return f"\x1b[38;2;{self}m{obj}\x1b[39m"
-
-	def bg(self, obj) -> str:
-		return f"\x1b[48;2;{self}m{obj}\x1b[49m"
-
-
-@dataclasses.dataclass
-class Palette:
-
-	black: RGB
-	white: RGB
-
-
-	@classmethod
-	def fromhex(cls,
-		black: str,
-		white: str,
-	) -> Palette:
-		return cls(
-			black = RGB.fromhex(black),
-			white = RGB.fromhex(white),
+	def draw(self, screen: pygame.Surface, *,
+		special_flags: int,
+	):
+		screen.blit(
+			self.surf,
+			self.rect, special_flags = special_flags,
 		)
 
 
-@dataclasses.dataclass
-class Theme:
+class Highlightable(Drawable):
 
-	square: Palette
-	pieces: Palette
+	highlight_color: RGB = BRIGHT
 
 
-	@staticmethod
-	def inv(obj) -> str:
-		return f"\x1b[7m{obj}\x1b[27m"
+	@abstractmethod
+	def clicked(self, event: pygame.event.Event) -> bool:
+		return NotImplemented
 
-
-WOOD = Theme(
-	square = Palette.fromhex(
-		black = "#aa9988",
-		white = "#776655",
-	),
-	pieces = Palette.fromhex(
-		black = "#000000",
-		white = "#ffffff",
-	),
-)
-METAL = Theme(
-	square = Palette.fromhex(
-		black = "#666666",
-		white = "#999999",
-	),
-	pieces = Palette.fromhex(
-		black = "#000000",
-		white = "#ffffff",
-	),
-)
-DEFAULT = WOOD
+	def highlight(self, screen: pygame.Surface,
+		highlight_color: RGB | None = None,
+	):
+		surf = copy(self.surf)
+		surf.fill(highlight_color if highlight_color is not None else self.highlight_color,
+			special_flags = pygame.BLEND_RGB_ADD,
+		)
+		screen.blit(surf, self.rect)
