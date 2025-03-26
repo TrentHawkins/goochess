@@ -8,6 +8,7 @@ import typing
 
 import pygame
 
+import chess.rules
 import chess.theme
 import chess.algebra
 import chess.material
@@ -48,6 +49,9 @@ class Board(list[Piece], chess.theme.Drawable):
 
 		self[key] = [None] * len(range(*key.indices(len(self))))
 
+	def __iadd__(self, rule: chess.rules.Base) -> typing.Self:
+		rule(); return self
+
 
 	@property
 	def decal(self) -> pathlib.Path:
@@ -70,9 +74,6 @@ class Board(list[Piece], chess.theme.Drawable):
 			piece.move(target)
 
 	def draw(self, screen: pygame.Surface):
-		def target_color(piece: chess.material.Piece, square: chess.algebra.Square) -> chess.theme.RGB:
-			return chess.theme.RED if (other := self[square]) is not None and piece.color != other.color else chess.theme.GREEN
-
 		for square in chess.algebra.Square:
 			square.draw(screen)
 
@@ -81,8 +82,7 @@ class Board(list[Piece], chess.theme.Drawable):
 		)
 
 		if self.selected is not None:
-			for square in self.selected.squares:
-				square.highlight(screen, target_color(self.selected, square))
+			self.selected.squares.highlight(screen)
 
 		for piece in self:
 			if piece is not None:
@@ -146,8 +146,12 @@ class Side(list[chess.material.Piece]):
 		return sum(piece.value for piece in self if piece.square is not None)
 
 	@property
-	def targets(self) -> set[chess.algebra.Square]:
-		return set().union(*(piece.targets for piece in self))
+	def targets(self) -> chess.algebra.Squares:
+		return chess.algebra.Squares.union(*(piece.targets for piece in self))
+
+	@property
+	def p_targets(self) -> chess.algebra.Squares:
+		return chess.algebra.Squares.union(*(piece.targets for piece in self if piece is not self.king))
 
 	@property
 	def other(self) -> Side:
@@ -163,7 +167,7 @@ class Side(list[chess.material.Piece]):
 		)
 
 	@property
-	def left_rook(self) -> chess.material.Rook:
+	def west_rook(self) -> chess.material.Rook:
 		return typing.cast(chess.material.Rook,
 			self[
 				chess.algebra.Square.A8 if self.color else
@@ -172,7 +176,7 @@ class Side(list[chess.material.Piece]):
 		)
 
 	@property
-	def right_rook(self) -> chess.material.Rook:
+	def east_rook(self) -> chess.material.Rook:
 		return typing.cast(chess.material.Rook,
 			self[
 				chess.algebra.Square.H8 if self.color else

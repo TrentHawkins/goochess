@@ -1,19 +1,19 @@
 from __future__ import annotations
 
 
-from copy import copy
-import enum
-from numbers import Number
-import pathlib
+from enum import Enum
+from itertools import product
+from pathlib import Path
 import re
 from typing import Self
 
 import pygame
 
+import chess
 import chess.theme
 
 
-class Color(int, enum.Enum):
+class Color(int, Enum):
 
 	BLACK = +1  # ⬛
 	WHITE = -1  # ⬜
@@ -26,7 +26,7 @@ class Color(int, enum.Enum):
 		return "⬛" if self + 1 else "⬜"
 
 
-class File(int, enum.Enum):
+class File(int, Enum):
 
 	A_ = 0o00  # A
 	B_ = 0o01  # B
@@ -42,7 +42,7 @@ class File(int, enum.Enum):
 		return self.name.strip("_").lower()
 
 
-class Rank(int, enum.Enum):
+class Rank(int, Enum):
 
 	_8 = 0o00  # 8
 	_7 = 0o10  # 7
@@ -76,12 +76,17 @@ class Vector_(tuple[int, ...]):
 	def __new__(cls, *components) -> Self:
 		return super().__new__(cls, components[:cls.dimension])
 
-	def __repr__(self) -> str:
-		return super().__repr__()
+	def __bool__(self,) -> bool:
+		return bool(sum(self))
 
 	def __add__(self, other: Self) -> Self: return self.__class__(*(left + right for left, right in zip(self, other)))
 	def __sub__(self, other: Self) -> Self: return self.__class__(*(left - right for left, right in zip(self, other)))
-	def __mul__(self, times:  int) -> Self: return self.__class__(*(left * times for left        in     self        ))
+
+	def __mul__(self, times: int) -> Self:
+		return self.__class__(*(left * times for left in self))
+
+	def __floordiv__(self, times: int) -> Self:
+		return self.__class__(*(left // times for left in self))
 
 	def __pos__(self) -> Self: return self.__class__(*(+left for left in self))
 	def __neg__(self) -> Self: return self.__class__(*(-left for left in self))
@@ -105,7 +110,7 @@ class Vector2(Vector_,
 		return self[1] << 3
 
 
-class Vector(Vector2, enum.Enum,
+class Vector(Vector2, Enum,
 	dimension = 2,
 ):
 
@@ -156,7 +161,20 @@ class Vector(Vector2, enum.Enum,
 		return representation
 
 
-class Square(int, chess.theme.Highlightable, enum.Enum):
+class Vectors(chess.collection[Vector]):
+
+	def __mul__(self, other: Self, /) -> Self: return self.product(other)
+
+
+	def product(self, other: Self, /) -> Self:
+		return self.__class__(
+			(left + right for left, right in product(self.moves, other.moves)),
+			(left + right for left, right in product(self.capts, other.capts)),
+		#	(left + right for left, right in product(self.specs, other.specs)),
+		)
+
+
+class Square(int, chess.theme.Highlightable, Enum):
 
 #	A        : B        : C        : D        : E        : F        : G        : H        :
 	A8 = 0o00; B8 = 0o01; C8 = 0o02; D8 = 0o03; E8 = 0o04; F8 = 0o05; G8 = 0o06; H8 = 0o07;  # 8
@@ -227,8 +245,8 @@ class Square(int, chess.theme.Highlightable, enum.Enum):
 		return Color((((self.rank >> 3) + self.file & 1) << 1) - 1)
 
 	@property
-	def decal(self) -> pathlib.Path:
-		return pathlib.Path("chess/graphics/board/bevel.png")
+	def decal(self) -> Path:
+		return Path("chess/graphics/board/bevel.png")
 
 
 	def clicked(self, event: pygame.event.Event) -> bool:
@@ -246,5 +264,24 @@ class Square(int, chess.theme.Highlightable, enum.Enum):
 		highlight_color: chess.theme.RGB | None = None,
 	):
 		screen.fill(highlight_color if highlight_color is not None else self.highlight_color, self.rect,
-			special_flags = pygame.BLEND_RGB_MULT,
+			special_flags = pygame.BLEND_RGB_ADD,
 		)
+
+
+class Squares(chess.collection[Square]):
+
+	def __add__(self, other: Vectors, /) -> Self:
+		return self.sum(other)
+
+
+	def sum(self, other: Vectors, /) -> Self:
+		return self.__class__(
+			(square + vector for square, vector in product(self.moves, other.moves)),
+			(square + vector for square, vector in product(self.capts, other.capts)),
+			(square + vector for square, vector in product(self.specs, other.specs)),
+		)
+
+	def highlight(self, screen: pygame.Surface):
+		for square in self.moves: square.highlight(screen, chess.theme.GREEN)
+		for square in self.capts: square.highlight(screen, chess.theme.RED  )
+		for square in self.specs: square.highlight(screen, chess.theme.BLUE )
