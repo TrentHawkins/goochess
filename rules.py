@@ -20,7 +20,7 @@ class Base(abc.ABC):
 		...
 
 	@abc.abstractmethod
-	def __call__(self, *args, **kwargs):
+	def __call__(self):
 		...
 
 	@abc.abstractmethod
@@ -46,10 +46,8 @@ class Move(Base):
 	def __repr__(self) -> str:
 		return repr(self.piece) + repr(self.source) + "-" + repr(self.target)
 
-	def __call__(self,
-		target: chess.algebra.Square | None = None,
-	):
-		self.piece.move(target if target is not None else self.target)
+	def __call__(self):
+		self.piece.move(self.target)
 
 	def __bool__(self) -> bool:
 		return (other := self.game[self.target]) is None or isinstance(other, chess.material.Ghost)
@@ -83,8 +81,24 @@ class Capt(Move):
 		return (other := self.game[self.target]) is not None and self.piece.color != other.color
 
 
-class Promote(Move):
+class Rush(Move):
 
+	def __init__(self, piece: chess.material.Piece, square: chess.algebra.Square):
+		super().__init__(piece, square)
+
+		self.middle = self.source + (self.target - self.source) // 2
+
+	def __call__(self):
+		self.piece.move(self.target)
+		self.game[self.middle] = chess.material.Piece(self.side)
+
+	def __bool__(self) -> bool:
+		return self.source != self.middle \
+			and bool(Move(self.piece, self.middle)) \
+			and bool(Move(self.piece, self.target))
+
+
+class Promote(Move):
 
 	def __init__(self, rank: type[chess.material.Officer]):
 		self.rank = rank

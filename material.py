@@ -222,7 +222,7 @@ class Pawn(Melee):
 	) -> typing.Self:
 		assert (source := self.square) is not None
 
-		if target == source + chess.algebra.Vector.S2 * self.color:
+		if not self.moved and target == source + chess.algebra.Vector.S2 * self.color:
 			self.side.ghost = self.game[source + chess.algebra.Vector.S * self.color] = Piece(self.side)
 
 		return super().move(target, move, kept)
