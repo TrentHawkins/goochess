@@ -138,11 +138,10 @@ class CastleWest(Castle):
 		moves = {
 			chess.algebra.Vector.W ,
 			chess.algebra.Vector.W2,
-			chess.algebra.Vector.W3,
 		},
+	) | chess.algebra.Vectors(
 		capts = {
-			chess.algebra.Vector.W ,
-			chess.algebra.Vector.W2,
+			chess.algebra.Vector.W3,
 		},
 	)
 
@@ -164,10 +163,6 @@ class CastleEast(Castle):
 
 	steps = Castle.steps | chess.algebra.Vectors(
 		moves = {
-			chess.algebra.Vector.E ,
-			chess.algebra.Vector.E2,
-		},
-		capts = {
 			chess.algebra.Vector.E ,
 			chess.algebra.Vector.E2,
 		},
