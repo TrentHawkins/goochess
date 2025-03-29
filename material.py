@@ -52,7 +52,7 @@ class Piece(chess.theme.Highlightable):
 	def rect(self) -> pygame.Rect:
 		return self.surf.get_rect(
 			center = self.square.rect.center,
-			bottom = self.square.rect.bottom + 20,
+			bottom = self.square.rect.bottom + chess.theme.PIECE_OFFSET,
 		) if self.square is not None else self.surf.get_rect()
 
 	@property

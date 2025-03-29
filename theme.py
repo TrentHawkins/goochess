@@ -13,7 +13,7 @@ type RGB = tuple[
 	int,
 ]
 
-RESOLUTION = 1152
+RESOLUTION = 1440
 WINDOW = (
 	RESOLUTION,
 	RESOLUTION,
@@ -41,7 +41,7 @@ PIECE = (
 	PIECE_W,
 	PIECE_H,
 )
-PIECE_OFFSET = (PIECE_H - SQUARE_W) // 2
+PIECE_OFFSET = (PIECE_H - SQUARE_W) // 5
 
 BRIGHT = (
 	0x66,
@@ -76,18 +76,18 @@ BLUE = (
 
 WHITE = (
 	0xFF,
-	0xEE,
-	0xDD,
+	0xFF,
+	0xFF,
 )
 EMPTY = (
+	0xcc,
 	0xCC,
-	0xBB,
-	0xAA,
+	0xCC,
 )
 BLACK = (
 	0x99,
-	0x88,
-	0x77,
+	0x99,
+	0x99,
 )
 
 class Drawable(pygame.sprite.Sprite):

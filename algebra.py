@@ -196,7 +196,7 @@ class Square(int, chess.theme.Highlightable, Enum):
 		self.rect = pygame.Rect(
 			pygame.Vector2(
 				chess.theme.SQUARE_W * (self.file),
-				chess.theme.SQUARE_H * (self.rank >> 3) + chess.theme.BOARD_OFFSET * 2 // 3,
+				chess.theme.SQUARE_H * (self.rank >> 3) + chess.theme.BOARD_OFFSET * 11 // 12,
 			),
 			pygame.Vector2(*chess.theme.SQUARE),
 		)
