@@ -137,16 +137,8 @@ class Melee(Piece):
 		if self.square is not None:
 			for move in self.steps.moves:
 				try:
-					if chess.rules.Move(self, target := self.square + (move := move * self.color)):
-						targets.moves.add(target)
-
-				except ValueError:
-					continue
-
-			for capt in self.steps.capts:
-				try:
-					if chess.rules.Capt(self, target := self.square + capt * self.color):
-						targets.capts.add(target)
+					if chess.rules.Move(self, target := self.square + (move := move * self.color)): targets.moves.add(target)
+					if chess.rules.Capt(self, target := self.square + (move := move * self.color)): targets.capts.add(target)
 
 				except ValueError:
 					continue
@@ -184,7 +176,7 @@ class Assymetric(Piece):
 		return super().decal.with_suffix(".flipped" + super().decal.suffix) if self.color else super().decal
 
 
-class Pawn(Melee):
+class Pawn(Piece):
 
 	value: int = 1
 
@@ -199,22 +191,43 @@ class Pawn(Melee):
 			chess.algebra.Vector.SE,
 			chess.algebra.Vector.SW,
 		},
-		specs = {
-			chess.algebra.Vector.S2,
-		},
 	)
 
 	@property
-	def squares(self) -> chess.algebra.Squares:
-		squares = super().squares
+	def targets(self) -> chess.algebra.Squares:
+		targets = super().targets
 
-		if self.square is not None and not self.moved:
+		if self.square is not None:
 			for move in self.steps.moves:
-				if  chess.rules.Move(self, square := self.square + move * self.color) \
-				and chess.rules.Move(self, square :=      square + move * self.color):
-					squares.specs.add(square)
+				try:
+					if chess.rules.Move(self, target := self.square + (move := move * self.color)):
+						targets.moves.add(target)
 
-		return squares
+						if not self.moved and chess.rules.Move(self, target := target + move):
+							targets.moves.add(target)
+
+				except ValueError:
+					continue
+
+			for capt in self.steps.capts:
+				try:
+					if chess.rules.Capt(self, target := self.square + capt * self.color):
+						targets.capts.add(target)
+
+				except ValueError:
+					continue
+
+		return targets
+
+
+	@contextlib.contextmanager
+	def test(self, target: chess.algebra.Square):
+		assert (source := self.square) is not None
+
+		kept = self.game[target]
+
+		self.move(target, move = False             ); yield self
+		self.move(source, move = False, kept = kept)
 
 	def move(self, target: chess.algebra.Square,
 		move: bool = True,
@@ -222,8 +235,12 @@ class Pawn(Melee):
 	) -> typing.Self:
 		assert (source := self.square) is not None
 
-		if not self.moved and target == source + chess.algebra.Vector.S2 * self.color:
-			self.side.ghost = self.game[source + chess.algebra.Vector.S * self.color] = Piece(self.side)
+		if move:
+			if not self.moved and target == source + chess.algebra.Vector.S2 * self.color:
+				self.side.ghost = self.game[source + chess.algebra.Vector.S * self.color] = Ghost(self.side)
+
+			if isinstance(other := self.game[target], Ghost):
+				self.game[target + chess.algebra.Vector.N * self.color] = kept
 
 		return super().move(target, move, kept)
 

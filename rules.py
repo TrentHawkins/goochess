@@ -86,13 +86,13 @@ class Rush(Move):
 	def __init__(self, piece: chess.material.Piece, square: chess.algebra.Square):
 		super().__init__(piece, square)
 
-		self.middle = self.source + (self.target - self.source) // 2
-
 	def __call__(self):
 		self.piece.move(self.target)
 		self.game[self.middle] = chess.material.Piece(self.side)
 
 	def __bool__(self) -> bool:
+		self.middle = self.source + (self.target - self.source) // 2
+
 		return self.source != self.middle \
 			and bool(Move(self.piece, self.middle)) \
 			and bool(Move(self.piece, self.target))
