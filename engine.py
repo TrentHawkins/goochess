@@ -35,8 +35,8 @@ class Board(list[Piece], chess.theme.Drawable):
 	def __repr__(self) -> str:
 		...  # TODO: FEN (part)
 
-	def __setitem__(self, key: chess.algebra.Square | slice, value: Piece | typing.Iterable[Piece]):
-		if isinstance(key, chess.algebra.Square): key = slice(int(key), int(key) + 1, +1)
+	def __setitem__(self, key: chess.algebra.square | slice, value: Piece | typing.Iterable[Piece]):
+		if isinstance(key, chess.algebra.square): key = slice(int(key), int(key) + 1, +1)
 		if isinstance(value, Piece): value = [value]
 
 		for index, piece in zip(range(*key.indices(len(self))), value):
@@ -44,8 +44,8 @@ class Board(list[Piece], chess.theme.Drawable):
 
 		super().__setitem__(key, value)
 
-	def __delitem__(self, key: chess.algebra.Square | slice):
-		if isinstance(key, chess.algebra.Square): key = slice(int(key), int(key) + 1, +1)
+	def __delitem__(self, key: chess.algebra.square | slice):
+		if isinstance(key, chess.algebra.square): key = slice(int(key), int(key) + 1, +1)
 
 		self[key] = [None] * len(range(*key.indices(len(self))))
 

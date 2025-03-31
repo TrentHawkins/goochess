@@ -62,42 +62,7 @@ class Rank(int, Enum):
 		return self == self._1 if color else self == self._8
 
 
-class Vector_(tuple[int, ...]):
-
-	dimension: int
-
-	def __init_subclass__(cls, *args,
-		dimension: int,
-	**kwargs):
-		cls.dimension = dimension
-
-		return super().__init_subclass__(*args, **kwargs)
-
-	def __new__(cls, *components) -> Self:
-		return super().__new__(cls, components[:cls.dimension])
-
-	def __bool__(self,) -> bool:
-		return bool(sum(self))
-
-	def __add__(self, other: Self) -> Self: return self.__class__(*(left + right for left, right in zip(self, other)))
-	def __sub__(self, other: Self) -> Self: return self.__class__(*(left - right for left, right in zip(self, other)))
-
-	def __mul__(self, times: int) -> Self:
-		return self.__class__(*(left * times for left in self))
-
-	def __floordiv__(self, times: int) -> Self:
-		return self.__class__(*(left // times for left in self))
-
-	def __pos__(self) -> Self: return self.__class__(*(+left for left in self))
-	def __neg__(self) -> Self: return self.__class__(*(-left for left in self))
-
-
-	@property
-	def pygame(self) -> pygame.Vector2:
-		return pygame.Vector2(self)
-
-
-class Vector2(Vector_,
+class vector(chess.array,
 	dimension = 2,
 ):
 
@@ -109,17 +74,20 @@ class Vector2(Vector_,
 	def rank(self) -> int:
 		return self[1] << 3
 
+	@property
+	def pygame(self) -> pygame.Vector2:
+		return pygame.Vector2(self)
 
-class Vector(Vector2, Enum,
+
+class Vector(vector, Enum,
 	dimension = 2,
 ):
 
-	O = Vector2( 0,  0)  # null
-
-	N = Vector2( 0, -1)  # king queen rook pawn(white)
-	E = Vector2(+1,  0)  # king queen rook
-	S = Vector2( 0, +1)  # king queen rook pawn(black)
-	W = Vector2(-1,  0)  # king queen rook
+	O = vector( 0,  0)  # null
+	N = vector( 0, -1)  # king queen rook pawn(white)
+	E = vector(+1,  0)  # king queen rook
+	S = vector( 0, +1)  # king queen rook pawn(black)
+	W = vector(-1,  0)  # king queen rook
 
 	N2 = N * 2  # pawn(white leap)
 	S2 = S * 2  # pawn(black leap)
@@ -151,7 +119,7 @@ class Vector(Vector2, Enum,
 			self.W.name: "◀",  # king queen rook
 		}
 
-		parts = re.compile(r"([NSWE])(\d*)").findall(self.name)  # Extract movement letters and optional numbers
+		parts = re.compile(rf"([{''.join(symbols)}])(\d*)").findall(self.name)  # Extract movement letters and optional numbers
 
 		representation = ""
 
@@ -163,10 +131,7 @@ class Vector(Vector2, Enum,
 
 class Vectors(chess.collection[Vector]):
 
-	def __mul__(self, other: Self, /) -> Self: return self.product(other)
-
-
-	def product(self, other: Self, /) -> Self:
+	def __mul__(self, other: Self, /) -> Self:
 		return self.__class__(
 			(left + right for left, right in product(self.moves, other.moves)),
 			(left + right for left, right in product(self.capts, other.capts)),
@@ -174,18 +139,7 @@ class Vectors(chess.collection[Vector]):
 		)
 
 
-class Square(int, chess.theme.Highlightable, Enum):
-
-#	A        : B        : C        : D        : E        : F        : G        : H        :
-	A8 = 0o00; B8 = 0o01; C8 = 0o02; D8 = 0o03; E8 = 0o04; F8 = 0o05; G8 = 0o06; H8 = 0o07;  # 8
-	A7 = 0o10; B7 = 0o11; C7 = 0o12; D7 = 0o13; E7 = 0o14; F7 = 0o15; G7 = 0o16; H7 = 0o17;  # 7
-	A6 = 0o20; B6 = 0o21; C6 = 0o22; D6 = 0o23; E6 = 0o24; F6 = 0o25; G6 = 0o26; H6 = 0o27;  # 6
-	A5 = 0o30; B5 = 0o31; C5 = 0o32; D5 = 0o33; E5 = 0o34; F5 = 0o35; G5 = 0o36; H5 = 0o37;  # 5
-	A4 = 0o40; B4 = 0o41; C4 = 0o42; D4 = 0o43; E4 = 0o44; F4 = 0o45; G4 = 0o46; H4 = 0o47;  # 4
-	A3 = 0o50; B3 = 0o51; C3 = 0o52; D3 = 0o53; E3 = 0o54; F3 = 0o55; G3 = 0o56; H3 = 0o57;  # 3
-	A2 = 0o60; B2 = 0o61; C2 = 0o62; D2 = 0o63; E2 = 0o64; F2 = 0o65; G2 = 0o66; H2 = 0o67;  # 2
-	A1 = 0o70; B1 = 0o71; C1 = 0o72; D1 = 0o73; E1 = 0o74; F1 = 0o75; G1 = 0o76; H1 = 0o77;  # 1
-
+class square(int, chess.theme.Highlightable):
 
 	def __init__(self, *args):
 		super().__init__(*args)
@@ -201,35 +155,19 @@ class Square(int, chess.theme.Highlightable, Enum):
 			pygame.Vector2(*chess.theme.SQUARE),
 		)
 
-	def __repr__(self) -> str:
-		return self.name.lower()
+	def __add__(self, other: Vector) -> Self  : return self.__class__(File(self.file + other.file) + Rank(self.rank + other.rank))
+	def __sub__(self, other: Self  ) -> Vector: return Vector        (     self.file - other.file,        self.rank - other.rank )
 
-	def __add__(self, other: Vector) -> Square: return Square(File(self.file + other.file) + Rank(self.rank + other.rank))
-	def __sub__(self, other: Square) -> Vector: return Vector(     self.file - other.file,        self.rank - other.rank )
-
-	def __mul__(self, color: Color) -> Square:
+	def __mul__(self, color: Color) -> Self:
 		return +self if color else ~self
 
-	def __pos__   (self) -> Square: return Square(       self)
-	def __neg__   (self) -> Square: return Square(0o77 - self)
-	def __invert__(self) -> Square: return Square(self ^ 0o70)
+	def __pos__   (self) -> Self: return self.__class__(       self)
+	def __neg__   (self) -> Self: return self.__class__(0o77 - self)
+	def __invert__(self) -> Self: return self.__class__(self ^ 0o70)
 
-	def __iadd__(self, other: Vector) -> Square: return self + other
-	def __isub__(self, other: Square) -> Vector: return self - other
-
-	def __imul__(self, color: Color) -> Square: return self * color
-
-
-	@classmethod
-	def fromnotation(cls, notation: str) -> Square:
-		file, rank = notation
-
-		return cls((0o10 - int(rank) << 3) + ord(file) - ord("a"))
-
-	@classmethod
-	def range(cls, *args):
-		for square in range(*args):
-			yield cls(square)
+	def __iadd__(self, other: Vector) -> Self  : return self + other
+	def __isub__(self, other: Self  ) -> Vector: return self - other
+	def __imul__(self, color: Color ) -> square: return self * color
 
 
 	@property
@@ -244,10 +182,10 @@ class Square(int, chess.theme.Highlightable, Enum):
 	def color(self) -> Color:
 		return Color((((self.rank >> 3) + self.file & 1) << 1) - 1)
 
+
 	@property
 	def decal(self) -> Path:
 		return Path("chess/graphics/board/bevel.png")
-
 
 	def clicked(self, event: pygame.event.Event) -> bool:
 		return event.type == pygame.MOUSEBUTTONDOWN and event.button == 1 and self.rect.collidepoint(event.pos)
@@ -268,18 +206,44 @@ class Square(int, chess.theme.Highlightable, Enum):
 		)
 
 
+class Square(square, Enum):
+
+#	A        : B        : C        : D        : E        : F        : G        : H        :
+	A8 = 0o00; B8 = 0o01; C8 = 0o02; D8 = 0o03; E8 = 0o04; F8 = 0o05; G8 = 0o06; H8 = 0o07;  # 8
+	A7 = 0o10; B7 = 0o11; C7 = 0o12; D7 = 0o13; E7 = 0o14; F7 = 0o15; G7 = 0o16; H7 = 0o17;  # 7
+	A6 = 0o20; B6 = 0o21; C6 = 0o22; D6 = 0o23; E6 = 0o24; F6 = 0o25; G6 = 0o26; H6 = 0o27;  # 6
+	A5 = 0o30; B5 = 0o31; C5 = 0o32; D5 = 0o33; E5 = 0o34; F5 = 0o35; G5 = 0o36; H5 = 0o37;  # 5
+	A4 = 0o40; B4 = 0o41; C4 = 0o42; D4 = 0o43; E4 = 0o44; F4 = 0o45; G4 = 0o46; H4 = 0o47;  # 4
+	A3 = 0o50; B3 = 0o51; C3 = 0o52; D3 = 0o53; E3 = 0o54; F3 = 0o55; G3 = 0o56; H3 = 0o57;  # 3
+	A2 = 0o60; B2 = 0o61; C2 = 0o62; D2 = 0o63; E2 = 0o64; F2 = 0o65; G2 = 0o66; H2 = 0o67;  # 2
+	A1 = 0o70; B1 = 0o71; C1 = 0o72; D1 = 0o73; E1 = 0o74; F1 = 0o75; G1 = 0o76; H1 = 0o77;  # 1
+
+
+	def __repr__(self) -> str:
+		return self.name.lower()
+
+
+	@classmethod
+	def fromnotation(cls, notation: str) -> Self:
+		file, rank = notation
+
+		return cls((0o10 - int(rank) << 3) + ord(file) - ord("a"))
+
+	@classmethod
+	def range(cls, *args):
+		for square in range(*args):
+			yield cls(square)
+
+
 class Squares(chess.collection[Square]):
 
 	def __add__(self, other: Vectors, /) -> Self:
-		return self.sum(other)
-
-
-	def sum(self, other: Vectors, /) -> Self:
 		return self.__class__(
 			(square + vector for square, vector in product(self.moves, other.moves)),
 			(square + vector for square, vector in product(self.capts, other.capts)),
 			(square + vector for square, vector in product(self.specs, other.specs)),
 		)
+
 
 	def highlight(self, screen: pygame.Surface):
 		for square in self.moves: square.highlight(screen, chess.theme.GREEN)

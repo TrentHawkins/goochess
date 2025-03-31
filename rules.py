@@ -43,14 +43,36 @@ class Move(Base):
 		self.piece = piece
 		self.target = square
 
+		self.kept: chess.material.Piece | None = None
+
 	def __repr__(self) -> str:
 		return repr(self.piece) + repr(self.source) + "-" + repr(self.target)
 
-	def __call__(self):
-		self.piece.move(self.target)
+	def __call__(self,
+		move: bool = True,
+		kept: chess.material.Piece | None = None,
+	):
+		self.kept = kept
+		self.moved = self.moved or move
+		self.game[self.source], self.game[self.target] = self.kept, self.game[self.source]
 
 	def __bool__(self) -> bool:
 		return (other := self.game[self.target]) is None or isinstance(other, chess.material.Ghost)
+
+	def __enter__(self) -> typing.Self:
+		self.kept = self.game[self.target]
+		self(
+			move = False,
+			kept = self.kept,
+		)
+
+		return self
+
+	def __exit__(self, *args):
+		self(
+			move = False,
+			kept = self.kept,
+		)
 
 
 	@property
@@ -63,7 +85,7 @@ class Move(Base):
 		return self.piece.square
 
 	@property
-	def step(self) -> chess.algebra.Vector2:
+	def step(self) -> chess.algebra.Vector:
 		return self.target - self.source
 
 	@property
