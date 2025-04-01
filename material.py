@@ -74,7 +74,7 @@ class Piece(chess.theme.Highlightable):
 	def squares(self) -> chess.algebra.Squares:
 		squares = self.targets.copy()
 
-		for square in self.targets.moves | self.targets.capts:
+		for square in self.targets:
 			with self.test(square):
 				if not self.king.safe:
 					squares.discard(square)
@@ -197,7 +197,7 @@ class Pawn(Piece):
 						targets.moves.add(target)
 
 						if not self.moved and chess.rules.Move(self, target := target + move):
-							targets.moves.add(target)
+							targets.specs.add(target)
 
 				except ValueError:
 					continue
