@@ -2,9 +2,8 @@ from __future__ import annotations
 
 
 from datetime import datetime
-import os
-import pathlib
-import typing
+from pathlib import Path
+from typing import Iterable, Self, cast
 
 import pygame
 
@@ -35,7 +34,7 @@ class Board(list[Piece], chess.theme.Drawable):
 	def __repr__(self) -> str:
 		...  # TODO: FEN (part)
 
-	def __setitem__(self, key: chess.algebra.square | slice, value: Piece | typing.Iterable[Piece]):
+	def __setitem__(self, key: chess.algebra.square | slice, value: Piece | Iterable[Piece]):
 		if isinstance(key, chess.algebra.square): key = slice(int(key), int(key) + 1, +1)
 		if isinstance(value, Piece): value = [value]
 
@@ -49,13 +48,13 @@ class Board(list[Piece], chess.theme.Drawable):
 
 		self[key] = [None] * len(range(*key.indices(len(self))))
 
-	def __iadd__(self, rule: chess.rules.Base) -> typing.Self:
+	def __iadd__(self, rule: chess.rules.Base) -> Self:
 		rule(); return self
 
 
 	@property
-	def decal(self) -> pathlib.Path:
-		return pathlib.Path("chess/graphics/board/stone1.jpg")
+	def decal(self) -> Path:
+		return Path("chess/graphics/board/stone1.jpg")
 
 
 	def update(self, square: chess.algebra.Square,
@@ -163,7 +162,7 @@ class Side(list[chess.material.Piece]):
 
 	@property
 	def king(self) -> chess.material.King:
-		return typing.cast(chess.material.King,
+		return cast(chess.material.King,
 			self[
 				chess.algebra.Square.E8 if self.color else
 				chess.algebra.Square.D8
@@ -172,7 +171,7 @@ class Side(list[chess.material.Piece]):
 
 	@property
 	def west_rook(self) -> chess.material.Rook:
-		return typing.cast(chess.material.Rook,
+		return cast(chess.material.Rook,
 			self[
 				chess.algebra.Square.A8 if self.color else
 				chess.algebra.Square.H8
@@ -181,7 +180,7 @@ class Side(list[chess.material.Piece]):
 
 	@property
 	def east_rook(self) -> chess.material.Rook:
-		return typing.cast(chess.material.Rook,
+		return cast(chess.material.Rook,
 			self[
 				chess.algebra.Square.H8 if self.color else
 				chess.algebra.Square.A8

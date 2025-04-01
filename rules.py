@@ -1,29 +1,29 @@
 from __future__ import annotations
 
 
-import abc
-import typing
+from abc import ABC, abstractmethod
+from typing import TYPE_CHECKING, Self
 
 import chess.algebra
 
-if typing.TYPE_CHECKING: import chess.material
-if typing.TYPE_CHECKING: import chess.engine
+if TYPE_CHECKING: import chess.material
+if TYPE_CHECKING: import chess.engine
 
 
-class Base(abc.ABC):
+class Base(ABC):
 
 	def __init__(self,side: chess.engine.Side):
 		self.side = side
 
-	@abc.abstractmethod
+	@abstractmethod
 	def __repr__(self) -> str:
 		...
 
-	@abc.abstractmethod
+	@abstractmethod
 	def __call__(self):
 		...
 
-	@abc.abstractmethod
+	@abstractmethod
 	def __bool__(self) -> bool:
 		...
 
@@ -59,7 +59,7 @@ class Move(Base):
 	def __bool__(self) -> bool:
 		return (other := self.game[self.target]) is None or isinstance(other, chess.material.Ghost)
 
-	def __enter__(self) -> typing.Self:
+	def __enter__(self) -> Self:
 		self.kept = self.game[self.target]
 		self(
 			move = False,
@@ -132,7 +132,7 @@ class Promote(Move):
 		return self.target.rank.final(self.piece.color) and super().__bool__()
 
 
-class Castle(Base, abc.ABC):
+class Castle(Base, ABC):
 
 	steps = chess.algebra.Vectors(
 		capts = {
@@ -149,7 +149,7 @@ class Castle(Base, abc.ABC):
 
 
 	@property
-	@abc.abstractmethod
+	@abstractmethod
 	def rook(self) -> chess.material.Rook:
 		...
 
