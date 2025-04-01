@@ -13,15 +13,15 @@ type RGB = tuple[
 	int,
 ]
 
-RESOLUTION = 1152
-WINDOW = (
+RESOLUTION = 1440
+WINDOW = pygame.Vector2(
 	RESOLUTION,
 	RESOLUTION,
 )
 
 BOARD_W = RESOLUTION
 BOARD_H = BOARD_W * 8 // 9
-BOARD = (
+BOARD = pygame.Vector2(
 	BOARD_W,
 	BOARD_H,
 )
@@ -29,7 +29,7 @@ BOARD_OFFSET = BOARD_W - BOARD_H
 
 SQUARE_W = BOARD_W // 8
 SQUARE_H = BOARD_H // 8
-SQUARE = (
+SQUARE = pygame.Vector2(
 	SQUARE_W,
 	SQUARE_H,
 )
@@ -37,16 +37,19 @@ SQUARE_OFFSET = SQUARE_W // 2
 
 PIECE_W = BOARD_W *   5 //  32
 PIECE_H = PIECE_W * 460 // 360
-PIECE = (
+PIECE = pygame.Vector2(
 	PIECE_W,
 	PIECE_H,
 )
-PIECE_OFFSET = (PIECE_H - SQUARE_W) // 2
+PIECE_OFFSET = pygame.Vector2(
+	+PIECE_W     // 100,
+	-PIECE_H * 2 // 13 ,
+)
 
 BRIGHT = (
-	0x66,
-	0x66,
-	0x66,
+	0x99,
+	0x99,
+	0x99,
 )
 DARK = (
 	0x33,
@@ -76,18 +79,18 @@ BLUE = (
 
 WHITE = (
 	0xFF,
-	0xEE,
-	0xDD,
+	0xFF,
+	0xFF,
 )
 EMPTY = (
 	0xCC,
-	0xBB,
-	0xAA,
+	0xCC,
+	0xCC,
 )
 BLACK = (
 	0x99,
-	0x88,
-	0x77,
+	0x99,
+	0x99,
 )
 
 class Drawable(pygame.sprite.Sprite):
@@ -128,6 +131,6 @@ class Highlightable(Drawable):
 	):
 		surf = copy(self.surf)
 		surf.fill(highlight_color if highlight_color is not None else self.highlight_color,
-			special_flags = pygame.BLEND_RGB_ADD,
+			special_flags = pygame.BLEND_RGB_MULT,
 		)
 		screen.blit(surf, self.rect)

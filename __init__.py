@@ -167,3 +167,32 @@ class collection[T]:
 			]
 		)
 
+
+class array[T: (int, float)](tuple[T, ...]):
+
+	dimension: int
+
+	def __init_subclass__(cls, *args,
+		dimension: int,
+	**kwargs):
+		cls.dimension = dimension
+
+		return super().__init_subclass__(*args, **kwargs)
+
+	def __new__(cls, *components) -> Self:
+		return super().__new__(cls, components[:cls.dimension])
+
+	def __bool__(self,) -> bool:
+		return bool(sum(self))
+
+	def __add__(self, other: Self) -> Self: return self.__class__(*(left + right for left, right in zip(self, other)))
+	def __sub__(self, other: Self) -> Self: return self.__class__(*(left - right for left, right in zip(self, other)))
+
+	def __mul__(self, times: T) -> Self:
+		return self.__class__(*(left * times for left in self))
+
+	def __floordiv__(self, times: T) -> Self:
+		return self.__class__(*(left // times for left in self))
+
+	def __pos__(self) -> Self: return self.__class__(*(+left for left in self))
+	def __neg__(self) -> Self: return self.__class__(*(-left for left in self))
