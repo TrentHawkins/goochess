@@ -14,14 +14,14 @@ type RGB = tuple[
 ]
 
 RESOLUTION = 1440
-WINDOW = (
+WINDOW = pygame.Vector2(
 	RESOLUTION,
 	RESOLUTION,
 )
 
 BOARD_W = RESOLUTION
 BOARD_H = BOARD_W * 8 // 9
-BOARD = (
+BOARD = pygame.Vector2(
 	BOARD_W,
 	BOARD_H,
 )
@@ -29,7 +29,7 @@ BOARD_OFFSET = BOARD_W - BOARD_H
 
 SQUARE_W = BOARD_W // 8
 SQUARE_H = BOARD_H // 8
-SQUARE = (
+SQUARE = pygame.Vector2(
 	SQUARE_W,
 	SQUARE_H,
 )
@@ -37,11 +37,14 @@ SQUARE_OFFSET = SQUARE_W // 2
 
 PIECE_W = BOARD_W *   5 //  32
 PIECE_H = PIECE_W * 460 // 360
-PIECE = (
+PIECE = pygame.Vector2(
 	PIECE_W,
 	PIECE_H,
 )
-PIECE_OFFSET = (PIECE_H - SQUARE_W) // 5
+PIECE_OFFSET = pygame.Vector2(
+	+PIECE_W // 100,
+	-PIECE_H // 7,
+)
 
 BRIGHT = (
 	0x66,
