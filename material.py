@@ -1,9 +1,9 @@
 from __future__ import annotations
 
 
-import contextlib
-import pathlib
-import typing
+from contextlib import contextmanager
+from pathlib import Path
+from typing import TYPE_CHECKING, Self
 
 import pygame
 
@@ -11,7 +11,7 @@ import chess.theme
 import chess.algebra
 import chess.rules
 
-if typing.TYPE_CHECKING: import chess.engine
+if TYPE_CHECKING: import chess.engine
 
 
 class Piece(chess.theme.Highlightable):
@@ -45,8 +45,8 @@ class Piece(chess.theme.Highlightable):
 
 
 	@property
-	def decal(self) -> pathlib.Path:
-		return pathlib.Path("chess/graphics/piece") / self.color.name.lower() / f"{self.__class__.__name__.lower()}.png"
+	def decal(self) -> Path:
+		return Path("chess/graphics/piece") / self.color.name.lower() / f"{self.__class__.__name__.lower()}.png"
 
 	@property
 	def rect(self) -> pygame.Rect:
@@ -82,7 +82,7 @@ class Piece(chess.theme.Highlightable):
 		return squares
 
 
-	@contextlib.contextmanager
+	@contextmanager
 	def test(self, target: chess.algebra.Square):
 		assert (source := self.square) is not None
 
@@ -94,7 +94,7 @@ class Piece(chess.theme.Highlightable):
 	def move(self, target: chess.algebra.Square,
 		move: bool = True,
 		kept: Piece | None = None,
-	) -> typing.Self:
+	) -> Self:
 		assert (source := self.square) is not None
 
 		self.moved = self.moved or move
@@ -222,7 +222,7 @@ class Pawn(Piece):
 		) if self.square is not None else self.surf.get_rect()
 
 
-	@contextlib.contextmanager
+	@contextmanager
 	def test(self, target: chess.algebra.Square):
 		assert (source := self.square) is not None
 
@@ -234,7 +234,7 @@ class Pawn(Piece):
 	def move(self, target: chess.algebra.Square,
 		move: bool = True,
 		kept: Piece | None = None,
-	) -> typing.Self:
+	) -> Self:
 		assert (source := self.square) is not None
 
 		if move:
@@ -272,7 +272,7 @@ class Rook(Ranged, Officer):
 class Assymetric(Officer):
 
 	@property
-	def decal(self) -> pathlib.Path:
+	def decal(self) -> Path:
 		return super().decal.with_suffix(".flipped" + super().decal.suffix) if self.color else super().decal
 
 
@@ -355,7 +355,7 @@ class King(Melee, Star):
 	def move(self, target: chess.algebra.Square,
 		move: bool = True,
 		kept: Piece | None = None,
-	) -> typing.Self:
+	) -> Self:
 		assert (source := self.square) is not None
 
 		if not self.moved and move:
