@@ -200,7 +200,7 @@ class square(int, chess.theme.Highlightable):
 
 	def highlight(self, screen: pygame.Surface,
 		highlight_color: chess.theme.RGB | None = None,
-		width: int = 0,
+		width: int = 1,
 	):
 		color = highlight_color if highlight_color is not None else self.highlight_color
 

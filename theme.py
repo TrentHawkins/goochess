@@ -47,9 +47,9 @@ PIECE_OFFSET = pygame.Vector2(
 )
 
 BRIGHT = (
-	0x66,
-	0x66,
-	0x66,
+	0x99,
+	0x99,
+	0x99,
 )
 DARK = (
 	0x33,
@@ -83,7 +83,7 @@ WHITE = (
 	0xFF,
 )
 EMPTY = (
-	0xcc,
+	0xCC,
 	0xCC,
 	0xCC,
 )
@@ -131,6 +131,6 @@ class Highlightable(Drawable):
 	):
 		surf = copy(self.surf)
 		surf.fill(highlight_color if highlight_color is not None else self.highlight_color,
-			special_flags = pygame.BLEND_RGB_ADD,
+			special_flags = pygame.BLEND_RGB_MULT,
 		)
 		screen.blit(surf, self.rect)
