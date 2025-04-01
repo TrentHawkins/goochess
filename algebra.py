@@ -205,8 +205,8 @@ class square(int, chess.theme.Highlightable):
 		color = highlight_color if highlight_color is not None else self.highlight_color
 
 		rect = self.rect.inflate(
-			-self.rect.width  // (width + 1) // 2,
-			-self.rect.height // (width + 1) // 2,
+			-self.rect.width  // (width + 1) * 24 // 25,
+			-self.rect.height // (width + 1) * 24 // 25,
 		).move(
 			+self.rect.width  // 100,
 			-self.rect.height // 100,
@@ -219,7 +219,6 @@ class square(int, chess.theme.Highlightable):
 		screen.blit(surf, rect,
 			special_flags = pygame.BLEND_RGB_ADD,
 		)
-
 	#	screen.fill(highlight_color if highlight_color is not None else self.highlight_color, self.rect,
 	#		special_flags = pygame.BLEND_RGB_ADD,
 	#	)

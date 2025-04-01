@@ -3,7 +3,6 @@ from __future__ import annotations
 
 import contextlib
 import pathlib
-import itertools
 import typing
 
 import pygame
@@ -123,11 +122,6 @@ class Ghost(Piece):
 	...
 
 
-class Officer(Piece):
-
-	...
-
-
 class Melee(Piece):
 
 	@property
@@ -169,17 +163,15 @@ class Ranged(Piece):
 		return targets
 
 
-class Assymetric(Piece):
+class Officer(Piece):
 
-	@property
-	def decal(self) -> pathlib.Path:
-		return super().decal.with_suffix(".flipped" + super().decal.suffix) if self.color else super().decal
+	width: int = 6
 
 
 class Pawn(Piece):
 
 	value: int = 1
-	width: int = 3
+	width: int = 2
 
 	black: str = "\u265f"
 	white: str = "\u2659"
@@ -220,6 +212,15 @@ class Pawn(Piece):
 
 		return targets
 
+	@property
+	def rect(self) -> pygame.Rect:
+		return self.surf.get_rect(
+			center = self.square.rect.center + pygame.Vector2(
+				chess.theme.PIECE_OFFSET.x * 49 // 25,
+				chess.theme.PIECE_OFFSET.y * 25 // 24,
+			),
+		) if self.square is not None else self.surf.get_rect()
+
 
 	@contextlib.contextmanager
 	def test(self, target: chess.algebra.Square):
@@ -240,7 +241,7 @@ class Pawn(Piece):
 			if not self.moved and target == source + chess.algebra.Vector.S2 * self.color:
 				self.side.ghost = self.game[source + chess.algebra.Vector.S * self.color] = Ghost(self.side)
 
-			if isinstance(other := self.game[target], Ghost):
+			if isinstance(self.game[target], Ghost):
 				self.game[target + chess.algebra.Vector.N * self.color] = kept
 
 		return super().move(target, move, kept)
@@ -268,10 +269,16 @@ class Rook(Ranged, Officer):
 	)
 
 
+class Assymetric(Officer):
+
+	@property
+	def decal(self) -> pathlib.Path:
+		return super().decal.with_suffix(".flipped" + super().decal.suffix) if self.color else super().decal
+
+
 class Bishop(Ranged, Assymetric, Officer):
 
-	width: int = 3
-	value: int = 5
+	value: int = 3
 
 	black: str = "\u265d"
 	white: str = "\u2657"
@@ -311,6 +318,8 @@ class Knight(Melee, Assymetric, Officer):
 
 class Star(Piece):
 
+	width: int = 8
+
 #	steps = chess.algebra.Vectors(
 #		moves = {
 #			chess.algebra.Vector.N, chess.algebra.Vector.NE,
@@ -322,19 +331,15 @@ class Star(Piece):
 	steps = Rook.steps | Bishop.steps
 
 
-class Queen(Ranged, Officer, Star):
+class Queen(Ranged, Star, Officer):
 
 	value: int = 9
-	width: int = 10
 
 	black: str = "\u265b"
 	white: str = "\u2655"
 
 
 class King(Melee, Star):
-
-	value: int = 0
-	width: int = 10
 
 	black: str = "\u265a"
 	white: str = "\u2654"
