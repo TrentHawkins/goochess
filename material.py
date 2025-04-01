@@ -18,6 +18,7 @@ if typing.TYPE_CHECKING: import chess.engine
 class Piece(chess.theme.Highlightable):
 
 	value: int = 0
+	width: int = 0
 
 	black: str = " "
 	white: str = " "
@@ -178,6 +179,7 @@ class Assymetric(Piece):
 class Pawn(Piece):
 
 	value: int = 1
+	width: int = 3
 
 	black: str = "\u265f"
 	white: str = "\u2659"
@@ -251,6 +253,7 @@ class Pawn(Piece):
 class Rook(Ranged, Officer):
 
 	value: int = 5
+	width: int = 5
 
 	black: str = "\u265c"
 	white: str = "\u2656"
@@ -267,7 +270,8 @@ class Rook(Ranged, Officer):
 
 class Bishop(Ranged, Assymetric, Officer):
 
-	value: int = 3
+	width: int = 3
+	value: int = 5
 
 	black: str = "\u265d"
 	white: str = "\u2657"
@@ -285,6 +289,7 @@ class Bishop(Ranged, Assymetric, Officer):
 class Knight(Melee, Assymetric, Officer):
 
 	value: int = 3
+	width: int = 5
 
 	black: str = "\u265e"
 	white: str = "\u2658"
@@ -320,6 +325,7 @@ class Star(Piece):
 class Queen(Ranged, Officer, Star):
 
 	value: int = 9
+	width: int = 10
 
 	black: str = "\u265b"
 	white: str = "\u2655"
@@ -328,6 +334,7 @@ class Queen(Ranged, Officer, Star):
 class King(Melee, Star):
 
 	value: int = 0
+	width: int = 10
 
 	black: str = "\u265a"
 	white: str = "\u2654"

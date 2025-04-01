@@ -42,8 +42,8 @@ PIECE = pygame.Vector2(
 	PIECE_H,
 )
 PIECE_OFFSET = pygame.Vector2(
-	+PIECE_W // 100,
-	-PIECE_H // 7,
+	+PIECE_W      // 100,
+	-PIECE_H * 10 // 64 ,
 )
 
 BRIGHT = (

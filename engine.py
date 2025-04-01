@@ -82,7 +82,13 @@ class Board(list[Piece], chess.theme.Drawable):
 		)
 
 		if self.selected is not None:
-			self.selected.squares.highlight(screen)
+			other = self[square]
+
+			for square in self.selected.squares.moves: square.highlight(screen, chess.theme.GREEN)
+			for square in self.selected.squares.specs: square.highlight(screen, chess.theme.BLUE )
+			for square in self.selected.squares.capts: square.highlight(screen, chess.theme.RED  ,
+				width = other.width if other is not None else 0
+			)
 
 		for piece in self:
 			if piece is not None:
