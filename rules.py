@@ -161,8 +161,8 @@ class Cast(Spec, ABC):
 
 	def __bool__(self) -> bool:
 		return not self.king.moved and not self.rook.moved and self.king.safe \
-		and all(self.game[self.king.square + move]    is None                     for move in self.moves) \
-		and all(          self.king.square + capt not in self.side.other.captures for capt in self.capts)
+		and all(self.game[self.king.square + move]    is None                                 for move in self.moves) \
+		and all(          self.king.square + capt not in self.side.other.targets.filter(Capt) for capt in self.capts)
 
 
 	@property
