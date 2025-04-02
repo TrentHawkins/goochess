@@ -5,12 +5,15 @@ from enum import Enum
 from itertools import product
 from pathlib import Path
 import re
-from typing import Self
+from typing import TYPE_CHECKING, Self
 
 import pygame
 
 import chess
 import chess.theme
+
+if TYPE_CHECKING:
+	import chess.rules
 
 
 class Color(int, Enum):
@@ -256,3 +259,16 @@ class Squares(chess.collection[square]):
 
 	def __add__(self, other: Vectors, /) -> Squares:
 		return Squares(*(left + right for left in self for right in other))
+
+
+	@property
+	def moves(self) -> Squares:
+		return self.filter(chess.rules.Move)
+
+	@property
+	def capts(self) -> Squares:
+		return self.filter(chess.rules.Capt)
+
+	@property
+	def specs(self) -> Squares:
+		return self.filter(chess.rules.Spec)
