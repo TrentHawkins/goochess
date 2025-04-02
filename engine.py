@@ -119,8 +119,8 @@ class Side(list[chess.material.Piece]):
 		return chess.algebra.Squares.union(*(piece.targets for piece in self))
 
 	@property
-	def p_targets(self) -> chess.algebra.Squares:
-		return chess.algebra.Squares.union(*(piece.targets for piece in self if piece is not self.king))
+	def captures(self) -> chess.algebra.Squares:
+		return chess.algebra.Squares(*(target for target in self.targets if isinstance(target, chess.rules.Capt)))
 
 	@property
 	def other(self) -> Side:
@@ -208,11 +208,8 @@ class Game(Board):
 		)
 
 		if self.selected is not None:
-			for square in self.selected.squares.moves: square.highlight(screen, chess.theme.GREEN)
-			for square in self.selected.squares.specs: square.highlight(screen, chess.theme.BLUE )
-			for square in self.selected.squares.capts: square.highlight(screen, chess.theme.RED  ,
-				width = self[square].width if self[square] is not None else 0,  # type: ignore
-			)
+			for square in self.selected.squares:
+				square.highlight(screen)
 
 		for piece in self:
 			if piece is not None:
@@ -227,7 +224,7 @@ class Game(Board):
 				if self.selected is not None:
 					if square in self.selected.squares and self.selected.side:
 						self.selected.move(square)
-						self.history.append(chess.rules.Move(square, self.selected))
+						self.history.append(square)  # type: ignore
 
 					self.selected = None
 
