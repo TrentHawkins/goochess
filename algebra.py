@@ -144,7 +144,7 @@ class square(int, chess.theme.Highlightable):
 	def __new__(cls, x: int, *_):
 		return super().__new__(cls, x)
 
-	def __init__(self, _: int, *args):
+	def __init__(self, x: int, *args):
 		super().__init__(*args)
 
 		self.black = chess.theme.BLACK
@@ -157,20 +157,6 @@ class square(int, chess.theme.Highlightable):
 			),
 			pygame.Vector2(*chess.theme.SQUARE),
 		)
-
-	def __add__(self, other: Vector) -> Self  : return self.__class__(File(self.file + other.file) + Rank(self.rank + other.rank))
-	def __sub__(self, other: Self  ) -> Vector: return Vector        (     self.file - other.file,        self.rank - other.rank )
-
-	def __mul__(self, color: Color) -> Self:
-		return +self if color else ~self
-
-	def __pos__   (self) -> Self: return self.__class__(       self)
-	def __neg__   (self) -> Self: return self.__class__(0o77 - self)
-	def __invert__(self) -> Self: return self.__class__(self ^ 0o70)
-
-	def __iadd__(self, other: Vector) -> Self  : return self + other
-	def __isub__(self, other: Self  ) -> Vector: return self - other
-	def __imul__(self, color: Color ) -> square: return self * color
 
 
 	@property
@@ -185,10 +171,10 @@ class square(int, chess.theme.Highlightable):
 	def color(self) -> Color:
 		return Color((((self.rank >> 3) + self.file & 1) << 1) - 1)
 
-
 	@property
 	def decal(self) -> Path:
 		return Path("chess/graphics/board/bevel.png")
+
 
 	def clicked(self, event: pygame.event.Event) -> bool:
 		return event.type == pygame.MOUSEBUTTONDOWN and event.button == 1 and self.rect.collidepoint(event.pos)
@@ -242,6 +228,20 @@ class Square(square, Enum):
 
 	def __repr__(self) -> str:
 		return self.name.lower()
+
+	def __add__(self, other: Vector) -> Square: return Square(File(self.file + other.file) + Rank(self.rank + other.rank))
+	def __sub__(self, other: Square) -> Vector: return Vector(     self.file - other.file,        self.rank - other.rank )
+
+	def __mul__(self, color: Color) -> Square:
+		return +self if color else ~self
+
+	def __pos__   (self) -> Square: return Square(       self)
+	def __neg__   (self) -> Square: return Square(0o77 - self)
+	def __invert__(self) -> Square: return Square(self ^ 0o70)
+
+	def __iadd__(self, other: Vector) -> Square: return self + other
+	def __isub__(self, other: Square) -> Vector: return self - other
+	def __imul__(self, color: Color ) -> Square: return self * color
 
 
 	@classmethod

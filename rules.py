@@ -85,7 +85,7 @@ class Move(Base, chess.algebra.square):
 		return chess.algebra.Square(self)
 
 	@property
-	def step(self) -> chess.algebra.Vector:
+	def step(self) -> chess.algebra.vector:
 		return self.target - self.source
 
 	@property
