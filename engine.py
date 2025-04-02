@@ -227,7 +227,7 @@ class Game(Board):
 				if self.selected is not None:
 					if square in self.selected.squares and self.selected.side:
 						self.selected.move(square)
-						self.history.append(chess.rules.Move(self.selected, square))
+						self.history.append(chess.rules.Move(square, self.selected))
 
 					self.selected = None
 

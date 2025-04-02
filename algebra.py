@@ -141,7 +141,10 @@ class Vectors(chess.collection[Vector]):
 
 class square(int, chess.theme.Highlightable):
 
-	def __init__(self, *args):
+	def __new__(cls, x: int, *_):
+		return super().__new__(cls, x)
+
+	def __init__(self, _: int, *args):
 		super().__init__(*args)
 
 		self.black = chess.theme.BLACK

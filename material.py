@@ -131,8 +131,8 @@ class Melee(Piece):
 		if self.square is not None:
 			for move in self.steps.moves:
 				try:
-					if chess.rules.Move(self, target := self.square + (move := move * self.color)): targets.moves.add(target)
-					if chess.rules.Capt(self, target := self.square + (move := move * self.color)): targets.capts.add(target)
+					if chess.rules.Move(target := self.square + (move := move * self.color), self): targets.moves.add(target)
+					if chess.rules.Capt(target := self.square + (move := move * self.color), self): targets.capts.add(target)
 
 				except ValueError:
 					continue
@@ -151,13 +151,13 @@ class Ranged(Piece):
 				target = self.square
 
 				try:
-					while chess.rules.Move(self, target := target + step):
+					while chess.rules.Move(target := target + step, self):
 						targets.moves.add(target)
 
 				except ValueError:
 					continue
 
-				if chess.rules.Capt(self, target):
+				if chess.rules.Capt(target, self):
 					targets.capts.add(target)
 
 		return targets
@@ -193,10 +193,10 @@ class Pawn(Piece):
 		if self.square is not None:
 			for move in self.steps.moves:
 				try:
-					if chess.rules.Move(self, target := self.square + (move := move * self.color)):
+					if chess.rules.Move(target := self.square + (move := move * self.color), self):
 						targets.moves.add(target)
 
-						if not self.moved and chess.rules.Move(self, target := target + move):
+						if not self.moved and chess.rules.Move(target := target + move, self):
 							targets.specs.add(target)
 
 				except ValueError:
@@ -204,7 +204,7 @@ class Pawn(Piece):
 
 			for capt in self.steps.capts:
 				try:
-					if chess.rules.Capt(self, target := self.square + capt * self.color):
+					if chess.rules.Capt(target := self.square + capt * self.color, self):
 						targets.capts.add(target)
 
 				except ValueError:

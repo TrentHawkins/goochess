@@ -37,41 +37,37 @@ class Base(ABC):
 		return self.side.king
 
 
-class Move(Base):
+class Move(Base, chess.algebra.square):
 
-	def __init__(self, piece: chess.material.Piece, square: chess.algebra.Square):
+	def __init__(self, square: chess.algebra.Square, piece: chess.material.Piece):
+		super(Base, self).__init__(square)
+
 		self.piece = piece
-		self.target = square
-
-		self.kept: chess.material.Piece | None = None
+		self.other: chess.material.Piece | None = None
 
 	def __repr__(self) -> str:
 		return repr(self.piece) + repr(self.source) + "-" + repr(self.target)
 
-	def __call__(self,
-		move: bool = True,
-		kept: chess.material.Piece | None = None,
-	):
-		self.kept = kept
-		self.moved = self.moved or move
-		self.game[self.source], self.game[self.target] = self.kept, self.game[self.source]
+	def __call__(self):
+		self.piece.move(self.target,
+			kept = self.other,
+		)
 
 	def __bool__(self) -> bool:
 		return (other := self.game[self.target]) is None or isinstance(other, chess.material.Ghost)
 
 	def __enter__(self) -> Self:
-		self.kept = self.game[self.target]
-		self(
+		self.other = self.game[self.target]
+		self.piece.move(self.target,
 			move = False,
-			kept = self.kept,
 		)
 
 		return self
 
 	def __exit__(self, *args):
-		self(
+		self.piece.move(self.source,
 			move = False,
-			kept = self.kept,
+			kept = self.other,
 		)
 
 
@@ -83,6 +79,10 @@ class Move(Base):
 	def source(self) -> chess.algebra.Square:
 		assert self.piece.square is not None
 		return self.piece.square
+
+	@property
+	def target(self) -> chess.algebra.Square:
+		return chess.algebra.Square(self)
 
 	@property
 	def step(self) -> chess.algebra.Vector:
@@ -106,7 +106,7 @@ class Capt(Move):
 class Rush(Move):
 
 	def __init__(self, piece: chess.material.Piece, square: chess.algebra.Square):
-		super().__init__(piece, square)
+		super().__init__(square, piece)
 
 	def __call__(self):
 		self.piece.move(self.target)
@@ -116,14 +116,14 @@ class Rush(Move):
 		self.middle = self.source + (self.target - self.source) // 2
 
 		return self.source != self.middle \
-			and bool(Move(self.piece, self.middle)) \
-			and bool(Move(self.piece, self.target))
+			and bool(Move(self.middle, self.piece)) \
+			and bool(Move(self.target, self.piece))
 
 
 class Promote(Move):
 
-	def __init__(self, rank: type[chess.material.Officer]):
-		self.rank = rank
+	def __init__(self, officer: type[chess.material.Officer]):
+		self.officer = officer
 
 	def __repr__(self) -> str:
 		return super().__repr__() + repr(self.rank)

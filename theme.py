@@ -96,7 +96,7 @@ BLACK = (
 class Drawable(pygame.sprite.Sprite):
 
 	def __init__(self, *args):
-		super().__init__()
+		super().__init__(*args)
 
 		self.surf: pygame.Surface
 		self.rect: pygame.Rect
