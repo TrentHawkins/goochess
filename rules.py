@@ -4,6 +4,9 @@ from __future__ import annotations
 from abc import ABC, abstractmethod
 from typing import TYPE_CHECKING, Self
 
+import pygame
+
+import chess.theme
 import chess.algebra
 
 if TYPE_CHECKING: import chess.material
@@ -37,64 +40,77 @@ class Base(ABC):
 		return self.side.king
 
 
-class Move(Base):
+class Move(Base, chess.algebra.square):
 
-	def __init__(self, piece: chess.material.Piece, square: chess.algebra.Square):
+	highlight_color = chess.theme.GREEN
+
+
+	def __init__(self, square: chess.algebra.Square, piece: chess.material.Piece):
+		super(Base, self).__init__(square)
+
+		self.source = piece.square
+		self.target = chess.algebra.Square(square)
+
 		self.piece = piece
-		self.target = square
-
-		self.kept: chess.material.Piece | None = None
+		self.other = self.game[self.target]
 
 	def __repr__(self) -> str:
 		return repr(self.piece) + repr(self.source) + "-" + repr(self.target)
 
-	def __call__(self,
-		move: bool = True,
-		kept: chess.material.Piece | None = None,
-	):
-		self.kept = kept
-		self.moved = self.moved or move
-		self.game[self.source], self.game[self.target] = self.kept, self.game[self.source]
+	def __call__(self):
+		self.other = self.game[self.target]
+		self.piece(self.target,
+			kept = self.other,
+		)
 
 	def __bool__(self) -> bool:
 		return (other := self.game[self.target]) is None or isinstance(other, chess.material.Ghost)
 
 	def __enter__(self) -> Self:
-		self.kept = self.game[self.target]
-		self(
+		self.piece(self.target,
 			move = False,
-			kept = self.kept,
 		)
 
 		return self
 
-	def __exit__(self, *args):
-		self(
+	def __exit__(self,
+		exc_type: type[Base] | None,
+		exc_value: Base | None,
+		traceback: Base | None,
+	):
+		assert self.source is not None
+
+		self.piece(self.source,
 			move = False,
-			kept = self.kept,
+			kept = self.other,
 		)
+		self.other = None
 
 
 	@property
 	def side(self) -> chess.engine.Side:
 		return self.piece.side
 
-	@property
-	def source(self) -> chess.algebra.Square:
-		assert self.piece.square is not None
-		return self.piece.square
+#	@property
+#	def source(self) -> chess.algebra.Square:
+#		assert self.piece.square is not None
+#		return self.piece.square
 
-	@property
-	def step(self) -> chess.algebra.Vector:
-		return self.target - self.source
+#	@property
+#	def target(self) -> chess.algebra.Square:
+#		return chess.algebra.Square(self)
 
-	@property
-	def with_safe_king(self) -> bool:
-		with self.piece.test(self.target):
-			return bool(self) and self.king.safe
+
+	def highlight(self, screen: pygame.Surface,
+		width: int = 1,
+	):
+		return super().highlight(screen, width)
 
 
 class Capt(Move):
+
+	highlight_color = chess.theme.RED
+
 
 	def __repr__(self) -> str:
 		return super().__repr__().replace("-", "×")
@@ -103,27 +119,27 @@ class Capt(Move):
 		return (other := self.game[self.target]) is not None and self.piece.color != other.color
 
 
-class Rush(Move):
+	def highlight(self, screen: pygame.Surface,
+		width: int = 1,
+	):
+		return super().highlight(screen, self.other.width if self.other is not None else width)
 
-	def __init__(self, piece: chess.material.Piece, square: chess.algebra.Square):
-		super().__init__(piece, square)
 
-	def __call__(self):
-		self.piece.move(self.target)
-		self.game[self.middle] = chess.material.Piece(self.side)
+class Spec(Move):
+
+	highlight_color = chess.theme.BLUE
+
+
+class Rush(Spec):
 
 	def __bool__(self) -> bool:
-		self.middle = self.source + (self.target - self.source) // 2
-
-		return self.source != self.middle \
-			and bool(Move(self.piece, self.middle)) \
-			and bool(Move(self.piece, self.target))
+		return not self.piece.moved and super().__bool__()
 
 
-class Promote(Move):
+class Promote(Spec):
 
-	def __init__(self, rank: type[chess.material.Officer]):
-		self.rank = rank
+	def __init__(self, officer: type[chess.material.Officer]):
+		self.officer = officer
 
 	def __repr__(self) -> str:
 		return super().__repr__() + repr(self.rank)
@@ -132,20 +148,16 @@ class Promote(Move):
 		return self.target.rank.final(self.piece.color) and super().__bool__()
 
 
-class Castle(Base, ABC):
+class Cast(Spec, ABC):
 
-	steps = chess.algebra.Vectors(
-		capts = {
-			chess.algebra.Vector.O
-		},
-	)
+	capts: chess.algebra.Vectors
+	moves: chess.algebra.Vectors
 
 
 	def __bool__(self) -> bool:
-		assert self.king.square is not None
-		return self.rook.square is not None and not self.rook.moved \
-			and all(self.game[self.king.square + move]    is None                    for move in self.steps.moves) \
-			and all(          self.king.square + capt not in self.side.other.targets for capt in self.steps.capts)
+		return not self.king.moved and not self.rook.moved and self.king.safe \
+		and all(self.game[self.king.square + move]    is None                          for move in self.moves) \
+		and all(          self.king.square + capt not in self.side.other.targets.capts for capt in self.capts)
 
 
 	@property
@@ -154,26 +166,19 @@ class Castle(Base, ABC):
 		...
 
 
-class CastleWest(Castle):
+class CastWest(Cast):
 
-	steps = Castle.steps | chess.algebra.Vectors(
-		moves = {
-			chess.algebra.Vector.W ,
-			chess.algebra.Vector.W2,
-		},
-	) | chess.algebra.Vectors(
-		capts = {
-			chess.algebra.Vector.W3,
-		},
+	capts = chess.algebra.Vectors(
+		chess.algebra.Vector.W ,
+		chess.algebra.Vector.W2,
+	)
+	moves = capts | chess.algebra.Vectors(
+		chess.algebra.Vector.W3,
 	)
 
 
 	def __repr__(self) -> str:
 		return "O-O-O"
-
-	def __call__(self):
-		assert self.king.square is not None; self.king.move(self.king.square + chess.algebra.Vector.W2)
-		assert self.rook.square is not None; self.rook.move(self.rook.square + chess.algebra.Vector.E2)
 
 
 	@property
@@ -181,22 +186,17 @@ class CastleWest(Castle):
 		return self.side.west_rook
 
 
-class CastleEast(Castle):
+class CastEast(Cast):
 
-	steps = Castle.steps | chess.algebra.Vectors(
-		moves = {
-			chess.algebra.Vector.E ,
-			chess.algebra.Vector.E2,
-		},
+	capts = chess.algebra.Vectors(
+		chess.algebra.Vector.E ,
+		chess.algebra.Vector.E2,
 	)
+	moves = capts
 
 
 	def __repr__(self) -> str:
 		return "O-O"
-
-	def __call__(self):
-		assert self.king.square is not None; self.king.move(self.king.square + chess.algebra.Vector.E2)
-		assert self.rook.square is not None; self.rook.move(self.rook.square + chess.algebra.Vector.W2)
 
 
 	@property

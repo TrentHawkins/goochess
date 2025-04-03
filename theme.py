@@ -47,9 +47,9 @@ PIECE_OFFSET = pygame.Vector2(
 )
 
 BRIGHT = (
-	0x99,
-	0x99,
-	0x99,
+	0x33,
+	0x33,
+	0x33,
 )
 DARK = (
 	0x33,
@@ -57,14 +57,14 @@ DARK = (
 	0x33,
 )
 RED = (
-	0x33,
+	0x66,
 	0x00,
 	0x00,
 )
 GREEN = (
-	0x11,
 	0x22,
-	0x00,
+	0x33,
+	0x11,
 )
 GOLD = (
 	0x33,
@@ -96,7 +96,7 @@ BLACK = (
 class Drawable(pygame.sprite.Sprite):
 
 	def __init__(self, *args):
-		super().__init__()
+		super().__init__(*args)
 
 		self.surf: pygame.Surface
 		self.rect: pygame.Rect
@@ -131,6 +131,6 @@ class Highlightable(Drawable):
 	):
 		surf = copy(self.surf)
 		surf.fill(highlight_color if highlight_color is not None else self.highlight_color,
-			special_flags = pygame.BLEND_RGB_MULT,
+			special_flags = pygame.BLEND_RGB_ADD,
 		)
 		screen.blit(surf, self.rect)
