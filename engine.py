@@ -49,9 +49,6 @@ class Board(list[Piece], chess.theme.Drawable):
 
 		self[key] = [None] * len(range(*key.indices(len(self))))
 
-	def __iadd__(self, rule: chess.rules.Base) -> Self:
-		rule(); return self
-
 
 	@property
 	def decal(self) -> Path:
@@ -104,10 +101,10 @@ class Side(list[chess.material.Piece]):
 			]
 		)
 
-		self.ghost = chess.material.Piece(self)
+		self.ghost: chess.material.Ghost | None = None
 
 	def __bool__(self) -> bool:
-		return self is self.game.history.current
+		return self is self.game.current
 
 
 	@property
@@ -156,16 +153,6 @@ class Side(list[chess.material.Piece]):
 
 class History(list[chess.rules.Base]):
 
-	def __init__(self, game: Game):
-		super().__init__()
-
-		self.game = game
-
-
-	@property
-	def current(self) -> Side:
-		return self.game.black if len(self) & 1 else self.game.white
-
 	@property
 	def last(self) -> chess.rules.Base | None:
 		return self.get(-1)
@@ -176,9 +163,6 @@ class History(list[chess.rules.Base]):
 	) -> chess.rules.Base | None:
 		try: return self[index]
 		except IndexError: return default
-
-	def append(self, rule: chess.rules.Base):
-		super().append(rule)
 
 
 class Game(Board):
@@ -192,16 +176,21 @@ class Game(Board):
 		self[+chess.algebra.Square.A8:+chess.algebra.Square.A6:chess.algebra.Color.BLACK] = self.black
 		self[-chess.algebra.Square.A8:-chess.algebra.Square.A6:chess.algebra.Color.WHITE] = self.white
 
-		self.history = History(self)
+		self.history = History()
 
 	def __next__(self) -> Side:
-		return self.history.current
+		return self.current
 
 	def __repr__(self) -> str:
 		...  # TODO: FEN (full)
 
 	def __hash__(self) -> int:
 		return hash(datetime.now().timestamp())
+
+
+	@property
+	def current(self) -> Side:
+		return self.black if len(self.history) & 1 else self.white
 
 
 	def draw(self, screen: pygame.Surface):
@@ -227,9 +216,8 @@ class Game(Board):
 		for square in chess.algebra.Square:
 			if square.clicked(event):
 				if self.selected is not None:
-					if square in self.selected.squares and self.selected.side:
-						self.selected(square)
-						self.history.append(square)  # type: ignore
+					if self.selected.side and (rule := self.selected.squares.get(square)) is not None:
+						self += rule
 
 					self.selected = None
 
@@ -240,3 +228,12 @@ class Game(Board):
 				return True
 
 		return False
+
+
+	def __iadd__(self, rule: chess.rules.Base) -> Self:
+		self.history.append(rule())
+
+		if (ghost := self.current.ghost) is not None and ghost.square is not None:
+			del self[ghost.square]
+
+		return self

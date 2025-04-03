@@ -23,7 +23,7 @@ class Base(ABC):
 		...
 
 	@abstractmethod
-	def __call__(self):
+	def __call__(self) -> Self:
 		...
 
 	@abstractmethod
@@ -61,6 +61,8 @@ class Move(Base, chess.algebra.square):
 		self.piece(self.target,
 			kept = self.other,
 		)
+
+		return self
 
 	def __bool__(self) -> bool:
 		return (other := self.game[self.target]) is None or isinstance(other, chess.material.Ghost)

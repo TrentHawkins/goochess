@@ -260,7 +260,6 @@ class Squares(chess.collection[square]):
 	def __add__(self, other: Vectors, /) -> Squares:
 		return Squares(*(left + right for left in self for right in other))
 
-
 	@property
 	def moves(self) -> Squares:
 		return self.filter(chess.rules.Move)
@@ -272,3 +271,11 @@ class Squares(chess.collection[square]):
 	@property
 	def specs(self) -> Squares:
 		return self.filter(chess.rules.Spec)
+
+
+	def get(self, square: Square) -> chess.rules.Base | None:
+		for rule in self:
+			if rule.target == square:
+				return rule
+
+		return None
