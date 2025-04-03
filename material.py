@@ -1,10 +1,9 @@
 from __future__ import annotations
 
 
-import contextlib
-import pathlib
-import itertools
-import typing
+from contextlib import contextmanager
+from pathlib import Path
+from typing import TYPE_CHECKING, Self
 
 import pygame
 
@@ -12,17 +11,20 @@ import chess.theme
 import chess.algebra
 import chess.rules
 
-if typing.TYPE_CHECKING: import chess.engine
+if TYPE_CHECKING: import chess.engine
 
 
 class Piece(chess.theme.Highlightable):
 
 	value: int = 0
+	width: int = 0
 
 	black: str = " "
 	white: str = " "
 
-	steps: chess.algebra.Vectors
+	moves: chess.algebra.Vectors
+	capts: chess.algebra.Vectors
+	specs: chess.algebra.Vectors
 
 
 	def __init__(self, side: chess.engine.Side,
@@ -43,16 +45,26 @@ class Piece(chess.theme.Highlightable):
 	def __repr__(self) -> str:
 		return self.black if self.color else self.white
 
+	def __call__(self, target: chess.algebra.Square,
+		move: bool = True,
+		kept: Piece | None = None,
+	) -> Self:
+		assert (source := self.square) is not None
+
+		self.moved = self.moved or move
+		self.game[source], self.game[target] = kept, self.game[source]
+
+		return self
+
 
 	@property
-	def decal(self) -> pathlib.Path:
-		return pathlib.Path("chess/graphics/piece") / self.color.name.lower() / f"{self.__class__.__name__.lower()}.png"
+	def decal(self) -> Path:
+		return Path("chess/graphics/piece") / self.color.name.lower() / f"{self.__class__.__name__.lower()}.png"
 
 	@property
 	def rect(self) -> pygame.Rect:
 		return self.surf.get_rect(
-			center = self.square.rect.center,
-			bottom = self.square.rect.bottom + 20,
+			center = self.square.rect.center + chess.theme.PIECE_OFFSET,
 		) if self.square is not None else self.surf.get_rect()
 
 	@property
@@ -75,33 +87,12 @@ class Piece(chess.theme.Highlightable):
 	def squares(self) -> chess.algebra.Squares:
 		squares = self.targets.copy()
 
-		for square in self.targets.moves | self.targets.capts:
-			with self.test(square):
+		for step in self.targets:
+			with step:
 				if not self.king.safe:
-					squares.discard(square)
+					squares.discard(step)
 
 		return squares
-
-
-	@contextlib.contextmanager
-	def test(self, target: chess.algebra.Square):
-		assert (source := self.square) is not None
-
-		kept = self.game[target]
-
-		self.move(target, move = False             ); yield self
-		self.move(source, move = False, kept = kept)
-
-	def move(self, target: chess.algebra.Square,
-		move: bool = True,
-		kept: Piece | None = None,
-	) -> typing.Self:
-		assert (source := self.square) is not None
-
-		self.moved = self.moved or move
-		self.game[source], self.game[target] = kept, self.game[source]
-
-		return self
 
 
 	def clicked(self, event: pygame.event.Event) -> bool:
@@ -120,12 +111,7 @@ class Piece(chess.theme.Highlightable):
 
 class Ghost(Piece):
 
-	...
-
-
-class Officer(Piece):
-
-	...
+	width = 2
 
 
 class Melee(Piece):
@@ -135,18 +121,10 @@ class Melee(Piece):
 		targets = super().targets
 
 		if self.square is not None:
-			for move in self.steps.moves:
+			for move in self.moves:
 				try:
-					if chess.rules.Move(self, target := self.square + (move := move * self.color)):
-						targets.moves.add(target)
-
-				except ValueError:
-					continue
-
-			for capt in self.steps.capts:
-				try:
-					if chess.rules.Capt(self, target := self.square + capt * self.color):
-						targets.capts.add(target)
+					if step := chess.rules.Move(self.square + move, self): targets.add(step)
+					if step := chess.rules.Capt(self.square + move, self): targets.add(step)
 
 				except ValueError:
 					continue
@@ -161,71 +139,95 @@ class Ranged(Piece):
 		targets = super().targets
 
 		if self.square is not None:
-			for step in self.steps:
+			for move in self.moves:
 				target = self.square
 
 				try:
-					while chess.rules.Move(self, target := target + step):
-						targets.moves.add(target)
+					while step := chess.rules.Move(target := target + move, self):
+						targets.add(step)
 
 				except ValueError:
 					continue
 
-				if chess.rules.Capt(self, target):
-					targets.capts.add(target)
+				if step := chess.rules.Capt(target, self):
+					targets.add(step)
 
 		return targets
 
 
-class Assymetric(Piece):
+class Officer(Piece):
 
-	@property
-	def decal(self) -> pathlib.Path:
-		return super().decal.with_suffix(".flipped" + super().decal.suffix) if self.color else super().decal
+	width: int = 6
 
 
-class Pawn(Melee):
+class Pawn(Piece):
 
 	value: int = 1
+	width: int = 2
 
 	black: str = "\u265f"
 	white: str = "\u2659"
 
-	steps = chess.algebra.Vectors(
-		moves = {
-			chess.algebra.Vector.S,
-		},
-		capts = {
-			chess.algebra.Vector.SE,
-			chess.algebra.Vector.SW,
-		},
-		specs = {
-			chess.algebra.Vector.S2,
-		},
+	moves = chess.algebra.Vectors(
+		chess.algebra.Vector.S,
+	)
+	capts = chess.algebra.Vectors(
+		chess.algebra.Vector.SE,
+		chess.algebra.Vector.SW,
 	)
 
-	@property
-	def squares(self) -> chess.algebra.Squares:
-		squares = super().squares
 
-		if self.square is not None and not self.moved:
-			for move in self.steps.moves:
-				if  chess.rules.Move(self, square := self.square + move * self.color) \
-				and chess.rules.Move(self, square :=      square + move * self.color):
-					squares.specs.add(square)
-
-		return squares
-
-	def move(self, target: chess.algebra.Square,
+	def __call__(self, target: chess.algebra.Square,
 		move: bool = True,
 		kept: Piece | None = None,
-	) -> typing.Self:
+	) -> Self:
 		assert (source := self.square) is not None
 
-		if not self.moved and target == source + chess.algebra.Vector.S2 * self.color:
-			self.side.ghost = self.game[source + chess.algebra.Vector.S * self.color] = Piece(self.side)
+		if move:
+			if not self.moved and target == source + chess.algebra.Vector.S2 * self.color:
+				self.side.ghost = self.game[source + chess.algebra.Vector.S  * self.color] = Ghost(self.side)
 
-		return super().move(target, move, kept)
+			if isinstance(self.game[target], Ghost):
+				self.game[target + chess.algebra.Vector.N * self.color] = kept
+
+		return super().__call__(target, move, kept)
+
+
+	@property
+	def targets(self) -> chess.algebra.Squares:
+		targets = super().targets
+
+		if self.square is not None:
+			for move in self.moves:
+				try:
+					if step := chess.rules.Move(self.square + (move := move * self.color), self):
+						targets.add(step)
+
+						if step := chess.rules.Rush(self.square + move * 2, self):
+							targets.add(step)
+
+				except ValueError:
+					continue
+
+			for capt in self.capts:
+				try:
+					if step := chess.rules.Capt(self.square + capt * self.color, self):
+						targets.add(step)
+
+				except ValueError:
+					continue
+
+		return targets
+
+	@property
+	def rect(self) -> pygame.Rect:
+		return self.surf.get_rect(
+			center = self.square.rect.center + pygame.Vector2(
+				chess.theme.PIECE_OFFSET.x * 49 // 25,
+				chess.theme.PIECE_OFFSET.y * 25 // 24,
+			),
+		) if self.square is not None else self.surf.get_rect()
+
 
 	def promote(self, to: type):
 		if issubclass(to, Officer):
@@ -235,18 +237,24 @@ class Pawn(Melee):
 class Rook(Ranged, Officer):
 
 	value: int = 5
+	width: int = 5
 
 	black: str = "\u265c"
 	white: str = "\u2656"
 
-	steps = chess.algebra.Vectors(
-		moves = {
-			chess.algebra.Vector.N,
-			chess.algebra.Vector.E,
-			chess.algebra.Vector.S,
-			chess.algebra.Vector.W,
-		}
+	moves = chess.algebra.Vectors(
+		chess.algebra.Vector.N,
+		chess.algebra.Vector.E,
+		chess.algebra.Vector.S,
+		chess.algebra.Vector.W,
 	)
+
+
+class Assymetric(Officer):
+
+	@property
+	def decal(self) -> Path:
+		return super().decal.with_suffix(".flipped" + super().decal.suffix) if self.color else super().decal
 
 
 class Bishop(Ranged, Assymetric, Officer):
@@ -256,52 +264,49 @@ class Bishop(Ranged, Assymetric, Officer):
 	black: str = "\u265d"
 	white: str = "\u2657"
 
-	steps = chess.algebra.Vectors(
-		moves = {
-			chess.algebra.Vector.NE,
-			chess.algebra.Vector.SE,
-			chess.algebra.Vector.SW,
-			chess.algebra.Vector.NW,
-		}
+	moves = chess.algebra.Vectors(
+		chess.algebra.Vector.NE,
+		chess.algebra.Vector.SE,
+		chess.algebra.Vector.SW,
+		chess.algebra.Vector.NW,
 	)
 
 
 class Knight(Melee, Assymetric, Officer):
 
 	value: int = 3
+	width: int = 5
 
 	black: str = "\u265e"
 	white: str = "\u2658"
 
-#	steps = chess.algebra.Vectors(
-#		moves = {
-#			chess.algebra.Vector.N2E,
-#			chess.algebra.Vector.NE2,
-#			chess.algebra.Vector.SE2,
-#			chess.algebra.Vector.S2E,
-#			chess.algebra.Vector.S2W,
-#			chess.algebra.Vector.SW2,
-#			chess.algebra.Vector.NW2,
-#			chess.algebra.Vector.N2W,
-#		}
+#	moves = chess.algebra.Vectors(
+#		chess.algebra.Vector.N2E,
+#		chess.algebra.Vector.NE2,
+#		chess.algebra.Vector.SE2,
+#		chess.algebra.Vector.S2E,
+#		chess.algebra.Vector.S2W,
+#		chess.algebra.Vector.SW2,
+#		chess.algebra.Vector.NW2,
+#		chess.algebra.Vector.N2W,
 #	)
-	steps = Rook.steps * Bishop.steps - Rook.steps
+	moves = Rook.moves * Bishop.moves - Rook.moves
 
 
 class Star(Piece):
 
-#	steps = chess.algebra.Vectors(
-#		moves = {
+	width: int = 8
+
+#	moves = chess.algebra.Vectors(
 #			chess.algebra.Vector.N, chess.algebra.Vector.NE,
 #			chess.algebra.Vector.E, chess.algebra.Vector.SE,
 #			chess.algebra.Vector.S, chess.algebra.Vector.SW,
 #			chess.algebra.Vector.W, chess.algebra.Vector.NW,
-#		}
 #	)
-	steps = Rook.steps | Bishop.steps
+	moves = Rook.moves | Bishop.moves
 
 
-class Queen(Ranged, Officer, Star):
+class Queen(Ranged, Star, Officer):
 
 	value: int = 9
 
@@ -311,30 +316,26 @@ class Queen(Ranged, Officer, Star):
 
 class King(Melee, Star):
 
-	value: int = 0
-
 	black: str = "\u265a"
 	white: str = "\u2654"
 
-	steps = Star.steps | chess.algebra.Vectors(
-		specs = {
-			chess.algebra.Vector.W2,
-			chess.algebra.Vector.E2,
-		}
+	specs = chess.algebra.Vectors(
+		chess.algebra.Vector.W2,
+		chess.algebra.Vector.E2,
 	)
 
 
-	def move(self, target: chess.algebra.Square,
+	def __call__(self, target: chess.algebra.Square,
 		move: bool = True,
 		kept: Piece | None = None,
-	) -> typing.Self:
+	) -> Self:
 		assert (source := self.square) is not None
 
 		if not self.moved and move:
-			if target == source + chess.algebra.Vector.E2: self.side.east_rook.move(target + chess.algebra.Vector.W, move, kept)
-			if target == source + chess.algebra.Vector.W2: self.side.west_rook.move(target + chess.algebra.Vector.E, move, kept)
+			if target == source + chess.algebra.Vector.E2: self.side.east_rook(target + chess.algebra.Vector.W, move, kept)
+			if target == source + chess.algebra.Vector.W2: self.side.west_rook(target + chess.algebra.Vector.E, move, kept)
 
-		return super().move(target, move, kept)
+		return super().__call__(target, move, kept)
 
 
 	@property
@@ -342,12 +343,13 @@ class King(Melee, Star):
 		squares = super().squares
 
 		if self.square is not None and not self.moved:
-			if chess.rules.CastleWest(self.side): squares.specs.add(self.square + chess.algebra.Vector.W2)
-			if chess.rules.CastleEast(self.side): squares.specs.add(self.square + chess.algebra.Vector.E2)
+			if step := chess.rules.CastWest(self.square + chess.algebra.Vector.W2, self): squares.add(step)
+			if step := chess.rules.CastEast(self.square + chess.algebra.Vector.E2, self): squares.add(step)
 
 		return squares
 
 	@property
 	def safe(self) -> bool:
 		assert self.square is not None
+	#	print([piece for piece in self.side.other if piece.square is not None], flush = True)
 		return self.square not in self.side.other.targets.capts
