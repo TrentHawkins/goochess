@@ -100,11 +100,6 @@ class Move(Base, chess.algebra.square):
 #	def target(self) -> chess.algebra.Square:
 #		return chess.algebra.Square(self)
 
-	@property
-	def step(self) -> chess.algebra.vector:
-		assert self.source is not None
-		return self.target - self.source
-
 
 	def highlight(self, screen: pygame.Surface,
 		width: int = 1,
