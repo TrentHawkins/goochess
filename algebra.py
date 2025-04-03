@@ -5,12 +5,15 @@ from enum import Enum
 from itertools import product
 from pathlib import Path
 import re
-from typing import Self
+from typing import TYPE_CHECKING, Self
 
 import pygame
 
 import chess
 import chess.theme
+
+if TYPE_CHECKING:
+	import chess.rules
 
 
 class Color(int, Enum):
@@ -129,17 +132,16 @@ class Vector(vector, Enum,
 		return representation
 
 
-class Vectors(chess.collection[Vector]):
+class Vectors(chess.collection[vector]):
 
-	def __mul__(self, other: Self, /) -> Self:
-		return self.__class__(
-			(left + right for left, right in product(self.moves, other.moves)),
-			(left + right for left, right in product(self.capts, other.capts)),
-		#	(left + right for left, right in product(self.specs, other.specs)),
-		)
+	def __mul__(self, other: Vectors, /) -> Vectors:
+		return Vectors(*(left + right for left in self for right in other))
 
 
 class square(int, chess.theme.Highlightable):
+
+	highlight_color: chess.theme.RGB
+
 
 	def __new__(cls, x: int, *_):
 		return super().__new__(cls, x)
@@ -188,11 +190,8 @@ class square(int, chess.theme.Highlightable):
 		)
 
 	def highlight(self, screen: pygame.Surface,
-		highlight_color: chess.theme.RGB | None = None,
 		width: int = 1,
 	):
-		color = highlight_color if highlight_color is not None else self.highlight_color
-
 		rect = self.rect.inflate(
 			-self.rect.width  // (width + 1) * 24 // 25,
 			-self.rect.height // (width + 1) * 24 // 25,
@@ -204,11 +203,11 @@ class square(int, chess.theme.Highlightable):
 			flags = pygame.SRCALPHA,
 		)
 
-		pygame.draw.ellipse(surf, color, surf.get_rect())
+		pygame.draw.ellipse(surf, self.highlight_color, surf.get_rect())
 		screen.blit(surf, rect,
 			special_flags = pygame.BLEND_RGB_ADD,
 		)
-	#	screen.fill(highlight_color if highlight_color is not None else self.highlight_color, self.rect,
+	#	screen.fill(self.highlight_color, self.rect,
 	#		special_flags = pygame.BLEND_RGB_ADD,
 	#	)
 
@@ -256,11 +255,20 @@ class Square(square, Enum):
 			yield cls(square)
 
 
-class Squares(chess.collection[Square]):
+class Squares(chess.collection[square]):
 
-	def __add__(self, other: Vectors, /) -> Self:
-		return self.__class__(
-			(square + vector for square, vector in product(self.moves, other.moves)),
-			(square + vector for square, vector in product(self.capts, other.capts)),
-			(square + vector for square, vector in product(self.specs, other.specs)),
-		)
+	def __add__(self, other: Vectors, /) -> Squares:
+		return Squares(*(left + right for left in self for right in other))
+
+
+	@property
+	def moves(self) -> Squares:
+		return self.filter(chess.rules.Move)
+
+	@property
+	def capts(self) -> Squares:
+		return self.filter(chess.rules.Capt)
+
+	@property
+	def specs(self) -> Squares:
+		return self.filter(chess.rules.Spec)
