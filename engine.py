@@ -4,7 +4,7 @@ from __future__ import annotations
 from datetime import datetime
 from itertools import cycle
 from pathlib import Path
-from typing import Iterable, Self, cast
+from typing import SupportsIndex, Iterable, Self, cast
 
 import pygame
 
@@ -71,7 +71,7 @@ class Board(list[Piece], chess.theme.Drawable):
 		target: chess.algebra.Square,
 	):
 		if target != source and (piece := self[source]) is not None:
-			piece.__call__(target)
+			piece(target)
 
 
 class Side(list[chess.material.Piece]):
@@ -123,6 +123,10 @@ class Side(list[chess.material.Piece]):
 		return self.game.white if self.color else self.game.black
 
 	@property
+	def history(self) -> list[chess.rules.Base]:
+		return self.game.history[bool(self.color)::2]
+
+	@property
 	def king(self) -> chess.material.King:
 		return cast(chess.material.King,
 			self[
@@ -160,16 +164,21 @@ class History(list[chess.rules.Base]):
 
 	@property
 	def current(self) -> Side:
-		return self.game.white if len(self) % 2 == 0 else self.game.black
+		return self.game.black if len(self) & 1 else self.game.white
 
 	@property
 	def last(self) -> chess.rules.Base | None:
-		return self[-1] if self else None
+		return self.get(-1)
 
+
+	def get(self, index: SupportsIndex,
+		default: chess.rules.Base | None = None,
+	) -> chess.rules.Base | None:
+		try: return self[index]
+		except IndexError: return default
 
 	def append(self, rule: chess.rules.Base):
 		super().append(rule)
-
 
 
 class Game(Board):
@@ -219,7 +228,7 @@ class Game(Board):
 			if square.clicked(event):
 				if self.selected is not None:
 					if square in self.selected.squares and self.selected.side:
-						self.selected.__call__(square)
+						self.selected(square)
 						self.history.append(square)  # type: ignore
 
 					self.selected = None

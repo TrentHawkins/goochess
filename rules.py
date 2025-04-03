@@ -58,7 +58,6 @@ class Move(Base, chess.algebra.square):
 		return repr(self.piece) + repr(self.source) + "-" + repr(self.target)
 
 	def __call__(self):
-		self.other = self.game[self.target]
 		self.piece(self.target,
 			kept = self.other,
 		)

@@ -123,8 +123,8 @@ class Melee(Piece):
 		if self.square is not None:
 			for move in self.moves:
 				try:
-					if step := chess.rules.Move(self.square + (move := move * self.color), self): targets.add(step)
-					if step := chess.rules.Capt(self.square + (move := move * self.color), self): targets.add(step)
+					if step := chess.rules.Move(self.square + move, self): targets.add(step)
+					if step := chess.rules.Capt(self.square + move, self): targets.add(step)
 
 				except ValueError:
 					continue
@@ -185,7 +185,7 @@ class Pawn(Piece):
 
 		if move:
 			if not self.moved and target == source + chess.algebra.Vector.S2 * self.color:
-				self.side.ghost = self.game[source + chess.algebra.Vector.S * self.color] = Ghost(self.side)
+				self.side.ghost = self.game[source + chess.algebra.Vector.S  * self.color] = Ghost(self.side)
 
 			if isinstance(self.game[target], Ghost):
 				self.game[target + chess.algebra.Vector.N * self.color] = kept
@@ -351,4 +351,5 @@ class King(Melee, Star):
 	@property
 	def safe(self) -> bool:
 		assert self.square is not None
+	#	print([piece for piece in self.side.other if piece.square is not None], flush = True)
 		return self.square not in self.side.other.targets.capts
