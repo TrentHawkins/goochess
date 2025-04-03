@@ -57,7 +57,7 @@ class Move(Base, chess.algebra.square):
 	def __repr__(self) -> str:
 		return repr(self.piece) + repr(self.source) + "-" + repr(self.target)
 
-	def __call__(self):
+	def __call__(self) -> Self:
 		self.piece(self.target)
 
 		return self
@@ -131,11 +131,31 @@ class Spec(Move):
 
 class Rush(Spec):
 
+	def __init__(self, square: chess.algebra.Square, piece: chess.material.Piece):
+		super().__init__(square, piece)
+
+		assert self.source is not None; self.middle = self.source + chess.algebra.Vector.S * self.side.color
+
+	def __call__(self) -> Self:
+		self.side.ghost = self.game[self.middle] = chess.material.Ghost(self.side)
+
+		return super().__call__()
+
 	def __bool__(self) -> bool:
 		return not self.piece.moved and super().__bool__()
 
 
 class EnPassant(Capt):
+
+	def __init__(self, square: chess.algebra.Square, piece: chess.material.Piece):
+		super().__init__(square, piece)
+
+		assert self.source is not None; self.middle = self.target + chess.algebra.Vector.N * self.side.other.color
+
+	def __call__(self) -> Self:
+		del self.game[self.middle]
+
+		return super().__call__()
 
 	def __bool__(self) -> bool:
 		return self.other is not None and isinstance(self.other, chess.material.Ghost) and super().__bool__()

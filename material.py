@@ -111,12 +111,7 @@ class Piece(chess.theme.Highlightable):
 
 class Ghost(Piece):
 
-	width = 0
-
-
-	@property
-	def decal(self) -> Path:
-		return Path("chess/graphics/piece") / self.color.name.lower() / f"pawn.png"
+	width = 1
 
 
 class Melee(Piece):
@@ -182,20 +177,19 @@ class Pawn(Piece):
 	)
 
 
-	def __call__(self, target: chess.algebra.Square,
-		move: bool = True,
-		kept: Piece | None = None,
-	) -> Self:
-		assert (source := self.square) is not None
-
-		if move:
-			if not self.moved and target == source + chess.algebra.Vector.S2 * self.color:
-				self.side.ghost = self.game[source + chess.algebra.Vector.S  * self.color] = Ghost(self.side)
-
-			if isinstance(self.game[target], Ghost):
-				self.game[target + chess.algebra.Vector.N * self.color] = kept
-
-		return super().__call__(target, move, kept)
+#	def __call__(self, target: chess.algebra.Square,
+#		move: bool = True,
+#		kept: Piece | None = None,
+#	) -> Self:
+#		assert (source := self.square) is not None
+#
+#		if move and not self.moved and target == source + chess.algebra.Vector.S2 * self.color:
+#			self.side.ghost = self.game[source + chess.algebra.Vector.S  * self.color] = Ghost(self.side)
+#
+#		if move and isinstance(self.game[target], Ghost):
+#			self.game[target + chess.algebra.Vector.N * self.color] = kept
+#
+#		return super().__call__(target, move, kept)
 
 
 	@property
@@ -216,9 +210,8 @@ class Pawn(Piece):
 
 			for capt in self.capts:
 				try:
-					if step := chess.rules.Capt(square := self.square + capt * self.color, self) \
-					or chess.rules.EnPassant(square, self):
-						targets.add(step)
+					if step := chess.rules.EnPassant(square := self.square + capt * self.color, self): targets.add(step)
+					if step := chess.rules.Capt     (square                                   , self): targets.add(step)
 
 				except ValueError:
 					continue
