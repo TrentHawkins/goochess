@@ -102,8 +102,9 @@ class Move(Base, chess.algebra.square):
 
 	def highlight(self, screen: pygame.Surface,
 		width: int = 1,
+		thick: int = 0,
 	):
-		return super().highlight(screen, width)
+		return super().highlight(screen, width, thick)
 
 
 class Capt(Move):
@@ -121,7 +122,7 @@ class Capt(Move):
 	def highlight(self, screen: pygame.Surface,
 		width: int = 1,
 	):
-		return super().highlight(screen, self.other.width if self.other is not None else width)
+		return super().highlight(screen, self.other.width if self.other is not None else width, 8)
 
 
 class Spec(Move):

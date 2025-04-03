@@ -191,6 +191,7 @@ class square(int, chess.theme.Highlightable):
 
 	def highlight(self, screen: pygame.Surface,
 		width: int = 1,
+		thick: int = 0,
 	):
 		rect = self.rect.inflate(
 			-self.rect.width  // (width + 1) * 24 // 25,
@@ -203,7 +204,7 @@ class square(int, chess.theme.Highlightable):
 			flags = pygame.SRCALPHA,
 		)
 
-		pygame.draw.ellipse(surf, self.highlight_color, surf.get_rect())
+		pygame.draw.ellipse(surf, self.highlight_color, surf.get_rect(), thick)
 		screen.blit(surf, rect,
 			special_flags = pygame.BLEND_RGB_ADD,
 		)

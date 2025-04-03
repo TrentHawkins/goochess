@@ -111,7 +111,7 @@ class Piece(chess.theme.Highlightable):
 
 class Ghost(Piece):
 
-	width = 1
+	width = 2
 
 
 class Melee(Piece):
