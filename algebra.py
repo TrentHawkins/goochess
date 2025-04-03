@@ -5,12 +5,15 @@ from enum import Enum
 from itertools import product
 from pathlib import Path
 import re
-from typing import Self
+from typing import TYPE_CHECKING, Self
 
 import pygame
 
 import chess
 import chess.theme
+
+if TYPE_CHECKING:
+	import chess.rules
 
 
 class Color(int, Enum):
@@ -129,19 +132,21 @@ class Vector(vector, Enum,
 		return representation
 
 
-class Vectors(chess.collection[Vector]):
+class Vectors(chess.collection[vector]):
 
-	def __mul__(self, other: Self, /) -> Self:
-		return self.__class__(
-			(left + right for left, right in product(self.moves, other.moves)),
-			(left + right for left, right in product(self.capts, other.capts)),
-		#	(left + right for left, right in product(self.specs, other.specs)),
-		)
+	def __mul__(self, other: Vectors, /) -> Vectors:
+		return Vectors(*(left + right for left in self for right in other))
 
 
 class square(int, chess.theme.Highlightable):
 
-	def __init__(self, *args):
+	highlight_color: chess.theme.RGB
+
+
+	def __new__(cls, x: int, *_):
+		return super().__new__(cls, x)
+
+	def __init__(self, x: int, *args):
 		super().__init__(*args)
 
 		self.black = chess.theme.BLACK
@@ -154,20 +159,6 @@ class square(int, chess.theme.Highlightable):
 			),
 			pygame.Vector2(*chess.theme.SQUARE),
 		)
-
-	def __add__(self, other: Vector) -> Self  : return self.__class__(File(self.file + other.file) + Rank(self.rank + other.rank))
-	def __sub__(self, other: Self  ) -> Vector: return Vector        (     self.file - other.file,        self.rank - other.rank )
-
-	def __mul__(self, color: Color) -> Self:
-		return +self if color else ~self
-
-	def __pos__   (self) -> Self: return self.__class__(       self)
-	def __neg__   (self) -> Self: return self.__class__(0o77 - self)
-	def __invert__(self) -> Self: return self.__class__(self ^ 0o70)
-
-	def __iadd__(self, other: Vector) -> Self  : return self + other
-	def __isub__(self, other: Self  ) -> Vector: return self - other
-	def __imul__(self, color: Color ) -> square: return self * color
 
 
 	@property
@@ -182,10 +173,10 @@ class square(int, chess.theme.Highlightable):
 	def color(self) -> Color:
 		return Color((((self.rank >> 3) + self.file & 1) << 1) - 1)
 
-
 	@property
 	def decal(self) -> Path:
 		return Path("chess/graphics/board/bevel.png")
+
 
 	def clicked(self, event: pygame.event.Event) -> bool:
 		return event.type == pygame.MOUSEBUTTONDOWN and event.button == 1 and self.rect.collidepoint(event.pos)
@@ -199,11 +190,8 @@ class square(int, chess.theme.Highlightable):
 		)
 
 	def highlight(self, screen: pygame.Surface,
-		highlight_color: chess.theme.RGB | None = None,
 		width: int = 1,
 	):
-		color = highlight_color if highlight_color is not None else self.highlight_color
-
 		rect = self.rect.inflate(
 			-self.rect.width  // (width + 1) * 24 // 25,
 			-self.rect.height // (width + 1) * 24 // 25,
@@ -215,11 +203,11 @@ class square(int, chess.theme.Highlightable):
 			flags = pygame.SRCALPHA,
 		)
 
-		pygame.draw.ellipse(surf, color, surf.get_rect())
+		pygame.draw.ellipse(surf, self.highlight_color, surf.get_rect())
 		screen.blit(surf, rect,
 			special_flags = pygame.BLEND_RGB_ADD,
 		)
-	#	screen.fill(highlight_color if highlight_color is not None else self.highlight_color, self.rect,
+	#	screen.fill(self.highlight_color, self.rect,
 	#		special_flags = pygame.BLEND_RGB_ADD,
 	#	)
 
@@ -240,6 +228,20 @@ class Square(square, Enum):
 	def __repr__(self) -> str:
 		return self.name.lower()
 
+	def __add__(self, other: Vector) -> Square: return Square(File(self.file + other.file) + Rank(self.rank + other.rank))
+	def __sub__(self, other: Square) -> Vector: return Vector(     self.file - other.file,        self.rank - other.rank )
+
+	def __mul__(self, color: Color) -> Square:
+		return +self if color else ~self
+
+	def __pos__   (self) -> Square: return Square(       self)
+	def __neg__   (self) -> Square: return Square(0o77 - self)
+	def __invert__(self) -> Square: return Square(self ^ 0o70)
+
+	def __iadd__(self, other: Vector) -> Square: return self + other
+	def __isub__(self, other: Square) -> Vector: return self - other
+	def __imul__(self, color: Color ) -> Square: return self * color
+
 
 	@classmethod
 	def fromnotation(cls, notation: str) -> Self:
@@ -253,11 +255,20 @@ class Square(square, Enum):
 			yield cls(square)
 
 
-class Squares(chess.collection[Square]):
+class Squares(chess.collection[square]):
 
-	def __add__(self, other: Vectors, /) -> Self:
-		return self.__class__(
-			(square + vector for square, vector in product(self.moves, other.moves)),
-			(square + vector for square, vector in product(self.capts, other.capts)),
-			(square + vector for square, vector in product(self.specs, other.specs)),
-		)
+	def __add__(self, other: Vectors, /) -> Squares:
+		return Squares(*(left + right for left in self for right in other))
+
+
+	@property
+	def moves(self) -> Squares:
+		return self.filter(chess.rules.Move)
+
+	@property
+	def capts(self) -> Squares:
+		return self.filter(chess.rules.Capt)
+
+	@property
+	def specs(self) -> Squares:
+		return self.filter(chess.rules.Spec)

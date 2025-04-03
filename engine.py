@@ -2,9 +2,9 @@ from __future__ import annotations
 
 
 from datetime import datetime
-import os
-import pathlib
-import typing
+from itertools import cycle
+from pathlib import Path
+from typing import Iterable, Self, cast
 
 import pygame
 
@@ -35,7 +35,7 @@ class Board(list[Piece], chess.theme.Drawable):
 	def __repr__(self) -> str:
 		...  # TODO: FEN (part)
 
-	def __setitem__(self, key: chess.algebra.square | slice, value: Piece | typing.Iterable[Piece]):
+	def __setitem__(self, key: chess.algebra.square | slice, value: Piece | Iterable[Piece]):
 		if isinstance(key, chess.algebra.square): key = slice(int(key), int(key) + 1, +1)
 		if isinstance(value, Piece): value = [value]
 
@@ -49,13 +49,13 @@ class Board(list[Piece], chess.theme.Drawable):
 
 		self[key] = [None] * len(range(*key.indices(len(self))))
 
-	def __iadd__(self, rule: chess.rules.Base) -> typing.Self:
+	def __iadd__(self, rule: chess.rules.Base) -> Self:
 		rule(); return self
 
 
 	@property
-	def decal(self) -> pathlib.Path:
-		return pathlib.Path("chess/graphics/board/stone1.jpg")
+	def decal(self) -> Path:
+		return Path("chess/graphics/board/stone1.jpg")
 
 
 	def update(self, square: chess.algebra.Square,
@@ -71,45 +71,7 @@ class Board(list[Piece], chess.theme.Drawable):
 		target: chess.algebra.Square,
 	):
 		if target != source and (piece := self[source]) is not None:
-			piece.move(target)
-
-	def draw(self, screen: pygame.Surface):
-		for square in chess.algebra.Square:
-			square.draw(screen)
-
-		super().draw(screen,
-			special_flags = pygame.BLEND_RGBA_MULT,
-		)
-
-		if self.selected is not None:
-			for square in self.selected.squares.moves: square.highlight(screen, chess.theme.GREEN)
-			for square in self.selected.squares.specs: square.highlight(screen, chess.theme.BLUE )
-			for square in self.selected.squares.capts: square.highlight(screen, chess.theme.RED  ,
-				width = self[square].width if self[square] is not None else 0,  # type: ignore
-			)
-
-		for piece in self:
-			if piece is not None:
-				piece.draw(screen)
-
-				if piece is self.selected:
-					piece.highlight(screen)
-
-	def clicked(self, event: pygame.event.Event) -> bool:
-		for square in chess.algebra.Square:
-			if square.clicked(event):
-				if self.selected is not None:
-					if square in self.selected.squares:
-						self.selected.move(square)
-
-					self.selected = None
-
-				else:
-					self.selected = self[square]
-
-				return True
-
-		return False
+			piece.__call__(target)
 
 
 class Side(list[chess.material.Piece]):
@@ -144,6 +106,9 @@ class Side(list[chess.material.Piece]):
 
 		self.ghost = chess.material.Piece(self)
 
+	def __bool__(self) -> bool:
+		return self is self.game.history.current
+
 
 	@property
 	def material(self) -> int:
@@ -154,16 +119,12 @@ class Side(list[chess.material.Piece]):
 		return chess.algebra.Squares.union(*(piece.targets for piece in self))
 
 	@property
-	def p_targets(self) -> chess.algebra.Squares:
-		return chess.algebra.Squares.union(*(piece.targets for piece in self if piece is not self.king))
-
-	@property
 	def other(self) -> Side:
 		return self.game.white if self.color else self.game.black
 
 	@property
 	def king(self) -> chess.material.King:
-		return typing.cast(chess.material.King,
+		return cast(chess.material.King,
 			self[
 				chess.algebra.Square.E8 if self.color else
 				chess.algebra.Square.D8
@@ -172,7 +133,7 @@ class Side(list[chess.material.Piece]):
 
 	@property
 	def west_rook(self) -> chess.material.Rook:
-		return typing.cast(chess.material.Rook,
+		return cast(chess.material.Rook,
 			self[
 				chess.algebra.Square.A8 if self.color else
 				chess.algebra.Square.H8
@@ -181,12 +142,34 @@ class Side(list[chess.material.Piece]):
 
 	@property
 	def east_rook(self) -> chess.material.Rook:
-		return typing.cast(chess.material.Rook,
+		return cast(chess.material.Rook,
 			self[
 				chess.algebra.Square.H8 if self.color else
 				chess.algebra.Square.A8
 			]
 		)
+
+
+class History(list[chess.rules.Base]):
+
+	def __init__(self, game: Game):
+		super().__init__()
+
+		self.game = game
+
+
+	@property
+	def current(self) -> Side:
+		return self.game.white if len(self) % 2 == 0 else self.game.black
+
+	@property
+	def last(self) -> chess.rules.Base | None:
+		return self[-1] if self else None
+
+
+	def append(self, rule: chess.rules.Base):
+		super().append(rule)
+
 
 
 class Game(Board):
@@ -200,8 +183,51 @@ class Game(Board):
 		self[+chess.algebra.Square.A8:+chess.algebra.Square.A6:chess.algebra.Color.BLACK] = self.black
 		self[-chess.algebra.Square.A8:-chess.algebra.Square.A6:chess.algebra.Color.WHITE] = self.white
 
+		self.history = History(self)
+
+	def __next__(self) -> Side:
+		return self.history.current
+
 	def __repr__(self) -> str:
 		...  # TODO: FEN (full)
 
 	def __hash__(self) -> int:
 		return hash(datetime.now().timestamp())
+
+
+	def draw(self, screen: pygame.Surface):
+		for square in chess.algebra.Square:
+			square.draw(screen)
+
+		super().draw(screen,
+			special_flags = pygame.BLEND_RGBA_MULT,
+		)
+
+		if self.selected is not None:
+			for square in self.selected.squares:
+				square.highlight(screen)
+
+		for piece in self:
+			if piece is not None:
+				piece.draw(screen)
+
+				if piece is self.selected:
+					piece.highlight(screen)
+
+	def clicked(self, event: pygame.event.Event) -> bool:
+		for square in chess.algebra.Square:
+			if square.clicked(event):
+				if self.selected is not None:
+					if square in self.selected.squares and self.selected.side:
+						self.selected.__call__(square)
+						self.history.append(square)  # type: ignore
+
+					self.selected = None
+
+				else:
+					piece = self[square]
+					self.selected = piece if piece is not None and piece.side else None
+
+				return True
+
+		return False

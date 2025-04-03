@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 
-import pygame;
+import pygame
 
 import chess.theme
 import chess.engine
