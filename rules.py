@@ -58,9 +58,7 @@ class Move(Base, chess.algebra.square):
 		return repr(self.piece) + repr(self.source) + "-" + repr(self.target)
 
 	def __call__(self):
-		self.piece(self.target,
-			kept = self.other,
-		)
+		self.piece(self.target)
 
 		return self
 
@@ -135,6 +133,12 @@ class Rush(Spec):
 
 	def __bool__(self) -> bool:
 		return not self.piece.moved and super().__bool__()
+
+
+class EnPassant(Capt):
+
+	def __bool__(self) -> bool:
+		return self.other is not None and isinstance(self.other, chess.material.Ghost) and super().__bool__()
 
 
 class Promote(Spec):

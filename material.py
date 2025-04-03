@@ -111,7 +111,12 @@ class Piece(chess.theme.Highlightable):
 
 class Ghost(Piece):
 
-	width = 2
+	width = 0
+
+
+	@property
+	def decal(self) -> Path:
+		return Path("chess/graphics/piece") / self.color.name.lower() / f"pawn.png"
 
 
 class Melee(Piece):
@@ -211,7 +216,8 @@ class Pawn(Piece):
 
 			for capt in self.capts:
 				try:
-					if step := chess.rules.Capt(self.square + capt * self.color, self):
+					if step := chess.rules.Capt(square := self.square + capt * self.color, self) \
+					or chess.rules.EnPassant(square, self):
 						targets.add(step)
 
 				except ValueError:
