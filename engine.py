@@ -71,7 +71,7 @@ class Board(list[Piece], chess.theme.Drawable):
 		target: chess.algebra.Square,
 	):
 		if target != source and (piece := self[source]) is not None:
-			piece.move(target)
+			piece.__call__(target)
 
 
 class Side(list[chess.material.Piece]):
@@ -219,7 +219,7 @@ class Game(Board):
 			if square.clicked(event):
 				if self.selected is not None:
 					if square in self.selected.squares and self.selected.side:
-						self.selected.move(square)
+						self.selected.__call__(square)
 						self.history.append(square)  # type: ignore
 
 					self.selected = None

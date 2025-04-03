@@ -48,14 +48,18 @@ class Move(Base, chess.algebra.square):
 	def __init__(self, square: chess.algebra.Square, piece: chess.material.Piece):
 		super(Base, self).__init__(square)
 
+		self.source = piece.square
+		self.target = chess.algebra.Square(square)
+
 		self.piece = piece
-		self.other: chess.material.Piece | None = self.game[self.target]
+		self.other = self.game[self.target]
 
 	def __repr__(self) -> str:
 		return repr(self.piece) + repr(self.source) + "-" + repr(self.target)
 
 	def __call__(self):
-		self.piece.move(self.target,
+		self.other = self.game[self.target]
+		self.piece(self.target,
 			kept = self.other,
 		)
 
@@ -63,15 +67,20 @@ class Move(Base, chess.algebra.square):
 		return (other := self.game[self.target]) is None or isinstance(other, chess.material.Ghost)
 
 	def __enter__(self) -> Self:
-		self.other = self.game[self.target]
-		self.piece.move(self.target,
+		self.piece(self.target,
 			move = False,
 		)
 
 		return self
 
-	def __exit__(self, *args):
-		self.piece.move(self.source,
+	def __exit__(self,
+		exc_type: type[Base] | None,
+		exc_value: Base | None,
+		traceback: Base | None,
+	):
+		assert self.source is not None
+
+		self.piece(self.source,
 			move = False,
 			kept = self.other,
 		)
@@ -82,23 +91,19 @@ class Move(Base, chess.algebra.square):
 	def side(self) -> chess.engine.Side:
 		return self.piece.side
 
-	@property
-	def source(self) -> chess.algebra.Square:
-		assert self.piece.square is not None
-		return self.piece.square
+#	@property
+#	def source(self) -> chess.algebra.Square:
+#		assert self.piece.square is not None
+#		return self.piece.square
 
-	@property
-	def target(self) -> chess.algebra.Square:
-		return chess.algebra.Square(self)
+#	@property
+#	def target(self) -> chess.algebra.Square:
+#		return chess.algebra.Square(self)
 
 	@property
 	def step(self) -> chess.algebra.vector:
+		assert self.source is not None
 		return self.target - self.source
-
-	@property
-	def with_safe_king(self) -> bool:
-		with self.piece.test(self.target):
-			return bool(self) and self.king.safe
 
 
 	def highlight(self, screen: pygame.Surface,
@@ -134,11 +139,6 @@ class Rush(Spec):
 
 	def __bool__(self) -> bool:
 		return not self.piece.moved and super().__bool__()
-
-
-	@property
-	def middle(self) -> chess.algebra.Square:
-		return self.source + (self.target - self.source) // 2
 
 
 class Promote(Spec):

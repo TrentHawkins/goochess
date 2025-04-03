@@ -45,6 +45,17 @@ class Piece(chess.theme.Highlightable):
 	def __repr__(self) -> str:
 		return self.black if self.color else self.white
 
+	def __call__(self, target: chess.algebra.Square,
+		move: bool = True,
+		kept: Piece | None = None,
+	) -> Self:
+		assert (source := self.square) is not None
+
+		self.moved = self.moved or move
+		self.game[source], self.game[target] = kept, self.game[source]
+
+		return self
+
 
 	@property
 	def decal(self) -> Path:
@@ -77,32 +88,11 @@ class Piece(chess.theme.Highlightable):
 		squares = self.targets.copy()
 
 		for step in self.targets:
-			with self.test(step):
+			with step:
 				if not self.king.safe:
 					squares.discard(step)
 
 		return squares
-
-
-	@contextmanager
-	def test(self, target: chess.algebra.Square):
-		assert (source := self.square) is not None
-
-		kept = self.game[target]
-
-		self.move(target, move = False             ); yield self
-		self.move(source, move = False, kept = kept)
-
-	def move(self, target: chess.algebra.Square,
-		move: bool = True,
-		kept: Piece | None = None,
-	) -> Self:
-		assert (source := self.square) is not None
-
-		self.moved = self.moved or move
-		self.game[source], self.game[target] = kept, self.game[source]
-
-		return self
 
 
 	def clicked(self, event: pygame.event.Event) -> bool:
@@ -186,6 +176,23 @@ class Pawn(Piece):
 		chess.algebra.Vector.SW,
 	)
 
+
+	def __call__(self, target: chess.algebra.Square,
+		move: bool = True,
+		kept: Piece | None = None,
+	) -> Self:
+		assert (source := self.square) is not None
+
+		if move:
+			if not self.moved and target == source + chess.algebra.Vector.S2 * self.color:
+				self.side.ghost = self.game[source + chess.algebra.Vector.S * self.color] = Ghost(self.side)
+
+			if isinstance(self.game[target], Ghost):
+				self.game[target + chess.algebra.Vector.N * self.color] = kept
+
+		return super().__call__(target, move, kept)
+
+
 	@property
 	def targets(self) -> chess.algebra.Squares:
 		targets = super().targets
@@ -221,30 +228,6 @@ class Pawn(Piece):
 			),
 		) if self.square is not None else self.surf.get_rect()
 
-
-	@contextmanager
-	def test(self, target: chess.algebra.Square):
-		assert (source := self.square) is not None
-
-		kept = self.game[target]
-
-		self.move(target, move = False             ); yield self
-		self.move(source, move = False, kept = kept)
-
-	def move(self, target: chess.algebra.Square,
-		move: bool = True,
-		kept: Piece | None = None,
-	) -> Self:
-		assert (source := self.square) is not None
-
-		if move:
-			if not self.moved and target == source + chess.algebra.Vector.S2 * self.color:
-				self.side.ghost = self.game[source + chess.algebra.Vector.S * self.color] = Ghost(self.side)
-
-			if isinstance(self.game[target], Ghost):
-				self.game[target + chess.algebra.Vector.N * self.color] = kept
-
-		return super().move(target, move, kept)
 
 	def promote(self, to: type):
 		if issubclass(to, Officer):
@@ -342,17 +325,17 @@ class King(Melee, Star):
 	)
 
 
-	def move(self, target: chess.algebra.Square,
+	def __call__(self, target: chess.algebra.Square,
 		move: bool = True,
 		kept: Piece | None = None,
 	) -> Self:
 		assert (source := self.square) is not None
 
 		if not self.moved and move:
-			if target == source + chess.algebra.Vector.E2: self.side.east_rook.move(target + chess.algebra.Vector.W, move, kept)
-			if target == source + chess.algebra.Vector.W2: self.side.west_rook.move(target + chess.algebra.Vector.E, move, kept)
+			if target == source + chess.algebra.Vector.E2: self.side.east_rook(target + chess.algebra.Vector.W, move, kept)
+			if target == source + chess.algebra.Vector.W2: self.side.west_rook(target + chess.algebra.Vector.E, move, kept)
 
-		return super().move(target, move, kept)
+		return super().__call__(target, move, kept)
 
 
 	@property
