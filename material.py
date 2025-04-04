@@ -105,13 +105,8 @@ class Piece(chess.theme.Highlightable):
 		if self.square is not None:
 			screen.blit(
 				self.surf,
-				self.rect,
+				self.rect
 			)
-
-
-class Ghost(Piece):
-
-	width = 2
 
 
 class Melee(Piece):
@@ -235,6 +230,11 @@ class Pawn(Piece):
 	def promote(self, to: type):
 		if issubclass(to, Officer):
 			self.__class__ = to  # type: ignore
+
+class Ghost(Pawn):
+
+	def draw(self, screen: pygame.Surface):
+		...
 
 
 class Rook(Ranged, Officer):

@@ -2,6 +2,7 @@ from __future__ import annotations
 
 
 from abc import ABC, abstractmethod
+from copy import copy
 from typing import TYPE_CHECKING, Self
 
 import pygame
@@ -100,11 +101,8 @@ class Move(Base, chess.algebra.square):
 #		return chess.algebra.Square(self)
 
 
-	def highlight(self, screen: pygame.Surface,
-		width: int = 1,
-		thick: int = 0,
-	):
-		return super().highlight(screen, width, thick)
+	def highlight(self, screen: pygame.Surface, *args, **kwargs):
+		return super().highlight(screen, *args, **kwargs)
 
 
 class Capt(Move):
@@ -160,6 +158,17 @@ class EnPassant(Capt):
 
 	def __bool__(self) -> bool:
 		return self.other is not None and isinstance(self.other, chess.material.Ghost) and super().__bool__()
+
+
+	def highlight(self, screen: pygame.Surface, **kwargs):
+		super().highlight(screen, **kwargs)
+
+		if self.other is not None:
+			surf = copy(self.other.surf)
+			surf.fill((*chess.theme.WHITE, 170),
+				special_flags = pygame.BLEND_RGBA_MULT,
+			)
+			screen.blit(surf, self.other.rect)
 
 
 class Promote(Spec):
