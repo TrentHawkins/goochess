@@ -197,21 +197,25 @@ class Pawn(Piece):
 		targets = super().targets
 
 		if self.square is not None:
-			for move in self.moves:
+			for move in self.moves * self.color:
+				target = self.square
+
 				try:
-					if step := chess.rules.Move(self.square + (move := move * self.color), self):
+					if step := chess.rules.Move(target := target + move, self):
 						targets.add(step)
 
-						if step := chess.rules.Rush(self.square + move * 2, self):
+						if step := chess.rules.Rush(target := target + move, self):
 							targets.add(step)
 
 				except ValueError:
 					continue
 
-			for capt in self.capts:
+			for capt in self.capts * self.color:
 				try:
-					if step := chess.rules.EnPassant(square := self.square + capt * self.color, self): targets.add(step)
-					if step := chess.rules.Capt     (square                                   , self): targets.add(step)
+					target = self.square + capt
+
+					if step := chess.rules.EnPassant(target, self): targets.add(step)
+					if step := chess.rules.Capt     (target, self): targets.add(step)
 
 				except ValueError:
 					continue

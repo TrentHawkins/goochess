@@ -2,10 +2,10 @@ from __future__ import annotations
 
 
 from enum import Enum
-from itertools import product
+from functools import singledispatchmethod
 from pathlib import Path
 import re
-from typing import TYPE_CHECKING, Self
+from typing import TYPE_CHECKING, Self, overload
 
 import pygame
 
@@ -134,8 +134,18 @@ class Vector(vector, Enum,
 
 class Vectors(chess.collection[vector]):
 
+	@overload
 	def __mul__(self, other: Vectors, /) -> Vectors:
-		return Vectors(*(left + right for left in self for right in other))
+		...
+
+	@overload
+	def __mul__(self, other: int, /) -> Vectors:
+		...
+
+	@singledispatchmethod
+	def __mul__(self, other: Vectors | int, /) -> Vectors:
+		return Vectors(*(left + right for left in self for right in other)) if isinstance(other, Vectors) \
+		else   Vectors(*(left * other for left in self))
 
 
 class square(int, chess.theme.Highlightable):
