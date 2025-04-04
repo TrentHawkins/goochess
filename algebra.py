@@ -2,10 +2,10 @@ from __future__ import annotations
 
 
 from enum import Enum
-from itertools import product
+from functools import singledispatchmethod
 from pathlib import Path
 import re
-from typing import TYPE_CHECKING, Self
+from typing import TYPE_CHECKING, Self, overload
 
 import pygame
 
@@ -134,8 +134,19 @@ class Vector(vector, Enum,
 
 class Vectors(chess.collection[vector]):
 
+	@overload
 	def __mul__(self, other: Vectors, /) -> Vectors:
-		return Vectors(*(left + right for left in self for right in other))
+		...
+
+	@overload
+	def __mul__(self, other: int, /) -> Vectors:
+		...
+
+	def __mul__(self, other: Vectors | int, /) -> Vectors:
+		match other:
+			case Vectors(): return Vectors(*(left + right for left in self for right in other))
+			case     int(): return Vectors(*(left * other for left in self))
+			case         _: return NotImplemented
 
 
 class square(int, chess.theme.Highlightable):
@@ -191,6 +202,7 @@ class square(int, chess.theme.Highlightable):
 
 	def highlight(self, screen: pygame.Surface,
 		width: int = 1,
+		thick: int = 0,
 	):
 		rect = self.rect.inflate(
 			-self.rect.width  // (width + 1) * 24 // 25,
@@ -203,7 +215,7 @@ class square(int, chess.theme.Highlightable):
 			flags = pygame.SRCALPHA,
 		)
 
-		pygame.draw.ellipse(surf, self.highlight_color, surf.get_rect())
+		pygame.draw.ellipse(surf, self.highlight_color, surf.get_rect(), thick)
 		screen.blit(surf, rect,
 			special_flags = pygame.BLEND_RGB_ADD,
 		)

@@ -2,6 +2,7 @@ from __future__ import annotations
 
 
 from abc import ABC, abstractmethod
+from copy import copy
 from typing import TYPE_CHECKING, Self
 
 import pygame
@@ -57,10 +58,8 @@ class Move(Base, chess.algebra.square):
 	def __repr__(self) -> str:
 		return repr(self.piece) + repr(self.source) + "-" + repr(self.target)
 
-	def __call__(self):
-		self.piece(self.target,
-			kept = self.other,
-		)
+	def __call__(self) -> Self:
+		self.piece(self.target)
 
 		return self
 
@@ -102,10 +101,8 @@ class Move(Base, chess.algebra.square):
 #		return chess.algebra.Square(self)
 
 
-	def highlight(self, screen: pygame.Surface,
-		width: int = 1,
-	):
-		return super().highlight(screen, width)
+	def highlight(self, screen: pygame.Surface, *args, **kwargs):
+		return super().highlight(screen, *args, **kwargs)
 
 
 class Capt(Move):
@@ -123,7 +120,7 @@ class Capt(Move):
 	def highlight(self, screen: pygame.Surface,
 		width: int = 1,
 	):
-		return super().highlight(screen, self.other.width if self.other is not None else width)
+		return super().highlight(screen, self.other.width if self.other is not None else width, 8)
 
 
 class Spec(Move):
@@ -133,8 +130,44 @@ class Spec(Move):
 
 class Rush(Spec):
 
+	def __init__(self, square: chess.algebra.Square, piece: chess.material.Piece):
+		super().__init__(square, piece)
+
+		assert self.source is not None; self.middle = self.source + chess.algebra.Vector.S * self.side.color
+
+	def __call__(self) -> Self:
+		self.side.ghost = self.game[self.middle] = chess.material.Ghost(self.side)
+
+		return super().__call__()
+
 	def __bool__(self) -> bool:
 		return not self.piece.moved and super().__bool__()
+
+
+class EnPassant(Capt):
+
+	def __init__(self, square: chess.algebra.Square, piece: chess.material.Piece):
+		super().__init__(square, piece)
+
+		assert self.source is not None; self.middle = self.target + chess.algebra.Vector.S * self.side.other.color
+
+	def __call__(self) -> Self:
+		del self.game[self.middle]
+
+		return super().__call__()
+
+	def __bool__(self) -> bool:
+		return self.other is not None and isinstance(self.other, chess.material.Ghost) and super().__bool__()
+
+
+	def highlight(self, screen: pygame.Surface, **kwargs):
+		super().highlight(screen, **kwargs)
+
+		if self.other is not None:
+			self.other.ghost = 1
+
+			if (piece := self.game[self.middle]) is not None:
+				piece.ghost = 2
 
 
 class Promote(Spec):
@@ -157,8 +190,8 @@ class Cast(Spec, ABC):
 
 	def __bool__(self) -> bool:
 		return not self.king.moved and not self.rook.moved and self.king.safe \
-		and all(self.game[self.king.square + move]    is None                          for move in self.moves) \
-		and all(          self.king.square + capt not in self.side.other.targets.capts for capt in self.capts)
+		and all(self.game[self.king.square + move]    is None                    for move in self.moves) \
+		and all(          self.king.square + capt not in self.side.other.targets for capt in self.capts)
 
 
 	@property

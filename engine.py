@@ -212,6 +212,8 @@ class Game(Board):
 				if piece is self.selected:
 					piece.highlight(screen)
 
+				piece.ghost = piece.__class__.ghost  # HACK
+
 	def clicked(self, event: pygame.event.Event) -> bool:
 		for square in chess.algebra.Square:
 			if square.clicked(event):

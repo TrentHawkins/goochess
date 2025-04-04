@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 
-from contextlib import contextmanager
+from copy import copy
 from pathlib import Path
 from typing import TYPE_CHECKING, Self
 
@@ -18,6 +18,7 @@ class Piece(chess.theme.Highlightable):
 
 	value: int = 0
 	width: int = 0
+	ghost: int = 0
 
 	black: str = " "
 	white: str = " "
@@ -103,15 +104,16 @@ class Piece(chess.theme.Highlightable):
 
 	def draw(self, screen: pygame.Surface):
 		if self.square is not None:
-			screen.blit(
-				self.surf,
-				self.rect,
-			)
+			if self.ghost:
+				surf = copy(self.surf)
+				surf.fill((*chess.theme.WHITE, 85 * (3 - self.ghost)),
+					special_flags = pygame.BLEND_RGBA_MULT,
+				)
 
+			else:
+				surf = self.surf
 
-class Ghost(Piece):
-
-	width = 2
+			screen.blit(surf, self.rect)
 
 
 class Melee(Piece):
@@ -177,20 +179,19 @@ class Pawn(Piece):
 	)
 
 
-	def __call__(self, target: chess.algebra.Square,
-		move: bool = True,
-		kept: Piece | None = None,
-	) -> Self:
-		assert (source := self.square) is not None
-
-		if move:
-			if not self.moved and target == source + chess.algebra.Vector.S2 * self.color:
-				self.side.ghost = self.game[source + chess.algebra.Vector.S  * self.color] = Ghost(self.side)
-
-			if isinstance(self.game[target], Ghost):
-				self.game[target + chess.algebra.Vector.N * self.color] = kept
-
-		return super().__call__(target, move, kept)
+#	def __call__(self, target: chess.algebra.Square,
+#		move: bool = True,
+#		kept: Piece | None = None,
+#	) -> Self:
+#		assert (source := self.square) is not None
+#
+#		if move and not self.moved and target == source + chess.algebra.Vector.S2 * self.color:
+#			self.side.ghost = self.game[source + chess.algebra.Vector.S  * self.color] = Ghost(self.side)
+#
+#		if move and isinstance(self.game[target], Ghost):
+#			self.game[target + chess.algebra.Vector.N * self.color] = kept
+#
+#		return super().__call__(target, move, kept)
 
 
 	@property
@@ -198,21 +199,25 @@ class Pawn(Piece):
 		targets = super().targets
 
 		if self.square is not None:
-			for move in self.moves:
+			for move in self.moves * self.color:
+				target = self.square
+
 				try:
-					if step := chess.rules.Move(self.square + (move := move * self.color), self):
+					if step := chess.rules.Move(target := target + move, self):
 						targets.add(step)
 
-						if step := chess.rules.Rush(self.square + move * 2, self):
+						if step := chess.rules.Rush(target := target + move, self):
 							targets.add(step)
 
 				except ValueError:
 					continue
 
-			for capt in self.capts:
+			for capt in self.capts * self.color:
 				try:
-					if step := chess.rules.Capt(self.square + capt * self.color, self):
-						targets.add(step)
+					target = self.square + capt
+
+					if step := chess.rules.EnPassant(target, self): targets.add(step)
+					if step := chess.rules.Capt     (target, self): targets.add(step)
 
 				except ValueError:
 					continue
@@ -232,6 +237,24 @@ class Pawn(Piece):
 	def promote(self, to: type):
 		if issubclass(to, Officer):
 			self.__class__ = to  # type: ignore
+
+class Ghost(Piece):
+
+	width = 2
+	ghost = 3
+
+	@property
+	def decal(self) -> Path:
+		return Path("chess/graphics/piece") / self.color.name.lower() / "pawn.png"
+
+	@property
+	def rect(self) -> pygame.Rect:
+		return self.surf.get_rect(
+			center = self.square.rect.center + pygame.Vector2(
+				chess.theme.PIECE_OFFSET.x * 49 // 25,
+				chess.theme.PIECE_OFFSET.y * 25 // 24,
+			),
+		) if self.square is not None else self.surf.get_rect()
 
 
 class Rook(Ranged, Officer):
@@ -351,5 +374,4 @@ class King(Melee, Star):
 	@property
 	def safe(self) -> bool:
 		assert self.square is not None
-	#	print([piece for piece in self.side.other if piece.square is not None], flush = True)
 		return self.square not in self.side.other.targets.capts
