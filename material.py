@@ -105,7 +105,7 @@ class Piece(chess.theme.Highlightable):
 		if self.square is not None:
 			screen.blit(
 				self.surf,
-				self.rect
+				self.rect,
 			)
 
 
@@ -231,7 +231,23 @@ class Pawn(Piece):
 		if issubclass(to, Officer):
 			self.__class__ = to  # type: ignore
 
-class Ghost(Pawn):
+class Ghost(Piece):
+
+	width = 2
+
+	@property
+	def decal(self) -> Path:
+		return Path("chess/graphics/piece") / self.color.name.lower() / "pawn.png"
+
+	@property
+	def rect(self) -> pygame.Rect:
+		return self.surf.get_rect(
+			center = self.square.rect.center + pygame.Vector2(
+				chess.theme.PIECE_OFFSET.x * 49 // 25,
+				chess.theme.PIECE_OFFSET.y * 25 // 24,
+			),
+		) if self.square is not None else self.surf.get_rect()
+
 
 	def draw(self, screen: pygame.Surface):
 		...
