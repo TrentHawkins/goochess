@@ -151,7 +151,7 @@ class EnPassant(Capt):
 	def __init__(self, square: chess.algebra.Square, piece: chess.material.Piece):
 		super().__init__(square, piece)
 
-		assert self.source is not None; self.middle = self.target + chess.algebra.Vector.N * self.side.other.color
+		assert self.source is not None; self.middle = self.target + chess.algebra.Vector.S * self.side.other.color
 
 	def __call__(self) -> Self:
 		del self.game[self.middle]

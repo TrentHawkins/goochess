@@ -142,10 +142,11 @@ class Vectors(chess.collection[vector]):
 	def __mul__(self, other: int, /) -> Vectors:
 		...
 
-	@singledispatchmethod
 	def __mul__(self, other: Vectors | int, /) -> Vectors:
-		return Vectors(*(left + right for left in self for right in other)) if isinstance(other, Vectors) \
-		else   Vectors(*(left * other for left in self))
+		match other:
+			case Vectors(): return Vectors(*(left + right for left in self for right in other))
+			case     int(): return Vectors(*(left * other for left in self))
+			case         _: return NotImplemented
 
 
 class square(int, chess.theme.Highlightable):
