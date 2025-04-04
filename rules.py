@@ -164,11 +164,10 @@ class EnPassant(Capt):
 		super().highlight(screen, **kwargs)
 
 		if self.other is not None:
-			surf = copy(self.other.surf)
-			surf.fill((*chess.theme.WHITE, 170),
-				special_flags = pygame.BLEND_RGBA_MULT,
-			)
-			screen.blit(surf, self.other.rect)
+			self.other.ghost = 1
+
+			if (piece := self.game[self.middle]) is not None:
+				piece.ghost = 2
 
 
 class Promote(Spec):

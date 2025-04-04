@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 
-from contextlib import contextmanager
+from copy import copy
 from pathlib import Path
 from typing import TYPE_CHECKING, Self
 
@@ -18,6 +18,7 @@ class Piece(chess.theme.Highlightable):
 
 	value: int = 0
 	width: int = 0
+	ghost: int = 0
 
 	black: str = " "
 	white: str = " "
@@ -103,10 +104,16 @@ class Piece(chess.theme.Highlightable):
 
 	def draw(self, screen: pygame.Surface):
 		if self.square is not None:
-			screen.blit(
-				self.surf,
-				self.rect,
-			)
+			if self.ghost:
+				surf = copy(self.surf)
+				surf.fill((*chess.theme.WHITE, 85 * (3 - self.ghost)),
+					special_flags = pygame.BLEND_RGBA_MULT,
+				)
+
+			else:
+				surf = self.surf
+
+			screen.blit(surf, self.rect)
 
 
 class Melee(Piece):
@@ -234,6 +241,7 @@ class Pawn(Piece):
 class Ghost(Piece):
 
 	width = 2
+	ghost = 3
 
 	@property
 	def decal(self) -> Path:
@@ -247,10 +255,6 @@ class Ghost(Piece):
 				chess.theme.PIECE_OFFSET.y * 25 // 24,
 			),
 		) if self.square is not None else self.surf.get_rect()
-
-
-	def draw(self, screen: pygame.Surface):
-		...
 
 
 class Rook(Ranged, Officer):
