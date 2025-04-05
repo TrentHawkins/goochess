@@ -11,7 +11,9 @@ import chess.theme
 import chess.algebra
 import chess.rules
 
-if TYPE_CHECKING: import chess.engine
+if TYPE_CHECKING:
+	import chess.material
+	import chess.engine
 
 
 class Piece(chess.theme.Highlightable):
@@ -330,7 +332,10 @@ class Pawn(Piece):
 				target = self.square
 
 				try:
-					if step := chess.rules.Move(target := target + move, self):
+					if step := chess.rules.Promote(target := target + move, self):
+						targets.add(step)
+
+					if step := chess.rules.Move(target, self):
 						targets.add(step)
 
 						if step := chess.rules.Rush(target := target + move, self):
@@ -343,6 +348,7 @@ class Pawn(Piece):
 				try:
 					target = self.square + capt
 
+					if step := chess.rules.Promote  (target, self): targets.add(step)
 					if step := chess.rules.EnPassant(target, self): targets.add(step)
 					if step := chess.rules.Capt     (target, self): targets.add(step)
 

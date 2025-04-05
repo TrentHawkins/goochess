@@ -2,7 +2,7 @@ from __future__ import annotations
 
 
 from abc import ABC, abstractmethod
-from copy import copy
+from itertools import cycle
 from typing import TYPE_CHECKING, Self
 
 import pygame
@@ -172,14 +172,16 @@ class EnPassant(Capt):
 
 class Promote(Spec):
 
-	def __init__(self, officer: type[chess.material.Officer]):
-		self.officer = officer
+	def __init__(self, square: chess.algebra.Square, piece: chess.material.Piece):
+		super().__init__(square, piece)
+
+		self.officer: type[chess.material.Officer] | None = None
 
 	def __repr__(self) -> str:
 		return super().__repr__() + repr(self.rank)
 
 	def __bool__(self) -> bool:
-		return self.target.rank.final(self.piece.color) and super().__bool__()
+		return isinstance(self, chess.material.Pawn) and self.target.rank.final(self.piece.color) and super().__bool__()
 
 
 class Cast(Spec, ABC):

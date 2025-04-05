@@ -232,13 +232,13 @@ class Game(Board):
 					if square == self.promoting.target:
 						self += self.promoting  # confirm promotion
 
-						self.promoting = None
-						self.selected = None
+						self.promoting = self.selected = None
 
-					elif self.promoting.source is not None and square == self.promoting.source:
+					elif square == self.promoting.source:
 						pawn = cast(chess.material.Pawn, self.promoting.piece)
-						pawn.promote(self.promoting.officer)  # promote to current
 						self.promoting.officer = next(officers)  # promote to next
+						pawn.promote(self.promoting.officer)  # promote to current  # type: ignore
+
 					else:
 						self.promoting = None
 						self.selected = None
@@ -250,7 +250,7 @@ class Game(Board):
 						if isinstance(rule, chess.rules.Promote):
 							self.promoting = rule
 							pawn = cast(chess.material.Pawn, self[self.selected.square])
-							pawn.promote(rule.officer)
+							pawn.promote(self.promoting.officer)  # type: ignore
 
 						else:
 							self += rule
