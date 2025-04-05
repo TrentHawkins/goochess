@@ -177,6 +177,7 @@ class Game(Board):
 		self[-chess.algebra.Square.A8:-chess.algebra.Square.A6:chess.algebra.Color.WHITE] = self.white
 
 		self.history = History()
+		self.promoting: chess.rules.Promote | None = None
 
 	def __next__(self) -> Side:
 		return self.current
@@ -186,6 +187,14 @@ class Game(Board):
 
 	def __hash__(self) -> int:
 		return hash(datetime.now().timestamp())
+
+	def __iadd__(self, rule: chess.rules.Base) -> Self:
+		self.history.append(rule())
+
+		if (ghost := self.current.ghost) is not None and ghost.square is not None:
+			del self[ghost.square]
+
+		return self
 
 
 	@property
@@ -217,11 +226,38 @@ class Game(Board):
 	def clicked(self, event: pygame.event.Event) -> bool:
 		for square in chess.algebra.Square:
 			if square.clicked(event):
-				if self.selected is not None:
-					if self.selected.side and (rule := self.selected.squares.get(square)) is not None:
-						self += rule
+				if self.promoting is not None:
+					officers = cycle(chess.material.Pawn.officers)
 
-					self.selected = None
+					if square == self.promoting.target:
+						self += self.promoting  # confirm promotion
+
+						self.promoting = None
+						self.selected = None
+
+					elif self.promoting.source is not None and square == self.promoting.source:
+						pawn = cast(chess.material.Pawn, self.promoting.piece)
+						pawn.promote(self.promoting.officer)  # promote to current
+						self.promoting.officer = next(officers)  # promote to next
+					else:
+						self.promoting = None
+						self.selected = None
+
+					return True
+
+				if self.selected is not None and self.selected.square is not None:
+					if self.selected.side and (rule := self.selected.squares.get(square)) is not None:
+						if isinstance(rule, chess.rules.Promote):
+							self.promoting = rule
+							pawn = cast(chess.material.Pawn, self[self.selected.square])
+							pawn.promote(rule.officer)
+
+						else:
+							self += rule
+							self.selected = None
+
+					else:
+						self.selected = None
 
 				else:
 					piece = self[square]
@@ -230,12 +266,3 @@ class Game(Board):
 				return True
 
 		return False
-
-
-	def __iadd__(self, rule: chess.rules.Base) -> Self:
-		self.history.append(rule())
-
-		if (ghost := self.current.ghost) is not None and ghost.square is not None:
-			del self[ghost.square]
-
-		return self

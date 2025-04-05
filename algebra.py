@@ -2,7 +2,6 @@ from __future__ import annotations
 
 
 from enum import Enum
-from functools import singledispatchmethod
 from pathlib import Path
 import re
 from typing import TYPE_CHECKING, Self, overload

@@ -162,101 +162,6 @@ class Officer(Piece):
 	width: int = 6
 
 
-class Pawn(Piece):
-
-	value: int = 1
-	width: int = 2
-
-	black: str = "\u265f"
-	white: str = "\u2659"
-
-	moves = chess.algebra.Vectors(
-		chess.algebra.Vector.S,
-	)
-	capts = chess.algebra.Vectors(
-		chess.algebra.Vector.SE,
-		chess.algebra.Vector.SW,
-	)
-
-
-#	def __call__(self, target: chess.algebra.Square,
-#		move: bool = True,
-#		kept: Piece | None = None,
-#	) -> Self:
-#		assert (source := self.square) is not None
-#
-#		if move and not self.moved and target == source + chess.algebra.Vector.S2 * self.color:
-#			self.side.ghost = self.game[source + chess.algebra.Vector.S  * self.color] = Ghost(self.side)
-#
-#		if move and isinstance(self.game[target], Ghost):
-#			self.game[target + chess.algebra.Vector.N * self.color] = kept
-#
-#		return super().__call__(target, move, kept)
-
-
-	@property
-	def targets(self) -> chess.algebra.Squares:
-		targets = super().targets
-
-		if self.square is not None:
-			for move in self.moves * self.color:
-				target = self.square
-
-				try:
-					if step := chess.rules.Move(target := target + move, self):
-						targets.add(step)
-
-						if step := chess.rules.Rush(target := target + move, self):
-							targets.add(step)
-
-				except ValueError:
-					continue
-
-			for capt in self.capts * self.color:
-				try:
-					target = self.square + capt
-
-					if step := chess.rules.EnPassant(target, self): targets.add(step)
-					if step := chess.rules.Capt     (target, self): targets.add(step)
-
-				except ValueError:
-					continue
-
-		return targets
-
-	@property
-	def rect(self) -> pygame.Rect:
-		return self.surf.get_rect(
-			center = self.square.rect.center + pygame.Vector2(
-				chess.theme.PIECE_OFFSET.x * 49 // 25,
-				chess.theme.PIECE_OFFSET.y * 25 // 24,
-			),
-		) if self.square is not None else self.surf.get_rect()
-
-
-	def promote(self, to: type):
-		if issubclass(to, Officer):
-			self.__class__ = to  # type: ignore
-
-class Ghost(Piece):
-
-	width = 2
-	ghost = 3
-
-	@property
-	def decal(self) -> Path:
-		return Path("chess/graphics/piece") / self.color.name.lower() / "pawn.png"
-
-	@property
-	def rect(self) -> pygame.Rect:
-		return self.surf.get_rect(
-			center = self.square.rect.center + pygame.Vector2(
-				chess.theme.PIECE_OFFSET.x * 49 // 25,
-				chess.theme.PIECE_OFFSET.y * 25 // 24,
-			),
-		) if self.square is not None else self.surf.get_rect()
-
-
 class Rook(Ranged, Officer):
 
 	value: int = 5
@@ -375,3 +280,106 @@ class King(Melee, Star):
 	def safe(self) -> bool:
 		assert self.square is not None
 		return self.square not in self.side.other.targets.capts
+
+
+class Pawn(Piece):
+
+	value: int = 1
+	width: int = 2
+
+	black: str = "\u265f"
+	white: str = "\u2659"
+
+	moves = chess.algebra.Vectors(
+		chess.algebra.Vector.S,
+	)
+	capts = chess.algebra.Vectors(
+		chess.algebra.Vector.SE,
+		chess.algebra.Vector.SW,
+	)
+
+	officers = [
+		Queen,
+		Rook,
+		Bishop,
+		Knight,
+	]
+
+
+#	def __call__(self, target: chess.algebra.Square,
+#		move: bool = True,
+#		kept: Piece | None = None,
+#	) -> Self:
+#		assert (source := self.square) is not None
+#
+#		if move and not self.moved and target == source + chess.algebra.Vector.S2 * self.color:
+#			self.side.ghost = self.game[source + chess.algebra.Vector.S  * self.color] = Ghost(self.side)
+#
+#		if move and isinstance(self.game[target], Ghost):
+#			self.game[target + chess.algebra.Vector.N * self.color] = kept
+#
+#		return super().__call__(target, move, kept)
+
+
+	@property
+	def targets(self) -> chess.algebra.Squares:
+		targets = super().targets
+
+		if self.square is not None:
+			for move in self.moves * self.color:
+				target = self.square
+
+				try:
+					if step := chess.rules.Move(target := target + move, self):
+						targets.add(step)
+
+						if step := chess.rules.Rush(target := target + move, self):
+							targets.add(step)
+
+				except ValueError:
+					continue
+
+			for capt in self.capts * self.color:
+				try:
+					target = self.square + capt
+
+					if step := chess.rules.EnPassant(target, self): targets.add(step)
+					if step := chess.rules.Capt     (target, self): targets.add(step)
+
+				except ValueError:
+					continue
+
+		return targets
+
+	@property
+	def rect(self) -> pygame.Rect:
+		return self.surf.get_rect(
+			center = self.square.rect.center + pygame.Vector2(
+				chess.theme.PIECE_OFFSET.x * 49 // 25,
+				chess.theme.PIECE_OFFSET.y * 25 // 24,
+			),
+		) if self.square is not None else self.surf.get_rect()
+
+
+	def promote(self, to: type):
+		if issubclass(to, Officer):
+			self.__class__ = to  # type: ignore
+
+class Ghost(Piece):
+
+	width = 2
+	ghost = 3
+
+	@property
+	def decal(self) -> Path:
+		return Path("chess/graphics/piece") / self.color.name.lower() / "pawn.png"
+
+	@property
+	def rect(self) -> pygame.Rect:
+		return self.surf.get_rect(
+			center = self.square.rect.center + pygame.Vector2(
+				chess.theme.PIECE_OFFSET.x * 49 // 25,
+				chess.theme.PIECE_OFFSET.y * 25 // 24,
+			),
+		) if self.square is not None else self.surf.get_rect()
+
