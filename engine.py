@@ -221,6 +221,16 @@ class Game(Board):
 				if piece is self.selected:
 					piece.highlight(screen)
 
+				if self.promoting is not None and piece is self.promoting.piece:
+					surf = pygame.transform.smoothscale(
+						pygame.image.load(self.promoting.officer.value(piece.side).decal).convert_alpha(),
+						chess.theme.PIECE,
+					)
+					screen.blit(surf, piece.rect)
+
+				else:
+					piece.draw(screen)
+
 				piece.ghost = piece.__class__.ghost  # HACK
 
 	def clicked(self, event: pygame.event.Event) -> bool:
@@ -233,8 +243,6 @@ class Game(Board):
 				elif square == self.promoting.source: self.promoting.officer = next(self.promoting.officers)
 				else:
 					self.promoting = None
-
-			#	self.selected = None
 
 				return True
 

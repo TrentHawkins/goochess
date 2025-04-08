@@ -40,10 +40,7 @@ class Piece(chess.theme.Highlightable):
 
 		super().__init__()
 
-		try: self.surf = pygame.transform.smoothscale(pygame.image.load(self.decal).convert_alpha(), chess.theme.PIECE)
-		except FileNotFoundError: self.surf = pygame.Surface(chess.theme.PIECE,
-			flags = pygame.SRCALPHA,
-		)
+		self.reload()
 
 	def __repr__(self) -> str:
 		return self.black if self.color else self.white
@@ -116,6 +113,12 @@ class Piece(chess.theme.Highlightable):
 				surf = self.surf
 
 			screen.blit(surf, self.rect)
+
+	def reload(self):
+		try: self.surf = pygame.transform.smoothscale(pygame.image.load(self.decal).convert_alpha(), chess.theme.PIECE)
+		except FileNotFoundError: self.surf = pygame.Surface(chess.theme.PIECE,
+			flags = pygame.SRCALPHA,
+		)
 
 
 class Melee(Piece):
@@ -367,6 +370,7 @@ class Pawn(Piece):
 
 	def promote(self, to: Officer):
 		self.__class__ = to.value  # type: ignore
+		self.reload()
 
 
 class Ghost(Piece):
