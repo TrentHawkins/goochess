@@ -225,44 +225,48 @@ class Game(Board):
 
 	def clicked(self, event: pygame.event.Event) -> bool:
 		for square in chess.algebra.Square:
-			if square.clicked(event):
-				if self.promoting is not None:
-					officers = cycle(chess.material.Pawn.officers)
+			if not square.clicked(event):
+				continue
 
-					if square == self.promoting.target:
-						self += self.promoting  # confirm promotion
+			if self.promoting:
+				if square == self.promoting.target:
+					self += self.promoting
 
-						self.promoting = self.selected = None
+				elif square == self.promoting.source:
+					pawn = cast(chess.material.Pawn, self.promoting.piece)
+					self.promoting.officer = next(self.promoting.officers)
+					pawn.promote(self.promoting.officer)
 
-					elif square == self.promoting.source:
-						pawn = cast(chess.material.Pawn, self.promoting.piece)
-						self.promoting.officer = next(officers)  # promote to next
-						pawn.promote(self.promoting.officer)  # promote to current  # type: ignore
+				else:
+					self.promoting = None
 
-					else:
-						self.promoting = None
-						self.selected = None
+				self.selected = None
 
-					return True
+				return True
 
-				if self.selected is not None and self.selected.square is not None:
-					if self.selected.side and (rule := self.selected.squares.get(square)) is not None:
-						if isinstance(rule, chess.rules.Promote):
-							self.promoting = rule
-							pawn = cast(chess.material.Pawn, self[self.selected.square])
-							pawn.promote(self.promoting.officer)  # type: ignore
+			if self.selected and self.selected.square is not None:
+				rule = self.selected.squares.get(square)
 
-						else:
-							self += rule
-							self.selected = None
+				if rule:
+					if isinstance(rule, chess.rules.Promote):
+						self.promoting = rule
+						pawn = cast(chess.material.Pawn, self[self.selected.square])
+						pawn.promote(self.promoting.officer)
 
 					else:
+						self += rule
 						self.selected = None
 
 				else:
-					piece = self[square]
-					self.selected = piece if piece is not None and piece.side else None
+					self.selected = None
 
 				return True
+
+			piece = self[square]
+
+			if piece and piece.side:
+				self.selected = piece
+
+			return True
 
 		return False

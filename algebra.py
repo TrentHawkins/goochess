@@ -281,7 +281,7 @@ class Squares(chess.collection[square]):
 
 	@property
 	def specs(self) -> Squares:
-		return self.filter(chess.rules.Spec)
+		return self.filter(chess.rules.Mod)
 
 
 	def get(self, square: Square) -> chess.rules.Base | None:

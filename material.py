@@ -2,6 +2,7 @@ from __future__ import annotations
 
 
 from copy import copy
+from enum import Enum
 from pathlib import Path
 from typing import TYPE_CHECKING, Self
 
@@ -12,7 +13,6 @@ import chess.algebra
 import chess.rules
 
 if TYPE_CHECKING:
-	import chess.material
 	import chess.engine
 
 
@@ -159,12 +159,7 @@ class Ranged(Piece):
 		return targets
 
 
-class Officer(Piece):
-
-	width: int = 6
-
-
-class Rook(Ranged, Officer):
+class Rook(Ranged):
 
 	value: int = 5
 	width: int = 5
@@ -180,16 +175,17 @@ class Rook(Ranged, Officer):
 	)
 
 
-class Assymetric(Officer):
+class Assymetric(Piece):
 
 	@property
 	def decal(self) -> Path:
 		return super().decal.with_suffix(".flipped" + super().decal.suffix) if self.color else super().decal
 
 
-class Bishop(Ranged, Assymetric, Officer):
+class Bishop(Ranged, Assymetric):
 
 	value: int = 3
+	width: int = 6
 
 	black: str = "\u265d"
 	white: str = "\u2657"
@@ -202,7 +198,7 @@ class Bishop(Ranged, Assymetric, Officer):
 	)
 
 
-class Knight(Melee, Assymetric, Officer):
+class Knight(Melee, Assymetric):
 
 	value: int = 3
 	width: int = 5
@@ -236,7 +232,7 @@ class Star(Piece):
 	moves = Rook.moves | Bishop.moves
 
 
-class Queen(Ranged, Star, Officer):
+class Queen(Ranged, Star):
 
 	value: int = 9
 
@@ -284,6 +280,14 @@ class King(Melee, Star):
 		return self.square not in self.side.other.targets.capts
 
 
+class Officer(Enum):
+
+	Q = Queen
+	R = Rook
+	N = Knight
+	B = Bishop
+
+
 class Pawn(Piece):
 
 	value: int = 1
@@ -299,13 +303,6 @@ class Pawn(Piece):
 		chess.algebra.Vector.SE,
 		chess.algebra.Vector.SW,
 	)
-
-	officers = [
-		Queen,
-		Rook,
-		Bishop,
-		Knight,
-	]
 
 
 #	def __call__(self, target: chess.algebra.Square,
@@ -329,14 +326,13 @@ class Pawn(Piece):
 
 		if self.square is not None:
 			for move in self.moves * self.color:
-				target = self.square
-
 				try:
-					if step := chess.rules.Promote(target := target + move, self):
-						targets.add(step)
-
-					if step := chess.rules.Move(target, self):
-						targets.add(step)
+					if step := chess.rules.Move(target := self.square + move, self):
+						targets.add(
+							chess.rules.specialize(step,
+								chess.rules.Promote,
+							)
+						)
 
 						if step := chess.rules.Rush(target := target + move, self):
 							targets.add(step)
@@ -346,11 +342,13 @@ class Pawn(Piece):
 
 			for capt in self.capts * self.color:
 				try:
-					target = self.square + capt
-
-					if step := chess.rules.Promote  (target, self): targets.add(step)
-					if step := chess.rules.EnPassant(target, self): targets.add(step)
-					if step := chess.rules.Capt     (target, self): targets.add(step)
+					if step := chess.rules.Capt(self.square + capt, self):
+						targets.add(
+							chess.rules.specialize(step,
+								chess.rules.Promote,
+								chess.rules.EnPassant,
+							)
+						)
 
 				except ValueError:
 					continue
@@ -367,9 +365,9 @@ class Pawn(Piece):
 		) if self.square is not None else self.surf.get_rect()
 
 
-	def promote(self, to: type):
-		if issubclass(to, Officer):
-			self.__class__ = to  # type: ignore
+	def promote(self, to: Officer):
+		self.__class__ = to.value  # type: ignore
+
 
 class Ghost(Piece):
 
