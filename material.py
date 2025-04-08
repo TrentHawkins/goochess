@@ -330,7 +330,7 @@ class Pawn(Piece):
 					if step := chess.rules.Move(target := self.square + move, self):
 						targets.add(
 							chess.rules.specialize(step,
-								chess.rules.Promote,
+								chess.rules.Promotion,
 							)
 						)
 
@@ -345,7 +345,7 @@ class Pawn(Piece):
 					if step := chess.rules.Capt(self.square + capt, self):
 						targets.add(
 							chess.rules.specialize(step,
-								chess.rules.Promote,
+								chess.rules.Promotion,
 								chess.rules.EnPassant,
 							)
 						)

@@ -177,7 +177,7 @@ class Game(Board):
 		self[-chess.algebra.Square.A8:-chess.algebra.Square.A6:chess.algebra.Color.WHITE] = self.white
 
 		self.history = History()
-		self.promoting: chess.rules.Promote | None = None
+		self.promoting: chess.rules.Promotion | None = None
 
 	def __next__(self) -> Side:
 		return self.current
@@ -228,30 +228,20 @@ class Game(Board):
 			if not square.clicked(event):
 				continue
 
-			if self.promoting:
-				if square == self.promoting.target:
-					self += self.promoting
-
-				elif square == self.promoting.source:
-					pawn = cast(chess.material.Pawn, self.promoting.piece)
-					self.promoting.officer = next(self.promoting.officers)
-					pawn.promote(self.promoting.officer)
-
+			if self.promoting is not None:
+				if   square == self.promoting.target: self += self.promoting
+				elif square == self.promoting.source: self.promoting.officer = next(self.promoting.officers)
 				else:
 					self.promoting = None
 
-				self.selected = None
+			#	self.selected = None
 
 				return True
 
 			if self.selected and self.selected.square is not None:
-				rule = self.selected.squares.get(square)
-
-				if rule:
-					if isinstance(rule, chess.rules.Promote):
+				if (rule := self.selected.squares.get(square)) is not None:
+					if isinstance(rule, chess.rules.Promotion):
 						self.promoting = rule
-						pawn = cast(chess.material.Pawn, self[self.selected.square])
-						pawn.promote(self.promoting.officer)
 
 					else:
 						self += rule
@@ -262,9 +252,7 @@ class Game(Board):
 
 				return True
 
-			piece = self[square]
-
-			if piece and piece.side:
+			if (piece := self[square]) is not None and piece.side:
 				self.selected = piece
 
 			return True

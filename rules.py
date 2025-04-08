@@ -180,12 +180,20 @@ class EnPassant(Mod, Capt):
 		#		piece.ghost = 2
 
 
-class Promote(Mod, Move):
+class Promotion(Mod, Move):
 
 	def __init__(self, move: Move):
 		super().__init__(move)
 
 		self.officer = next(self.officers)
+
+	def __call__(self) -> Self:
+		super().__call__()
+
+		if isinstance(self.piece, chess.material.Pawn):
+			self.piece.promote(self.officer)
+
+		return self
 
 	def __repr__(self) -> str:
 		return super().__repr__() + repr(self.rank)
