@@ -348,8 +348,8 @@ class Pawn(Piece):
 					if step := chess.rules.Capt(self.square + capt, self):
 						targets.add(
 							chess.rules.specialize(step,
-								chess.rules.Promotion,
 								chess.rules.EnPassant,
+								chess.rules.Promotion,
 							)
 						)
 

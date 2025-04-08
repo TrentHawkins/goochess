@@ -177,7 +177,7 @@ class Game(Board):
 		self[-chess.algebra.Square.A8:-chess.algebra.Square.A6:chess.algebra.Color.WHITE] = self.white
 
 		self.history = History()
-		self.promoting: chess.rules.Promotion | None = None
+		self.promoted: chess.rules.Promotion | None = None
 
 	def __next__(self) -> Side:
 		return self.current
@@ -216,17 +216,19 @@ class Game(Board):
 
 		for piece in self:
 			if piece is not None:
-				piece.draw(screen)
-
 				if piece is self.selected:
-					piece.highlight(screen)
+					if self.promoted is not None and piece is self.promoted.piece:
+						surf = pygame.transform.smoothscale(
+							pygame.image.load(self.promoted.officer.value(piece.side).decal).convert_alpha(),
+							chess.theme.PIECE,
+						)
+						surf.fill((*chess.theme.WHITE, 170),
+							special_flags = pygame.BLEND_RGBA_MULT,
+						)
+						screen.blit(surf, piece.rect)
 
-				if self.promoting is not None and piece is self.promoting.piece:
-					surf = pygame.transform.smoothscale(
-						pygame.image.load(self.promoting.officer.value(piece.side).decal).convert_alpha(),
-						chess.theme.PIECE,
-					)
-					screen.blit(surf, piece.rect)
+					else:
+						piece.highlight(screen)
 
 				else:
 					piece.draw(screen)
@@ -238,18 +240,23 @@ class Game(Board):
 			if not square.clicked(event):
 				continue
 
-			if self.promoting is not None:
-				if   square == self.promoting.target: self += self.promoting
-				elif square == self.promoting.source: self.promoting.officer = next(self.promoting.officers)
+			if self.promoted is not None:
+				if square == self.promoted.source:
+					self.promoted.officer = next(self.promoted.officers)
+
 				else:
-					self.promoting = None
+					if square == self.promoted.target:
+						self += self.promoted
+
+					self.selected = None
+					self.promoted = None
 
 				return True
 
 			if self.selected and self.selected.square is not None:
 				if (rule := self.selected.squares.get(square)) is not None:
 					if isinstance(rule, chess.rules.Promotion):
-						self.promoting = rule
+						self.promoted = rule
 
 					else:
 						self += rule
