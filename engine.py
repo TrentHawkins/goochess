@@ -215,7 +215,7 @@ class Game(Board):
 			if piece is not None:
 				if piece is self.selected:
 					if self.promoted is not None and piece is self.promoted.piece:
-						self.promoted.piece.draw(screen)
+						screen.blit(self.promoted.officer.surf, self.promoted.piece.rect)
 
 					else:
 						piece.highlight(screen)

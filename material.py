@@ -287,6 +287,22 @@ class Officer(Enum):
 	B = Bishop
 
 
+	@property
+	def surf(self) -> pygame.Surface:
+		color = "W" if self.value.color else "B"
+
+		match self.name:
+			case "Q": surf = chess.theme.Main[color + "QUEEN" ].value.copy()
+			case "R": surf = chess.theme.Main[color + "ROOK"  ].value.copy()
+			case "B": surf = chess.theme.Main[color + "BISHOP"].value.copy()
+			case "N": surf = chess.theme.Main[color + "KNIGHT"].value.copy()
+			case _  : surf = chess.theme.Main[color + "PAWN"  ].value.copy()
+
+		surf.fill((*chess.theme.WHITE, 170), special_flags = pygame.BLEND_RGBA_MULT)
+
+		return surf
+
+
 class Pawn(Piece):
 
 	value: int = 1
