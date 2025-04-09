@@ -3,8 +3,9 @@ from __future__ import annotations
 
 from abc import abstractmethod
 from copy import copy
+from enum import Enum
 
-import pygame
+import pygame; pygame.init()
 
 
 type RGB = tuple[
@@ -93,19 +94,62 @@ BLACK = (
 	0x99,
 )
 
+
+screen = pygame.display.set_mode(WINDOW)
+
+
+class Main(Enum):
+
+	BOARD  = pygame.transform.smoothscale(pygame.image.load(f"chess/graphics/board/stone1.jpg").convert(), WINDOW)
+	GAME   = pygame.transform.smoothscale(pygame.image.load(f"chess/graphics/board/stone1.jpg").convert(), WINDOW)
+	SQUARE = pygame.transform.smoothscale(pygame.image.load(f"chess/graphics/board/bevel.png" ).convert(), SQUARE)
+
+	BPIECE = pygame.Surface(PIECE,
+		flags = pygame.SRCALPHA,
+	)
+
+	BPAWN    = pygame.transform.smoothscale(pygame.image.load(f"chess/graphics/piece/black/pawn.png"   ).convert_alpha(), PIECE)
+	BGHOST   = pygame.transform.smoothscale(pygame.image.load(f"chess/graphics/piece/black/pawn.png"   ).convert_alpha(), PIECE)
+	BROOK    = pygame.transform.smoothscale(pygame.image.load(f"chess/graphics/piece/black/rook.png"   ).convert_alpha(), PIECE)
+	BKNIGHT  = pygame.transform.smoothscale(pygame.image.load(f"chess/graphics/piece/black/knight.png" ).convert_alpha(), PIECE)
+	BKNIGHTR = pygame.transform.smoothscale(pygame.image.load(f"chess/graphics/piece/black/knightr.png").convert_alpha(), PIECE)
+	BBISHOP  = pygame.transform.smoothscale(pygame.image.load(f"chess/graphics/piece/black/bishop.png" ).convert_alpha(), PIECE)
+	BBISHOPR = pygame.transform.smoothscale(pygame.image.load(f"chess/graphics/piece/black/bishopr.png").convert_alpha(), PIECE)
+	BQUEEN   = pygame.transform.smoothscale(pygame.image.load(f"chess/graphics/piece/black/queen.png"  ).convert_alpha(), PIECE)
+	BKING    = pygame.transform.smoothscale(pygame.image.load(f"chess/graphics/piece/black/king.png"   ).convert_alpha(), PIECE)
+
+	WPIECE = pygame.Surface(PIECE,
+		flags = pygame.SRCALPHA,
+	)
+
+	WPAWN    = pygame.transform.smoothscale(pygame.image.load(f"chess/graphics/piece/white/pawn.png"   ).convert_alpha(), PIECE)
+	WGHOST   = pygame.transform.smoothscale(pygame.image.load(f"chess/graphics/piece/white/pawn.png"   ).convert_alpha(), PIECE)
+	WROOK    = pygame.transform.smoothscale(pygame.image.load(f"chess/graphics/piece/white/rook.png"   ).convert_alpha(), PIECE)
+	WKNIGHT  = pygame.transform.smoothscale(pygame.image.load(f"chess/graphics/piece/white/knight.png" ).convert_alpha(), PIECE)
+	WKNIGHTR = pygame.transform.smoothscale(pygame.image.load(f"chess/graphics/piece/white/knightr.png").convert_alpha(), PIECE)
+	WBISHOP  = pygame.transform.smoothscale(pygame.image.load(f"chess/graphics/piece/white/bishop.png" ).convert_alpha(), PIECE)
+	WBISHOPR = pygame.transform.smoothscale(pygame.image.load(f"chess/graphics/piece/white/bishopr.png").convert_alpha(), PIECE)
+	WQUEEN   = pygame.transform.smoothscale(pygame.image.load(f"chess/graphics/piece/white/queen.png"  ).convert_alpha(), PIECE)
+	WKING    = pygame.transform.smoothscale(pygame.image.load(f"chess/graphics/piece/white/king.png"   ).convert_alpha(), PIECE)
+
+
 class Drawable(pygame.sprite.Sprite):
 
 	def __init__(self, *args):
 		super().__init__(*args)
 
-		self.surf: pygame.Surface
-		self.rect: pygame.Rect
-
 
 	@property
-	@abstractmethod
 	def decal(self) -> str:
-		raise NotImplementedError
+		return self.__class__.__name__
+
+	@property
+	def surf(self) -> pygame.Surface:
+		return Main[self.decal.upper()].value
+
+	@property
+	def rect(self) -> pygame.Rect:
+		return self.surf.get_rect()
 
 
 	def draw(self, screen: pygame.Surface, *,

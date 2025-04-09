@@ -3,7 +3,6 @@ from __future__ import annotations
 
 from copy import copy
 from enum import Enum
-from pathlib import Path
 from typing import TYPE_CHECKING, Self
 
 import pygame
@@ -33,14 +32,13 @@ class Piece(chess.theme.Highlightable):
 	def __init__(self, side: chess.engine.Side,
 		square: chess.algebra.Square | None = None,
 	):
+		super().__init__()
+
 		self.side = side
 		self.square = square
 
 		self.moved: bool = False
 
-		super().__init__()
-
-		self.reload()
 
 	def __repr__(self) -> str:
 		return self.black if self.color else self.white
@@ -58,8 +56,10 @@ class Piece(chess.theme.Highlightable):
 
 
 	@property
-	def decal(self) -> Path:
-		return Path("chess/graphics/piece") / self.color.name.lower() / f"{self.__class__.__name__.lower()}.png"
+	def decal(self) -> str:
+		color = "B" if self.color else "W"
+
+		return color + super().decal
 
 	@property
 	def rect(self) -> pygame.Rect:
@@ -113,12 +113,6 @@ class Piece(chess.theme.Highlightable):
 				surf = self.surf
 
 			screen.blit(surf, self.rect)
-
-	def reload(self):
-		try: self.surf = pygame.transform.smoothscale(pygame.image.load(self.decal).convert_alpha(), chess.theme.PIECE)
-		except FileNotFoundError: self.surf = pygame.Surface(chess.theme.PIECE,
-			flags = pygame.SRCALPHA,
-		)
 
 
 class Melee(Piece):
@@ -181,8 +175,10 @@ class Rook(Ranged):
 class Assymetric(Piece):
 
 	@property
-	def decal(self) -> Path:
-		return super().decal.with_suffix(".flipped" + super().decal.suffix) if self.color else super().decal
+	def decal(self) -> str:
+		flipped = "r" if self.color else ""
+
+		return super().decal + flipped
 
 
 class Bishop(Ranged, Assymetric):
@@ -370,7 +366,6 @@ class Pawn(Piece):
 
 	def promote(self, to: Officer):
 		self.__class__ = to.value  # type: ignore
-		self.reload()
 
 
 class Ghost(Piece):
@@ -378,9 +373,6 @@ class Ghost(Piece):
 	width = 2
 	ghost = 3
 
-	@property
-	def decal(self) -> Path:
-		return Path("chess/graphics/piece") / self.color.name.lower() / "pawn.png"
 
 	@property
 	def rect(self) -> pygame.Rect:

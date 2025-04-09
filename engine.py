@@ -24,14 +24,6 @@ class Board(list[Piece], chess.theme.Drawable):
 
 		self.selected: chess.material.Piece | None = None
 
-		self.surf = pygame.transform.smoothscale(pygame.image.load(self.decal).convert(), chess.theme.WINDOW)
-		self.rect = self.surf.get_rect(
-		#	center = pygame.Vector2(
-		#		chess.theme.RESOLUTION // 2,
-		#		chess.theme.RESOLUTION // 2,
-		#	)
-		)
-
 	def __repr__(self) -> str:
 		...  # TODO: FEN (part)
 
@@ -51,8 +43,13 @@ class Board(list[Piece], chess.theme.Drawable):
 
 
 	@property
-	def decal(self) -> Path:
-		return Path("chess/graphics/board/stone1.jpg")
+	def rect(self) -> pygame.Rect:
+		return self.surf.get_rect(
+		#	center = pygame.Vector2(
+		#		chess.theme.RESOLUTION // 2,
+		#		chess.theme.RESOLUTION // 2,
+		#	)
+		)
 
 
 	def update(self, square: chess.algebra.Square,
@@ -218,14 +215,7 @@ class Game(Board):
 			if piece is not None:
 				if piece is self.selected:
 					if self.promoted is not None and piece is self.promoted.piece:
-						surf = pygame.transform.smoothscale(
-							pygame.image.load(self.promoted.officer.value(piece.side).decal).convert_alpha(),
-							chess.theme.PIECE,
-						)
-						surf.fill((*chess.theme.WHITE, 170),
-							special_flags = pygame.BLEND_RGBA_MULT,
-						)
-						screen.blit(surf, piece.rect)
+						self.promoted.piece.draw(screen)
 
 					else:
 						piece.highlight(screen)
