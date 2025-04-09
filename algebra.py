@@ -2,7 +2,6 @@ from __future__ import annotations
 
 
 from enum import Enum
-from functools import singledispatchmethod
 from pathlib import Path
 import re
 from typing import TYPE_CHECKING, Self, overload
@@ -282,7 +281,7 @@ class Squares(chess.collection[square]):
 
 	@property
 	def specs(self) -> Squares:
-		return self.filter(chess.rules.Spec)
+		return self.filter(chess.rules.Mod)
 
 
 	def get(self, square: Square) -> chess.rules.Base | None:

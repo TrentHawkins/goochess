@@ -2,8 +2,9 @@ from __future__ import annotations
 
 
 from abc import ABC, abstractmethod
-from copy import copy
-from typing import TYPE_CHECKING, Self
+from itertools import cycle
+from functools import cached_property
+from typing import TYPE_CHECKING, Self, cast
 
 import pygame
 
@@ -128,6 +129,17 @@ class Spec(Move):
 	highlight_color = chess.theme.BLUE
 
 
+class Mod(Move):
+
+    def __new__(cls, move: Move):
+        modded_cls = type(cls.__name__, (cls, move.__class__), {})
+
+        return super().__new__(cast(type[Self], modded_cls), move.target, move.piece)
+
+    def __init__(self, move: Move):
+        super().__init__(move.target, move.piece)
+
+
 class Rush(Spec):
 
 	def __init__(self, square: chess.algebra.Square, piece: chess.material.Piece):
@@ -144,10 +156,10 @@ class Rush(Spec):
 		return not self.piece.moved and super().__bool__()
 
 
-class EnPassant(Capt):
+class EnPassant(Mod, Capt):
 
-	def __init__(self, square: chess.algebra.Square, piece: chess.material.Piece):
-		super().__init__(square, piece)
+	def __init__(self, move: Move):
+		super().__init__(move)
 
 		assert self.source is not None; self.middle = self.target + chess.algebra.Vector.S * self.side.other.color
 
@@ -166,20 +178,36 @@ class EnPassant(Capt):
 		if self.other is not None:
 			self.other.ghost = 1
 
-			if (piece := self.game[self.middle]) is not None:
-				piece.ghost = 2
+		#	if (piece := self.game[self.middle]) is not None:
+		#		piece.ghost = 2
 
 
-class Promote(Spec):
+class Promotion(Mod):
 
-	def __init__(self, officer: type[chess.material.Officer]):
-		self.officer = officer
+	def __init__(self, move: Move):
+		super().__init__(move)
+
+		self.officer = next(self.officers)
+
+	def __call__(self) -> Self:
+		super().__call__()
+
+		if isinstance(self.piece, chess.material.Pawn):
+			self.piece.promote(self.officer)
+
+		return self
 
 	def __repr__(self) -> str:
 		return super().__repr__() + repr(self.rank)
 
 	def __bool__(self) -> bool:
 		return self.target.rank.final(self.piece.color) and super().__bool__()
+
+
+	@cached_property
+	def officers(self) -> cycle[chess.material.Officer]:
+		assert isinstance(self.piece, chess.material.Pawn)
+		return cycle(chess.material.Officer)
 
 
 class Cast(Spec, ABC):
@@ -236,3 +264,11 @@ class CastEast(Cast):
 	@property
 	def rook(self) -> chess.material.Rook:
 		return self.side.east_rook
+
+
+def specialize(move: Move, *mods: type[Mod]) -> Move:
+	for mod in mods:
+		if modded := mod(move):
+			move = modded
+
+	return move
