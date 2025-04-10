@@ -24,14 +24,6 @@ class Board(list[Piece], chess.theme.Drawable):
 
 		self.selected: chess.material.Piece | None = None
 
-		self.surf = pygame.transform.smoothscale(pygame.image.load(self.decal).convert(), chess.theme.WINDOW)
-		self.rect = self.surf.get_rect(
-		#	center = pygame.Vector2(
-		#		chess.theme.RESOLUTION // 2,
-		#		chess.theme.RESOLUTION // 2,
-		#	)
-		)
-
 	def __repr__(self) -> str:
 		...  # TODO: FEN (part)
 
@@ -51,8 +43,13 @@ class Board(list[Piece], chess.theme.Drawable):
 
 
 	@property
-	def decal(self) -> Path:
-		return Path("chess/graphics/board/stone1.jpg")
+	def rect(self) -> pygame.Rect:
+		return self.surf.get_rect(
+		#	center = pygame.Vector2(
+		#		chess.theme.RESOLUTION // 2,
+		#		chess.theme.RESOLUTION // 2,
+		#	)
+		)
 
 
 	def update(self, square: chess.algebra.Square,
@@ -177,6 +174,7 @@ class Game(Board):
 		self[-chess.algebra.Square.A8:-chess.algebra.Square.A6:chess.algebra.Color.WHITE] = self.white
 
 		self.history = History()
+		self.promoted: chess.rules.Promotion | None = None
 
 	def __next__(self) -> Side:
 		return self.current
@@ -186,6 +184,14 @@ class Game(Board):
 
 	def __hash__(self) -> int:
 		return hash(datetime.now().timestamp())
+
+	def __iadd__(self, rule: chess.rules.Base) -> Self:
+		self.history.append(rule())
+
+		if (ghost := self.current.ghost) is not None and ghost.square is not None:
+			del self[ghost.square]
+
+		return self
 
 
 	@property
@@ -207,35 +213,53 @@ class Game(Board):
 
 		for piece in self:
 			if piece is not None:
-				piece.draw(screen)
-
 				if piece is self.selected:
-					piece.highlight(screen)
+					if self.promoted is not None and piece is self.promoted.piece:
+						screen.blit(self.promoted.officer.surf, self.promoted.piece.rect)
+
+					else:
+						piece.highlight(screen)
+
+				else:
+					piece.draw(screen)
 
 				piece.ghost = piece.__class__.ghost  # HACK
 
 	def clicked(self, event: pygame.event.Event) -> bool:
 		for square in chess.algebra.Square:
-			if square.clicked(event):
-				if self.selected is not None:
-					if self.selected.side and (rule := self.selected.squares.get(square)) is not None:
-						self += rule
+			if not square.clicked(event):
+				continue
 
-					self.selected = None
+			if self.promoted is not None:
+				if square == self.promoted.source:
+					self.promoted.officer = next(self.promoted.officers)
 
 				else:
-					piece = self[square]
-					self.selected = piece if piece is not None and piece.side else None
+					if square == self.promoted.target:
+						self += self.promoted
+
+					self.selected = None
+					self.promoted = None
 
 				return True
 
+			if self.selected and self.selected.square is not None:
+				if (rule := self.selected.squares.get(square)) is not None:
+					if isinstance(rule, chess.rules.Promotion):
+						self.promoted = rule
+
+					else:
+						self += rule
+						self.selected = None
+
+				else:
+					self.selected = None
+
+				return True
+
+			if (piece := self[square]) is not None and piece.side:
+				self.selected = piece
+
+			return True
+
 		return False
-
-
-	def __iadd__(self, rule: chess.rules.Base) -> Self:
-		self.history.append(rule())
-
-		if (ghost := self.current.ghost) is not None and ghost.square is not None:
-			del self[ghost.square]
-
-		return self
