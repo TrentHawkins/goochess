@@ -284,7 +284,7 @@ class Squares(chess.collection[square]):
 		return self.filter(chess.rules.Mod)
 
 
-	def get(self, square: Square) -> chess.rules.Base | None:
+	def get(self, square: Square) -> chess.rules.Move | None:
 		for rule in self:
 			if rule.target == square:
 				return rule

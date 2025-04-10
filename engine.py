@@ -25,7 +25,7 @@ class Board(list[Piece], chess.theme.Drawable):
 		self.selected: chess.material.Piece | None = None
 
 	def __repr__(self) -> str:
-		...  # TODO: FEN (part)
+		return self.forsyth_edwards
 
 	def __setitem__(self, key: chess.algebra.square | slice, value: Piece | Iterable[Piece]):
 		if isinstance(key, chess.algebra.square): key = slice(int(key), int(key) + 1, +1)
@@ -41,6 +41,29 @@ class Board(list[Piece], chess.theme.Drawable):
 
 		self[key] = [None] * len(range(*key.indices(len(self))))
 
+
+	@property
+	def forsyth_edwards(self) -> str:
+		notation = ""
+
+		for index, piece in enumerate(self):
+			empty = 0
+			square = chess.algebra.Square(index)
+
+			if piece is None:
+				empty += 1
+				continue
+
+			if empty > 0:
+				notation += str(empty)
+				empty = 0
+
+			if square % 8 == 0:
+				notation += "/"
+
+			notation += repr(piece)
+
+		return notation
 
 	@property
 	def rect(self) -> pygame.Rect:
@@ -117,8 +140,18 @@ class Side(list[chess.material.Piece]):
 		return self.game.white if self.color else self.game.black
 
 	@property
-	def history(self) -> list[chess.rules.Base]:
-		return self.game.history[bool(self.color)::2]
+	def history(self) -> History:
+		return History(self.game.history[bool(self.color)::2])
+
+	@property
+	def forsyth_edwards(self) -> str:
+		notation = ""
+
+		if not self.king.moved:
+			if not self.east_rook.moved: notation += "k" if self.color else "K"
+			if not self.west_rook.moved: notation += "q" if self.color else "Q"
+
+		return notation
 
 	@property
 	def king(self) -> chess.material.King:
@@ -148,16 +181,28 @@ class Side(list[chess.material.Piece]):
 		)
 
 
-class History(list[chess.rules.Base]):
+class History(list[chess.rules.Move]):
 
 	@property
-	def last(self) -> chess.rules.Base | None:
+	def last(self) -> chess.rules.Move | None:
 		return self.get(-1)
+
+	@property
+	def half_clock(self) -> int:
+		for index, rule in enumerate(reversed(self)):
+			if isinstance(rule, chess.rules.Capt) or isinstance(rule.piece, chess.material.Pawn):
+				return index
+
+		return len(self)
+
+	@property
+	def full_clock(self) -> int:
+		return len(self) // 2 + 1
 
 
 	def get(self, index: SupportsIndex,
-		default: chess.rules.Base | None = None,
-	) -> chess.rules.Base | None:
+		default: chess.rules.Move | None = None,
+	) -> chess.rules.Move | None:
 		try: return self[index]
 		except IndexError: return default
 
@@ -185,13 +230,35 @@ class Game(Board):
 	def __hash__(self) -> int:
 		return hash(datetime.now().timestamp())
 
-	def __iadd__(self, rule: chess.rules.Base) -> Self:
+	def __iadd__(self, rule: chess.rules.Move) -> Self:
 		self.history.append(rule())
 
 		if (ghost := self.current.ghost) is not None and ghost.square is not None:
 			del self[ghost.square]
 
 		return self
+
+
+	@property
+	def forsyth_edwards(self) -> str:
+		notation = super().forsyth_edwards
+
+		current = "b" if self.current.color else "w"
+		enpassant = repr(self.current.ghost.square) if self.current.ghost is not None else "-"
+
+		return " ".join(
+			[notation, current, enpassant, self.castling,
+				str(self.history.half_clock),
+				str(self.history.full_clock),
+			]
+		)
+
+
+	@property
+	def castling(self) -> str:
+		castling  = self.white.forsyth_edwards + self.black.forsyth_edwards
+
+		return castling if castling else "-"
 
 
 	@property

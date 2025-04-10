@@ -57,7 +57,7 @@ class Piece(chess.theme.Highlightable):
 
 	@property
 	def decal(self) -> str:
-		color = "B" if self.color else "W"
+		color = "b" if self.color else "w"
 
 		return color + super().decal
 
@@ -161,8 +161,8 @@ class Rook(Ranged):
 	value: int = 5
 	width: int = 5
 
-	black: str = "\u265c"
-	white: str = "\u2656"
+	black: str = "r"  # "\u265c"
+	white: str = "R"  # "\u2656"
 
 	moves = chess.algebra.Vectors(
 		chess.algebra.Vector.N,
@@ -186,8 +186,8 @@ class Bishop(Ranged, Assymetric):
 	value: int = 3
 	width: int = 6
 
-	black: str = "\u265d"
-	white: str = "\u2657"
+	black: str = "b"  # "\u265d"
+	white: str = "B"  # "\u2657"
 
 	moves = chess.algebra.Vectors(
 		chess.algebra.Vector.NE,
@@ -202,8 +202,8 @@ class Knight(Melee, Assymetric):
 	value: int = 3
 	width: int = 5
 
-	black: str = "\u265e"
-	white: str = "\u2658"
+	black: str = "n"  # "\u265e"
+	white: str = "N"  # "\u2658"
 
 #	moves = chess.algebra.Vectors(
 #		chess.algebra.Vector.N2E,
@@ -235,14 +235,14 @@ class Queen(Ranged, Star):
 
 	value: int = 9
 
-	black: str = "\u265b"
-	white: str = "\u2655"
+	black: str = "q"  # "\u265b"
+	white: str = "Q"  # "\u2655"
 
 
 class King(Melee, Star):
 
-	black: str = "\u265a"
-	white: str = "\u2654"
+	black: str = "k"  # "\u265a"
+	white: str = "K"  # "\u2654"
 
 	specs = chess.algebra.Vectors(
 		chess.algebra.Vector.W2,
