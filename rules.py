@@ -2,7 +2,9 @@ from __future__ import annotations
 
 
 from abc import ABC, abstractmethod
-from typing import TYPE_CHECKING, Self
+from itertools import cycle
+from functools import cached_property
+from typing import TYPE_CHECKING, Self, cast
 
 import pygame
 
@@ -23,7 +25,7 @@ class Base(ABC):
 		...
 
 	@abstractmethod
-	def __call__(self):
+	def __call__(self) -> Self:
 		...
 
 	@abstractmethod
@@ -57,11 +59,10 @@ class Move(Base, chess.algebra.square):
 	def __repr__(self) -> str:
 		return repr(self.piece) + repr(self.source) + "-" + repr(self.target)
 
-	def __call__(self):
-		self.other = self.game[self.target]
-		self.piece(self.target,
-			kept = self.other,
-		)
+	def __call__(self) -> Self:
+		self.piece(self.target)
+
+		return self
 
 	def __bool__(self) -> bool:
 		return (other := self.game[self.target]) is None or isinstance(other, chess.material.Ghost)
@@ -122,7 +123,8 @@ class Capt(Move):
 	def highlight(self, screen: pygame.Surface,
 		width: int = 1,
 	):
-		return super().highlight(screen, self.other.width if self.other is not None else width)
+		assert self.other is not None
+		return super().highlight(screen, self.other.width)
 
 
 class Spec(Move):
@@ -130,22 +132,85 @@ class Spec(Move):
 	highlight_color = chess.theme.BLUE
 
 
+class Mod(Move):
+
+    def __new__(cls, move: Move):
+        modded_cls = type(cls.__name__, (cls, move.__class__), {})
+
+        return super().__new__(cast(type[Self], modded_cls), move.target, move.piece)
+
+    def __init__(self, move: Move):
+        super().__init__(move.target, move.piece)
+
+
 class Rush(Spec):
+
+	def __init__(self, square: chess.algebra.Square, piece: chess.material.Piece):
+		super().__init__(square, piece)
+
+		assert self.source is not None; self.middle = self.source + chess.algebra.Vector.S * self.side.color
+
+	def __call__(self) -> Self:
+		self.side.ghost = self.game[self.middle] = chess.material.Ghost(self.side)
+
+		return super().__call__()
 
 	def __bool__(self) -> bool:
 		return not self.piece.moved and super().__bool__()
 
 
-class Promote(Spec):
+class EnPassant(Mod, Capt):
 
-	def __init__(self, officer: type[chess.material.Officer]):
-		self.officer = officer
+	def __init__(self, move: Move):
+		super().__init__(move)
+
+		assert self.source is not None; self.middle = self.target + chess.algebra.Vector.S * self.side.other.color
+
+	def __call__(self) -> Self:
+		del self.game[self.middle]
+
+		return super().__call__()
+
+	def __bool__(self) -> bool:
+		return self.other is not None and isinstance(self.other, chess.material.Ghost) and super().__bool__()
+
+
+	def highlight(self, screen: pygame.Surface, **kwargs):
+		super().highlight(screen, **kwargs)
+
+		if self.other is not None:
+			self.other.ghost = 1
+
+		#	if (piece := self.game[self.middle]) is not None:
+		#		piece.ghost = 2
+
+
+class Promotion(Mod):
+
+	def __init__(self, move: Move):
+		super().__init__(move)
+
+		self.officer = next(self.officers)
+
+	def __call__(self) -> Self:
+		super().__call__()
+
+		if isinstance(self.piece, chess.material.Pawn):
+			self.piece.promote(self.officer)
+
+		return self
 
 	def __repr__(self) -> str:
 		return super().__repr__() + repr(self.rank)
 
 	def __bool__(self) -> bool:
 		return self.target.rank.final(self.piece.color) and super().__bool__()
+
+
+	@cached_property
+	def officers(self) -> cycle[chess.material.Officer]:
+		assert isinstance(self.piece, chess.material.Pawn)
+		return cycle(chess.material.Officer)
 
 
 class Cast(Spec, ABC):
@@ -156,8 +221,8 @@ class Cast(Spec, ABC):
 
 	def __bool__(self) -> bool:
 		return not self.king.moved and not self.rook.moved and self.king.safe \
-		and all(self.game[self.king.square + move]    is None                          for move in self.moves) \
-		and all(          self.king.square + capt not in self.side.other.targets.capts for capt in self.capts)
+		and all(self.game[self.king.square + move]    is None                    for move in self.moves) \
+		and all(          self.king.square + capt not in self.side.other.targets for capt in self.capts)
 
 
 	@property
@@ -202,3 +267,11 @@ class CastEast(Cast):
 	@property
 	def rook(self) -> chess.material.Rook:
 		return self.side.east_rook
+
+
+def specialize(move: Move, *mods: type[Mod]) -> Move:
+	for mod in mods:
+		if modded := mod(move):
+			move = modded
+
+	return move

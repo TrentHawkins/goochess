@@ -2,10 +2,8 @@ from __future__ import annotations
 
 
 from enum import Enum
-from itertools import product
-from pathlib import Path
 import re
-from typing import TYPE_CHECKING, Self
+from typing import TYPE_CHECKING, Self, overload
 
 import pygame
 
@@ -134,8 +132,19 @@ class Vector(vector, Enum,
 
 class Vectors(chess.collection[vector]):
 
+	@overload
 	def __mul__(self, other: Vectors, /) -> Vectors:
-		return Vectors(*(left + right for left in self for right in other))
+		...
+
+	@overload
+	def __mul__(self, other: int, /) -> Vectors:
+		...
+
+	def __mul__(self, other: Vectors | int, /) -> Vectors:
+		match other:
+			case Vectors(): return Vectors(*(left + right for left in self for right in other))
+			case     int(): return Vectors(*(left * other for left in self))
+			case         _: return NotImplemented
 
 
 class square(int, chess.theme.Highlightable):
@@ -152,14 +161,6 @@ class square(int, chess.theme.Highlightable):
 		self.black = chess.theme.BLACK
 		self.white = chess.theme.WHITE
 
-		self.rect = pygame.Rect(
-			pygame.Vector2(
-				chess.theme.SQUARE_W * (self.file),
-				chess.theme.SQUARE_H * (self.rank >> 3) + chess.theme.BOARD_OFFSET * 11 // 12,
-			),
-			pygame.Vector2(*chess.theme.SQUARE),
-		)
-
 
 	@property
 	def rank(self) -> Rank:
@@ -174,15 +175,24 @@ class square(int, chess.theme.Highlightable):
 		return Color((((self.rank >> 3) + self.file & 1) << 1) - 1)
 
 	@property
-	def decal(self) -> Path:
-		return Path("chess/graphics/board/bevel.png")
+	def decal(self) -> str:
+		return self.__class__.__name__
+
+	@property
+	def rect(self) -> pygame.Rect:
+		return pygame.Rect(
+			pygame.Vector2(
+				chess.theme.SQUARE_W * (self.file),
+				chess.theme.SQUARE_H * (self.rank >> 3) + chess.theme.BOARD_OFFSET * 11 // 12,
+			),
+			pygame.Vector2(*chess.theme.SQUARE),
+		)
 
 
 	def clicked(self, event: pygame.event.Event) -> bool:
 		return event.type == pygame.MOUSEBUTTONDOWN and event.button == 1 and self.rect.collidepoint(event.pos)
 
 	def draw(self, screen: pygame.Surface):
-		self.surf = pygame.transform.smoothscale(pygame.image.load(self.decal).convert(), chess.theme.SQUARE)
 		screen.fill(self.black if self.color else self.white, self.rect)
 
 		super().draw(screen,
@@ -191,6 +201,7 @@ class square(int, chess.theme.Highlightable):
 
 	def highlight(self, screen: pygame.Surface,
 		width: int = 1,
+		thick: int = 0,
 	):
 		rect = self.rect.inflate(
 			-self.rect.width  // (width + 1) * 24 // 25,
@@ -203,7 +214,7 @@ class square(int, chess.theme.Highlightable):
 			flags = pygame.SRCALPHA,
 		)
 
-		pygame.draw.ellipse(surf, self.highlight_color, surf.get_rect())
+		pygame.draw.ellipse(surf, self.highlight_color, surf.get_rect(), thick)
 		screen.blit(surf, rect,
 			special_flags = pygame.BLEND_RGB_ADD,
 		)
@@ -260,7 +271,6 @@ class Squares(chess.collection[square]):
 	def __add__(self, other: Vectors, /) -> Squares:
 		return Squares(*(left + right for left in self for right in other))
 
-
 	@property
 	def moves(self) -> Squares:
 		return self.filter(chess.rules.Move)
@@ -271,4 +281,12 @@ class Squares(chess.collection[square]):
 
 	@property
 	def specs(self) -> Squares:
-		return self.filter(chess.rules.Spec)
+		return self.filter(chess.rules.Mod)
+
+
+	def get(self, square: Square) -> chess.rules.Base | None:
+		for rule in self:
+			if rule.target == square:
+				return rule
+
+		return None

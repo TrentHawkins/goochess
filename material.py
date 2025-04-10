@@ -1,8 +1,8 @@
 from __future__ import annotations
 
 
-from contextlib import contextmanager
-from pathlib import Path
+from copy import copy
+from enum import Enum
 from typing import TYPE_CHECKING, Self
 
 import pygame
@@ -11,13 +11,15 @@ import chess.theme
 import chess.algebra
 import chess.rules
 
-if TYPE_CHECKING: import chess.engine
+if TYPE_CHECKING:
+	import chess.engine
 
 
 class Piece(chess.theme.Highlightable):
 
 	value: int = 0
 	width: int = 0
+	ghost: int = 0
 
 	black: str = " "
 	white: str = " "
@@ -30,17 +32,13 @@ class Piece(chess.theme.Highlightable):
 	def __init__(self, side: chess.engine.Side,
 		square: chess.algebra.Square | None = None,
 	):
+		super().__init__()
+
 		self.side = side
 		self.square = square
 
 		self.moved: bool = False
 
-		super().__init__()
-
-		try: self.surf = pygame.transform.smoothscale(pygame.image.load(self.decal).convert_alpha(), chess.theme.PIECE)
-		except FileNotFoundError: self.surf = pygame.Surface(chess.theme.PIECE,
-			flags = pygame.SRCALPHA,
-		)
 
 	def __repr__(self) -> str:
 		return self.black if self.color else self.white
@@ -58,8 +56,10 @@ class Piece(chess.theme.Highlightable):
 
 
 	@property
-	def decal(self) -> Path:
-		return Path("chess/graphics/piece") / self.color.name.lower() / f"{self.__class__.__name__.lower()}.png"
+	def decal(self) -> str:
+		color = "B" if self.color else "W"
+
+		return color + super().decal
 
 	@property
 	def rect(self) -> pygame.Rect:
@@ -103,15 +103,16 @@ class Piece(chess.theme.Highlightable):
 
 	def draw(self, screen: pygame.Surface):
 		if self.square is not None:
-			screen.blit(
-				self.surf,
-				self.rect,
-			)
+			if self.ghost:
+				surf = copy(self.surf)
+				surf.fill((*chess.theme.WHITE, 85 * (3 - self.ghost)),
+					special_flags = pygame.BLEND_RGBA_MULT,
+				)
 
+			else:
+				surf = self.surf
 
-class Ghost(Piece):
-
-	width = 2
+			screen.blit(surf, self.rect)
 
 
 class Melee(Piece):
@@ -123,8 +124,8 @@ class Melee(Piece):
 		if self.square is not None:
 			for move in self.moves:
 				try:
-					if step := chess.rules.Move(self.square + (move := move * self.color), self): targets.add(step)
-					if step := chess.rules.Capt(self.square + (move := move * self.color), self): targets.add(step)
+					if step := chess.rules.Move(self.square + move, self): targets.add(step)
+					if step := chess.rules.Capt(self.square + move, self): targets.add(step)
 
 				except ValueError:
 					continue
@@ -155,86 +156,7 @@ class Ranged(Piece):
 		return targets
 
 
-class Officer(Piece):
-
-	width: int = 6
-
-
-class Pawn(Piece):
-
-	value: int = 1
-	width: int = 2
-
-	black: str = "\u265f"
-	white: str = "\u2659"
-
-	moves = chess.algebra.Vectors(
-		chess.algebra.Vector.S,
-	)
-	capts = chess.algebra.Vectors(
-		chess.algebra.Vector.SE,
-		chess.algebra.Vector.SW,
-	)
-
-
-	def __call__(self, target: chess.algebra.Square,
-		move: bool = True,
-		kept: Piece | None = None,
-	) -> Self:
-		assert (source := self.square) is not None
-
-		if move:
-			if not self.moved and target == source + chess.algebra.Vector.S2 * self.color:
-				self.side.ghost = self.game[source + chess.algebra.Vector.S * self.color] = Ghost(self.side)
-
-			if isinstance(self.game[target], Ghost):
-				self.game[target + chess.algebra.Vector.N * self.color] = kept
-
-		return super().__call__(target, move, kept)
-
-
-	@property
-	def targets(self) -> chess.algebra.Squares:
-		targets = super().targets
-
-		if self.square is not None:
-			for move in self.moves:
-				try:
-					if step := chess.rules.Move(self.square + (move := move * self.color), self):
-						targets.add(step)
-
-						if step := chess.rules.Rush(self.square + move * 2, self):
-							targets.add(step)
-
-				except ValueError:
-					continue
-
-			for capt in self.capts:
-				try:
-					if step := chess.rules.Capt(self.square + capt * self.color, self):
-						targets.add(step)
-
-				except ValueError:
-					continue
-
-		return targets
-
-	@property
-	def rect(self) -> pygame.Rect:
-		return self.surf.get_rect(
-			center = self.square.rect.center + pygame.Vector2(
-				chess.theme.PIECE_OFFSET.x * 49 // 25,
-				chess.theme.PIECE_OFFSET.y * 25 // 24,
-			),
-		) if self.square is not None else self.surf.get_rect()
-
-
-	def promote(self, to: type):
-		if issubclass(to, Officer):
-			self.__class__ = to  # type: ignore
-
-
-class Rook(Ranged, Officer):
+class Rook(Ranged):
 
 	value: int = 5
 	width: int = 5
@@ -250,16 +172,19 @@ class Rook(Ranged, Officer):
 	)
 
 
-class Assymetric(Officer):
+class Assymetric(Piece):
 
 	@property
-	def decal(self) -> Path:
-		return super().decal.with_suffix(".flipped" + super().decal.suffix) if self.color else super().decal
+	def decal(self) -> str:
+		flipped = "r" if self.color else ""
+
+		return super().decal + flipped
 
 
-class Bishop(Ranged, Assymetric, Officer):
+class Bishop(Ranged, Assymetric):
 
 	value: int = 3
+	width: int = 6
 
 	black: str = "\u265d"
 	white: str = "\u2657"
@@ -272,7 +197,7 @@ class Bishop(Ranged, Assymetric, Officer):
 	)
 
 
-class Knight(Melee, Assymetric, Officer):
+class Knight(Melee, Assymetric):
 
 	value: int = 3
 	width: int = 5
@@ -306,7 +231,7 @@ class Star(Piece):
 	moves = Rook.moves | Bishop.moves
 
 
-class Queen(Ranged, Star, Officer):
+class Queen(Ranged, Star):
 
 	value: int = 9
 
@@ -352,3 +277,125 @@ class King(Melee, Star):
 	def safe(self) -> bool:
 		assert self.square is not None
 		return self.square not in self.side.other.targets.capts
+
+
+class Officer(Enum):
+
+	Q = Queen
+	R = Rook
+	N = Knight
+	B = Bishop
+
+
+	@property
+	def surf(self) -> pygame.Surface:
+		color = "W" if self.value.color else "B"
+
+		match self.name:
+			case "Q": surf = chess.theme.Main[color + "QUEEN" ].value.copy()
+			case "R": surf = chess.theme.Main[color + "ROOK"  ].value.copy()
+			case "B": surf = chess.theme.Main[color + "BISHOP"].value.copy()
+			case "N": surf = chess.theme.Main[color + "KNIGHT"].value.copy()
+			case _  : surf = chess.theme.Main[color + "PAWN"  ].value.copy()
+
+		surf.fill((*chess.theme.WHITE, 170), special_flags = pygame.BLEND_RGBA_MULT)
+
+		return surf
+
+
+class Pawn(Piece):
+
+	value: int = 1
+	width: int = 2
+
+	black: str = "\u265f"
+	white: str = "\u2659"
+
+	moves = chess.algebra.Vectors(
+		chess.algebra.Vector.S,
+	)
+	capts = chess.algebra.Vectors(
+		chess.algebra.Vector.SE,
+		chess.algebra.Vector.SW,
+	)
+
+
+#	def __call__(self, target: chess.algebra.Square,
+#		move: bool = True,
+#		kept: Piece | None = None,
+#	) -> Self:
+#		assert (source := self.square) is not None
+#
+#		if move and not self.moved and target == source + chess.algebra.Vector.S2 * self.color:
+#			self.side.ghost = self.game[source + chess.algebra.Vector.S  * self.color] = Ghost(self.side)
+#
+#		if move and isinstance(self.game[target], Ghost):
+#			self.game[target + chess.algebra.Vector.N * self.color] = kept
+#
+#		return super().__call__(target, move, kept)
+
+
+	@property
+	def targets(self) -> chess.algebra.Squares:
+		targets = super().targets
+
+		if self.square is not None:
+			for move in self.moves * self.color:
+				try:
+					if step := chess.rules.Move(target := self.square + move, self):
+						targets.add(
+							chess.rules.specialize(step,
+								chess.rules.Promotion,
+							)
+						)
+
+						if step := chess.rules.Rush(target := target + move, self):
+							targets.add(step)
+
+				except ValueError:
+					continue
+
+			for capt in self.capts * self.color:
+				try:
+					if step := chess.rules.Capt(self.square + capt, self):
+						targets.add(
+							chess.rules.specialize(step,
+								chess.rules.EnPassant,
+								chess.rules.Promotion,
+							)
+						)
+
+				except ValueError:
+					continue
+
+		return targets
+
+	@property
+	def rect(self) -> pygame.Rect:
+		return self.surf.get_rect(
+			center = self.square.rect.center + pygame.Vector2(
+				chess.theme.PIECE_OFFSET.x * 49 // 25,
+				chess.theme.PIECE_OFFSET.y * 25 // 24,
+			),
+		) if self.square is not None else self.surf.get_rect()
+
+
+	def promote(self, to: Officer):
+		self.__class__ = to.value  # type: ignore
+
+
+class Ghost(Piece):
+
+	width = 2
+	ghost = 3
+
+
+	@property
+	def rect(self) -> pygame.Rect:
+		return self.surf.get_rect(
+			center = self.square.rect.center + pygame.Vector2(
+				chess.theme.PIECE_OFFSET.x * 49 // 25,
+				chess.theme.PIECE_OFFSET.y * 25 // 24,
+			),
+		) if self.square is not None else self.surf.get_rect()
+
