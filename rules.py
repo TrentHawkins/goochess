@@ -102,12 +102,6 @@ class Move(Base, chess.algebra.square):
 #		return chess.algebra.Square(self)
 
 
-	def highlight(self, screen: pygame.Surface,
-		width: int = 1,
-	):
-		return super().highlight(screen, width)
-
-
 class Capt(Move):
 
 	highlight_color = chess.theme.RED
@@ -120,11 +114,12 @@ class Capt(Move):
 		return (other := self.game[self.target]) is not None and self.piece.color != other.color
 
 
-	def highlight(self, screen: pygame.Surface,
-		width: int = 1,
-	):
+	def highlight(self, screen: pygame.Surface, **kwargs):
 		assert self.other is not None
-		return super().highlight(screen, self.other.width)
+		return super().highlight(screen,
+			width = self.other.width,
+			thick = 8,
+		)
 
 
 class Spec(Move):
