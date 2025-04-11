@@ -105,7 +105,7 @@ class Piece(chess.theme.Highlightable):
 		if self.square is not None:
 			if self.ghost:
 				surf = copy(self.surf)
-				surf.fill((*chess.theme.WHITE, 85 * (3 - self.ghost)),
+				surf.fill((*chess.theme.HIGH, 85 * (3 - self.ghost)),
 					special_flags = pygame.BLEND_RGBA_MULT,
 				)
 
@@ -298,7 +298,7 @@ class Officer(Enum):
 			case "N": surf = chess.theme.Main[color + "KNIGHT"].value.copy()
 			case _  : surf = chess.theme.Main[color + "PAWN"  ].value.copy()
 
-		surf.fill((*chess.theme.WHITE, 170), special_flags = pygame.BLEND_RGBA_MULT)
+		surf.fill((*chess.theme.HIGH, 170), special_flags = pygame.BLEND_RGBA_MULT)
 
 		return surf
 
