@@ -19,8 +19,13 @@ Piece = chess.material.Piece | None
 
 class Board(list[Piece], chess.theme.Drawable):
 
-	def __init__(self):
-		super().__init__(None for _ in chess.algebra.Square)
+	def __init__(self,
+		pieces: list[Piece | None] | None = None,
+	):
+		if pieces is None:
+			pieces = [None for _ in chess.algebra.Square]
+
+		super().__init__(pieces)
 
 		self.selected: chess.material.Piece | None = None
 
@@ -209,11 +214,22 @@ class History(list[chess.rules.Move]):
 
 class Game(Board):
 
-	def __init__(self):
+	def __init__(self,
+		black: Side | None = None,
+		white: Side | None = None,
+	):
 		super().__init__()
 
-		self.black = Side(self, chess.algebra.Color.BLACK)
-		self.white = Side(self, chess.algebra.Color.WHITE)
+		self.black = black if black is not None else Side(self, chess.algebra.Color.BLACK)
+		self.white = white if white is not None else Side(self, chess.algebra.Color.WHITE)
+
+		for piece in self.black:
+			if (square := piece.square) is not None:
+				self[square] = piece
+
+		for piece in self.white:
+			if (square := piece.square) is not None:
+				self[square] = piece
 
 		self[+chess.algebra.Square.A8:+chess.algebra.Square.A6:chess.algebra.Color.BLACK] = self.black
 		self[-chess.algebra.Square.A8:-chess.algebra.Square.A6:chess.algebra.Color.WHITE] = self.white
