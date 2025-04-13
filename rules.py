@@ -146,7 +146,7 @@ class Rush(Spec):
 		assert self.source is not None; self.middle = self.source + chess.algebra.Vector.S * self.side.color
 
 	def __call__(self) -> Self:
-		self.side.ghost = self.game[self.middle] = chess.material.Ghost(self.side)
+		self.side.ghost = self.game[self.middle] = chess.material.Ghost(self.game, self.side.color)
 
 		return super().__call__()
 

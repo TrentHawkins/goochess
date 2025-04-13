@@ -29,13 +29,14 @@ class Piece(chess.theme.Highlightable):
 	specs: chess.algebra.Vectors
 
 
-	def __init__(self, side: chess.engine.Side,
+	def __init__(self, game: chess.engine.Game, color: chess.algebra.Color,
 		square: chess.algebra.Square | None = None,
 	):
 		super().__init__()
 
-		self.side = side
+		self.color = color
 		self.square = square
+		self.game = game
 
 		self.moved: bool = False
 
@@ -55,6 +56,13 @@ class Piece(chess.theme.Highlightable):
 		return self
 
 
+	@classmethod
+	def fromside(cls, side: chess.engine.Side,
+		square: chess.algebra.Square | None = None,
+	) -> Self:
+		return cls(side.game, side.color, square)
+
+
 	@property
 	def decal(self) -> str:
 		color = "b" if self.color else "w"
@@ -68,12 +76,8 @@ class Piece(chess.theme.Highlightable):
 		) if self.square is not None else self.surf.get_rect()
 
 	@property
-	def color(self) -> chess.algebra.Color:
-		return self.side.color
-
-	@property
-	def game(self) -> chess.engine.Game:
-		return self.side.game
+	def side(self) -> chess.engine.Side:
+		return self.game.black if self.color else self.game.white
 
 	@property
 	def king(self) -> King:
@@ -287,16 +291,15 @@ class Officer(Enum):
 	B = Bishop
 
 
-	@property
-	def surf(self) -> pygame.Surface:
-		color = "W" if self.value.color else "B"
+	def surf(self, color: chess.algebra.Color) -> pygame.Surface:
+		mod = "B" if color else "W"
 
 		match self.name:
-			case "Q": surf = chess.theme.Main[color + "QUEEN" ].value.copy()
-			case "R": surf = chess.theme.Main[color + "ROOK"  ].value.copy()
-			case "B": surf = chess.theme.Main[color + "BISHOP"].value.copy()
-			case "N": surf = chess.theme.Main[color + "KNIGHT"].value.copy()
-			case _  : surf = chess.theme.Main[color + "PAWN"  ].value.copy()
+			case "Q": surf = chess.theme.Main[mod + "QUEEN" ].value.copy()
+			case "R": surf = chess.theme.Main[mod + "ROOK"  ].value.copy()
+			case "B": surf = chess.theme.Main[mod + "BISHOP"].value.copy()
+			case "N": surf = chess.theme.Main[mod + "KNIGHT"].value.copy()
+			case  _ : surf = chess.theme.Main[mod + "PAWN"  ].value.copy()
 
 		surf.fill((*chess.theme.HIGH, 170), special_flags = pygame.BLEND_RGBA_MULT)
 

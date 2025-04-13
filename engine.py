@@ -1,9 +1,8 @@
 from __future__ import annotations
 
 
+from collections import deque
 from datetime import datetime
-from itertools import cycle
-from pathlib import Path
 from typing import SupportsIndex, Iterable, Self, cast
 
 import pygame
@@ -96,7 +95,7 @@ class Board(list[Piece], chess.theme.Drawable):
 			piece(target)
 
 
-class Side(list[chess.material.Piece]):
+class Side(deque[chess.material.Piece]):
 
 	def __init__(self, game: Game, color: chess.algebra.Color):
 		self.game = game
@@ -104,25 +103,25 @@ class Side(list[chess.material.Piece]):
 
 		super().__init__(
 			[
-				chess.material.Rook  (self),
-				chess.material.Knight(self),
-				chess.material.Bishop(self),
-				chess.material.Queen (self) if self.color else
-				chess.material.King  (self),
-				chess.material.King  (self) if self.color else
-				chess.material.Queen (self),
-				chess.material.Bishop(self),
-				chess.material.Knight(self),
-				chess.material.Rook  (self),
+				chess.material.Rook  .fromside(self),
+				chess.material.Knight.fromside(self),
+				chess.material.Bishop.fromside(self),
+				chess.material.Queen .fromside(self) if self.color else
+				chess.material.King  .fromside(self),
+				chess.material.King  .fromside(self) if self.color else
+				chess.material.Queen .fromside(self),
+				chess.material.Bishop.fromside(self),
+				chess.material.Knight.fromside(self),
+				chess.material.Rook  .fromside(self),
 
-				chess.material.Pawn  (self),
-				chess.material.Pawn  (self),
-				chess.material.Pawn  (self),
-				chess.material.Pawn  (self),
-				chess.material.Pawn  (self),
-				chess.material.Pawn  (self),
-				chess.material.Pawn  (self),
-				chess.material.Pawn  (self),
+				chess.material.Pawn  .fromside(self),
+				chess.material.Pawn  .fromside(self),
+				chess.material.Pawn  .fromside(self),
+				chess.material.Pawn  .fromside(self),
+				chess.material.Pawn  .fromside(self),
+				chess.material.Pawn  .fromside(self),
+				chess.material.Pawn  .fromside(self),
+				chess.material.Pawn  .fromside(self),
 			]
 		)
 
@@ -298,7 +297,7 @@ class Game(Board):
 			if piece is not None:
 				if piece is self.selected:
 					if self.promoted is not None and piece is self.promoted.piece:
-						screen.blit(self.promoted.officer.surf, self.promoted.piece.rect)
+						screen.blit(self.promoted.officer.surf(self.promoted.piece.color), self.promoted.piece.rect)
 
 					else:
 						piece.highlight(screen)
