@@ -402,3 +402,28 @@ class Ghost(Piece):
 			),
 		) if self.square is not None else self.surf.get_rect()
 
+
+class Pieces(chess.collection):
+
+	def __init__(self, *pieces: Piece):
+		self.king: King | None = None
+		self.ghost: Ghost | None = None
+
+		self.queens: set[Queen] = set()
+		self.rooks: set[Rook] = set()
+		self.knights: set[Knight] = set()
+		self.bishops: set[Bishop] = set()
+		self.pawns: set[Pawn] = set()
+
+		for piece in pieces:
+			match piece:
+				case King  (): self.king = piece
+				case Ghost (): self.ghost = piece
+
+				case Queen (): self.queens .add(piece)
+				case Rook  (): self.rooks  .add(piece)
+				case Knight(): self.knights.add(piece)
+				case Bishop(): self.bishops.add(piece)
+				case Pawn  (): self.pawns  .add(piece)
+
+				case _      : ...
