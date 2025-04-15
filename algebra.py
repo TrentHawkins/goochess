@@ -268,8 +268,9 @@ class Square(square, Enum):
 
 class Squares(chess.collection[square]):
 
-	def __add__(self, other: Vectors, /) -> Squares:
-		return Squares(*(left + right for left in self for right in other))
+	def __add__(self, other: Vectors, /) -> Squares: return Squares(*(left + right for left in self for right in other))
+	def __mul__(self, color: Color  , /) -> Squares: return Squares(*(left * color for left in self))
+
 
 	@property
 	def moves(self) -> Squares:

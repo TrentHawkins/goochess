@@ -27,6 +27,7 @@ class Piece(chess.theme.Highlightable):
 	moves: chess.algebra.Vectors
 	capts: chess.algebra.Vectors
 	specs: chess.algebra.Vectors
+	stock: chess.algebra.Squares
 
 
 	def __init__(self, game: chess.engine.Game, color: chess.algebra.Color,
@@ -38,7 +39,7 @@ class Piece(chess.theme.Highlightable):
 		self.square = square
 		self.game = game
 
-		self.moved: bool = False
+		self._moved: bool = False
 
 
 	def __repr__(self) -> str:
@@ -50,10 +51,15 @@ class Piece(chess.theme.Highlightable):
 	) -> Self:
 		assert (source := self.square) is not None
 
-		self.moved = self.moved or move
+		self._moved = self._moved or move
 		self.game[source], self.game[target] = kept, self.game[source]
 
 		return self
+
+
+	@property
+	def moved(self) -> bool:
+		return self._moved or self.square not in self.stock * self.color
 
 
 	@classmethod
@@ -174,6 +180,10 @@ class Rook(Ranged):
 		chess.algebra.Vector.S,
 		chess.algebra.Vector.W,
 	)
+	stock = chess.algebra.Squares(
+		chess.algebra.Square.A8,
+		chess.algebra.Square.H8,
+	)
 
 
 class Assymetric(Piece):
@@ -199,6 +209,10 @@ class Bishop(Ranged, Assymetric):
 		chess.algebra.Vector.SW,
 		chess.algebra.Vector.NW,
 	)
+	stock = chess.algebra.Squares(
+		chess.algebra.Square.C8,
+		chess.algebra.Square.F8,
+	)
 
 
 class Knight(Melee, Assymetric):
@@ -209,6 +223,7 @@ class Knight(Melee, Assymetric):
 	black: str = "n"  # "\u265e"
 	white: str = "N"  # "\u2658"
 
+	moves = Rook.moves * Bishop.moves - Rook.moves
 #	moves = chess.algebra.Vectors(
 #		chess.algebra.Vector.N2E,
 #		chess.algebra.Vector.NE2,
@@ -219,7 +234,10 @@ class Knight(Melee, Assymetric):
 #		chess.algebra.Vector.NW2,
 #		chess.algebra.Vector.N2W,
 #	)
-	moves = Rook.moves * Bishop.moves - Rook.moves
+	stock = chess.algebra.Squares(
+		chess.algebra.Square.B8,
+		chess.algebra.Square.G8,
+	)
 
 
 class Star(Piece):
@@ -242,6 +260,10 @@ class Queen(Ranged, Star):
 	black: str = "q"  # "\u265b"
 	white: str = "Q"  # "\u2655"
 
+	stock = chess.algebra.Squares(
+		chess.algebra.Square.D8,
+	)
+
 
 class King(Melee, Star):
 
@@ -251,6 +273,9 @@ class King(Melee, Star):
 	specs = chess.algebra.Vectors(
 		chess.algebra.Vector.W2,
 		chess.algebra.Vector.E2,
+	)
+	stock = chess.algebra.Squares(
+		chess.algebra.Square.E8,
 	)
 
 
@@ -320,6 +345,16 @@ class Pawn(Piece):
 	capts = chess.algebra.Vectors(
 		chess.algebra.Vector.SE,
 		chess.algebra.Vector.SW,
+	)
+	stock = chess.algebra.Squares(
+		chess.algebra.Square.A7,
+		chess.algebra.Square.B7,
+		chess.algebra.Square.C7,
+		chess.algebra.Square.D7,
+		chess.algebra.Square.E7,
+		chess.algebra.Square.F7,
+		chess.algebra.Square.G7,
+		chess.algebra.Square.H7,
 	)
 
 
