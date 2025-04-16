@@ -186,22 +186,14 @@ class Side(
 		if piece is None or piece.color != self.color:
 			return
 
-		self[piece.__class__].remove(piece)
-		del self.game[piece.square]
-
-		self.sync()
-
-	def pop(self,
-		piece_type: type[chess.material.Piece] | None = None,
-	) -> chess.material.Piece | None:
-		if piece_type is None:
-			piece_type = self.last_type
-
 		try:
-			return self[piece_type].pop()
+			self[piece.__class__].remove(piece)
 
-		except IndexError:
+		except ValueError:
 			return
+
+		del self.game[piece.square]
+		self.sync()
 
 
 class History(list[chess.rules.Move]):
