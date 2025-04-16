@@ -38,7 +38,7 @@ class Base(ABC):
 		return self.side.game
 
 	@property
-	def king(self) -> chess.material.King:
+	def king(self) -> chess.material.King | None:
 		return self.side.king
 
 
@@ -214,7 +214,7 @@ class Cast(Spec, ABC):
 
 
 	def __bool__(self) -> bool:
-		return not self.king.moved and not self.rook.moved and self.king.safe \
+		return self.king is not None and not self.king.moved and not self.rook.moved and self.king.safe \
 		and all(self.game[self.king.square + move]    is None                    for move in self.moves) \
 		and all(          self.king.square + capt not in self.side.other.targets for capt in self.capts)
 
@@ -241,8 +241,8 @@ class CastWest(Cast):
 
 
 	@property
-	def rook(self) -> chess.material.Rook:
-		return self.side.west_rook
+	def rook(self) -> chess.material.Rook | None:
+		return self.side.arook
 
 
 class CastEast(Cast):
@@ -259,8 +259,8 @@ class CastEast(Cast):
 
 
 	@property
-	def rook(self) -> chess.material.Rook:
-		return self.side.east_rook
+	def rook(self) -> chess.material.Rook | None:
+		return self.side.hrook
 
 
 def specialize(move: Move, *mods: type[Mod]) -> Move:

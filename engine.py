@@ -1,9 +1,9 @@
 from __future__ import annotations
 
 
-from collections import deque
+from collections import defaultdict
 from datetime import datetime
-from typing import SupportsIndex, Iterable, Self, cast
+from typing import Generator, Iterable, SupportsIndex, Self, cast
 
 import pygame
 
@@ -19,7 +19,7 @@ Piece = chess.material.Piece | None
 class Board(list[Piece], chess.theme.Drawable):
 
 	def __init__(self,
-		pieces: list[Piece | None] | None = None,
+		pieces: list[Piece] | None = None,
 	):
 		if pieces is None:
 			pieces = [None for _ in chess.algebra.Square]
@@ -31,9 +31,11 @@ class Board(list[Piece], chess.theme.Drawable):
 	def __repr__(self) -> str:
 		return self.forsyth_edwards
 
-	def __setitem__(self, key: chess.algebra.square | slice, value: Piece | Iterable[Piece]):
+	def __setitem__(self, key: chess.algebra.square | slice,
+		value: chess.material.Piece | None | Iterable[chess.material.Piece | None],
+	):
 		if isinstance(key, chess.algebra.square): key = slice(int(key), int(key) + 1, +1)
-		if isinstance(value, Piece): value = [value]
+		if isinstance(value, chess.material.Piece | None): value = [value]
 
 		for index, piece in zip(range(*key.indices(len(self))), value):
 			self.update(chess.algebra.Square(index), piece)
@@ -80,7 +82,7 @@ class Board(list[Piece], chess.theme.Drawable):
 
 
 	def update(self, square: chess.algebra.Square,
-		piece: Piece = None,
+		piece: chess.material.Piece | None = None,
 	):
 	#	other = self[square]
 
@@ -95,37 +97,39 @@ class Board(list[Piece], chess.theme.Drawable):
 			piece(target)
 
 
-class Side(deque[chess.material.Piece]):
+class Side(
+	defaultdict[
+		type[chess.material.Piece],
+		list[chess.material.Piece],
+	]
+):
+
+	last_type: type[chess.material.Piece]
+
 
 	def __init__(self, game: Game, color: chess.algebra.Color):
+		super().__init__(list)
+
 		self.game = game
 		self.color = color
 
-		super().__init__(
-			[
-				chess.material.Rook  .fromside(self),
-				chess.material.Knight.fromside(self),
-				chess.material.Bishop.fromside(self),
-				chess.material.Queen .fromside(self) if self.color else
-				chess.material.King  .fromside(self),
-				chess.material.King  .fromside(self) if self.color else
-				chess.material.Queen .fromside(self),
-				chess.material.Bishop.fromside(self),
-				chess.material.Knight.fromside(self),
-				chess.material.Rook  .fromside(self),
+	#	self[chess.material.King  ] = []
+	#	self[chess.material.Queen ] = []
+	#	self[chess.material.Pawn  ] = []
+	#	self[chess.material.Rook  ] = []
+	#	self[chess.material.Bishop] = []
+	#	self[chess.material.Knight] = []
 
-				chess.material.Pawn  .fromside(self),
-				chess.material.Pawn  .fromside(self),
-				chess.material.Pawn  .fromside(self),
-				chess.material.Pawn  .fromside(self),
-				chess.material.Pawn  .fromside(self),
-				chess.material.Pawn  .fromside(self),
-				chess.material.Pawn  .fromside(self),
-				chess.material.Pawn  .fromside(self),
-			]
-		)
+		self. king: chess.material.King  | None = None
+		self.arook: chess.material.Rook  | None = None
+		self.hrook: chess.material.Rook  | None = None
 
 		self.ghost: chess.material.Ghost | None = None
+
+	def __iter__(self) -> Generator[chess.material.Piece]:
+		for piece_type, pieces in self.items():
+			for piece in pieces:
+				yield piece
 
 	def __bool__(self) -> bool:
 		return self is self.game.current
@@ -151,38 +155,40 @@ class Side(deque[chess.material.Piece]):
 	def forsyth_edwards(self) -> str:
 		notation = ""
 
-		if not self.king.moved:
-			if not self.east_rook.moved: notation += "k" if self.color else "K"
-			if not self.west_rook.moved: notation += "q" if self.color else "Q"
+		if self.king is not None and not self.king.moved:
+			if self.arook is not None and not self.arook.moved: notation += "k" if self.color else "K"
+			if self.hrook is not None and not self.hrook.moved: notation += "q" if self.color else "Q"
 
 		return notation
 
-	@property
-	def king(self) -> chess.material.King:
-		return cast(chess.material.King,
-			self[
-				chess.algebra.Square.E8 if self.color else
-				chess.algebra.Square.D8
-			]
-		)
 
-	@property
-	def west_rook(self) -> chess.material.Rook:
-		return cast(chess.material.Rook,
-			self[
-				chess.algebra.Square.A8 if self.color else
-				chess.algebra.Square.H8
-			]
-		)
+	def add(self, piece: chess.material.Piece | None):
+		if piece is None or piece.color != self.color:
+			return
 
-	@property
-	def east_rook(self) -> chess.material.Rook:
-		return cast(chess.material.Rook,
-			self[
-				chess.algebra.Square.H8 if self.color else
-				chess.algebra.Square.A8
-			]
-		)
+		self.last_type = type(piece)
+		self[piece.__class__].append(piece)
+		self.game[piece.square] = piece
+
+		match piece:
+			case chess.material.King(): self.king = piece
+			case chess.material.Rook():
+				match piece.square * self.color:
+					case chess.algebra.Square.A8: self.arook = piece
+					case chess.algebra.Square.H8: self.hrook = piece
+			case chess.material.Ghost(): self.ghost = piece
+
+	def pop(self,
+		piece_type: type[chess.material.Piece] | None = None,
+	) -> chess.material.Piece | None:
+		if piece_type is None:
+			piece_type = self.last_type
+
+		try:
+			return self[piece_type].pop()
+
+		except IndexError:
+			return
 
 
 class History(list[chess.rules.Move]):
@@ -214,24 +220,16 @@ class History(list[chess.rules.Move]):
 class Game(Board):
 
 	def __init__(self,
-		black: Side | None = None,
-		white: Side | None = None,
+		pieces: list[Piece] | None = None,
 	):
-		super().__init__()
+		super().__init__(pieces)
 
-		self.black = black if black is not None else Side(self, chess.algebra.Color.BLACK)
-		self.white = white if white is not None else Side(self, chess.algebra.Color.WHITE)
+		self.black = Side(self, chess.algebra.Color.BLACK)
+		self.white = Side(self, chess.algebra.Color.WHITE)
 
-		for piece in self.black:
-			if (square := piece.square) is not None:
-				self[square] = piece
-
-		for piece in self.white:
-			if (square := piece.square) is not None:
-				self[square] = piece
-
-		self[+chess.algebra.Square.A8:+chess.algebra.Square.A6:chess.algebra.Color.BLACK] = self.black
-		self[-chess.algebra.Square.A8:-chess.algebra.Square.A6:chess.algebra.Color.WHITE] = self.white
+		for piece in self:
+			self.black.add(piece)
+			self.white.add(piece)
 
 		self.history = History()
 		self.promoted: chess.rules.Promotion | None = None

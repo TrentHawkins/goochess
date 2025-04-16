@@ -83,7 +83,7 @@ class Piece(chess.theme.Highlightable):
 		return self.game.black if self.color else self.game.white
 
 	@property
-	def king(self) -> King:
+	def king(self) -> King | None:
 		return self.side.king
 
 	@property
@@ -96,7 +96,7 @@ class Piece(chess.theme.Highlightable):
 
 		for step in self.targets:
 			with step:
-				if not self.king.safe:
+				if self.king is not None and not self.king.safe:
 					squares.discard(step)
 
 		return squares
@@ -280,8 +280,10 @@ class King(Melee, Star):
 		assert (source := self.square) is not None
 
 		if not self.moved and move:
-			if target == source + chess.algebra.Vector.E2: self.side.east_rook(target + chess.algebra.Vector.W, move, kept)
-			if target == source + chess.algebra.Vector.W2: self.side.west_rook(target + chess.algebra.Vector.E, move, kept)
+			if self.side.arook is not None and target == source + chess.algebra.Vector.E2:
+				self.side.arook(target + chess.algebra.Vector.W, move, kept)
+			if self.side.hrook is not None and target == source + chess.algebra.Vector.W2:
+				self.side.hrook(target + chess.algebra.Vector.E, move, kept)
 
 		return super().__call__(target, move, kept)
 
