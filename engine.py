@@ -24,6 +24,8 @@ class Board(list[Piece], chess.theme.Drawable):
 		if pieces is None:
 			pieces = [None for _ in chess.algebra.Square]
 
+		super().__init__(pieces)
+
 		for index, piece in enumerate(pieces):
 			square = chess.algebra.Square(index)
 
@@ -178,7 +180,6 @@ class Side(
 
 		self.last_type = type(piece)
 		self[piece.__class__].append(piece)
-		self.game[piece.square] = piece
 
 		self.sync(piece)
 
@@ -192,7 +193,6 @@ class Side(
 		except ValueError:
 			return
 
-		del self.game[piece.square]
 		self.sync()
 
 
@@ -265,6 +265,55 @@ class Game(Board):
 			del self[ghost.square]
 
 		return self
+
+
+	@classmethod
+	def from_forsyth_edwards(cls,
+		notation: str = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1",
+	) -> Self:
+		game = cls()
+		board, turn, castling, enpassant, half, full = notation.split()
+
+		index = 0
+
+		for row in board.split("/"):
+			for char in row:
+				if char.isdigit():
+					index += int(char)
+
+				else:
+					square = chess.algebra.Square(index)
+					color = chess.algebra.Color.BLACK if char.islower() else chess.algebra.Color.WHITE
+					piece_types = {
+						"p": chess.material.Pawn,
+						"r": chess.material.Rook,
+						"n": chess.material.Knight,
+						"b": chess.material.Bishop,
+						"q": chess.material.Queen,
+						"k": chess.material.King,
+					}
+					piece_type = piece_types[char.lower()]
+					piece = piece_type(game, color)
+					game[square] = piece
+
+					index += 1
+
+		if turn == "b":
+			game.history.append(None)
+
+		for symbol in castling:
+			match symbol:
+				case "K": game.white.arook = game[chess.algebra.Square.H1]
+				case "Q": game.white.hrook = game[chess.algebra.Square.A1]
+				case "k": game.black.arook = game[chess.algebra.Square.H8]
+				case "q": game.black.hrook = game[chess.algebra.Square.A8]
+
+		if enpassant != "-":
+			square = chess.algebra.Square.fromnotation(enpassant)
+			color = game.current.color
+			game.current.ghost = game[square] = chess.material.Ghost(game, color)
+
+		return game
 
 
 	@property

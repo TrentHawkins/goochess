@@ -9,7 +9,7 @@ import chess.engine
 
 running = True
 
-game = chess.engine.Game()
+game = chess.engine.Game.from_forsyth_edwards()
 
 while running:
 	for event in pygame.event.get():
