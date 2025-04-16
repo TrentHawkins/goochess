@@ -413,8 +413,7 @@ class Pawn(Piece):
 
 
 	def promote(self, to: Officer):
-		self.__class__ = to.value  # type: ignore
-
+		self.game[self.square] = to.value.fromside(self.side)
 
 class Ghost(Piece):
 

@@ -24,28 +24,25 @@ class Board(list[Piece], chess.theme.Drawable):
 		if pieces is None:
 			pieces = [None for _ in chess.algebra.Square]
 
-		super().__init__(pieces)
+		for index, piece in enumerate(pieces):
+			square = chess.algebra.Square(index)
+
+			self[square] = piece
 
 		self.selected: chess.material.Piece | None = None
 
 	def __repr__(self) -> str:
 		return self.forsyth_edwards
 
-	def __setitem__(self, key: chess.algebra.square | slice,
-		value: chess.material.Piece | None | Iterable[chess.material.Piece | None],
-	):
-		if isinstance(key, chess.algebra.square): key = slice(int(key), int(key) + 1, +1)
-		if isinstance(value, chess.material.Piece | None): value = [value]
-
-		for index, piece in zip(range(*key.indices(len(self))), value):
-			self.update(chess.algebra.Square(index), piece)
+	def __setitem__(self, key: chess.algebra.Square, value: chess.material.Piece | None):
+		if value is not None:
+			value.square = key
 
 		super().__setitem__(key, value)
 
-	def __delitem__(self, key: chess.algebra.square | slice):
-		if isinstance(key, chess.algebra.square): key = slice(int(key), int(key) + 1, +1)
-
-		self[key] = [None] * len(range(*key.indices(len(self))))
+	def __delitem__(self, key: chess.algebra.Square):
+		piece = self[key] = None
+		del piece
 
 
 	@property
@@ -162,7 +159,20 @@ class Side(
 		return notation
 
 
-	def add(self, piece: chess.material.Piece | None):
+	def sync(self,
+		piece: chess.material.Piece | None = None,
+	):
+		match piece:
+			case chess.material.King(): self.king = piece
+			case chess.material.Rook():
+				match piece.square * self.color:
+					case chess.algebra.Square.A8: self.arook = piece
+					case chess.algebra.Square.H8: self.hrook = piece
+
+			case chess.material.Ghost():
+				self.ghost = piece
+
+	def append(self, piece: chess.material.Piece | None):
 		if piece is None or piece.color != self.color:
 			return
 
@@ -170,13 +180,16 @@ class Side(
 		self[piece.__class__].append(piece)
 		self.game[piece.square] = piece
 
-		match piece:
-			case chess.material.King(): self.king = piece
-			case chess.material.Rook():
-				match piece.square * self.color:
-					case chess.algebra.Square.A8: self.arook = piece
-					case chess.algebra.Square.H8: self.hrook = piece
-			case chess.material.Ghost(): self.ghost = piece
+		self.sync(piece)
+
+	def remove(self, piece: chess.material.Piece | None):
+		if piece is None or piece.color != self.color:
+			return
+
+		self[piece.__class__].remove(piece)
+		del self.game[piece.square]
+
+		self.sync()
 
 	def pop(self,
 		piece_type: type[chess.material.Piece] | None = None,
@@ -222,14 +235,10 @@ class Game(Board):
 	def __init__(self,
 		pieces: list[Piece] | None = None,
 	):
-		super().__init__(pieces)
-
 		self.black = Side(self, chess.algebra.Color.BLACK)
 		self.white = Side(self, chess.algebra.Color.WHITE)
 
-		for piece in self:
-			self.black.add(piece)
-			self.white.add(piece)
+		super().__init__(pieces)
 
 		self.history = History()
 		self.promoted: chess.rules.Promotion | None = None
@@ -242,6 +251,20 @@ class Game(Board):
 
 	def __hash__(self) -> int:
 		return hash(datetime.now().timestamp())
+
+	def __setitem__(self, key: chess.algebra.Square, value: chess.material.Piece | None):
+		super().__setitem__(key, value)
+
+		self.black.append(value)
+		self.white.append(value)
+
+	def __delitem__(self, key: chess.algebra.Square):
+		value = self[key]
+
+		super().__delitem__(key)
+
+		self.black.remove(value)
+		self.white.remove(value)
 
 	def __iadd__(self, rule: chess.rules.Move) -> Self:
 		self.history.append(rule())
