@@ -82,10 +82,10 @@ class Board(list[Piece], chess.theme.Drawable):
 	def update(self, square: chess.algebra.Square,
 		piece: Piece = None,
 	):
-		other = self[square]
+	#	other = self[square]
 
 		if piece is not None: piece.square = square
-		if other is not None: other.square = None
+	#	if other is not None: other.square = None
 
 	def move(self,
 		source: chess.algebra.Square,
@@ -133,7 +133,7 @@ class Side(deque[chess.material.Piece]):
 
 	@property
 	def material(self) -> int:
-		return sum(piece.value for piece in self if piece.square is not None)
+		return sum(piece.value for piece in self)
 
 	@property
 	def targets(self) -> chess.algebra.Squares:
@@ -248,7 +248,7 @@ class Game(Board):
 	def __iadd__(self, rule: chess.rules.Move) -> Self:
 		self.history.append(rule())
 
-		if (ghost := self.current.ghost) is not None and ghost.square is not None:
+		if (ghost := self.current.ghost) is not None:
 			del self[ghost.square]
 
 		return self
@@ -325,7 +325,7 @@ class Game(Board):
 
 				return True
 
-			if self.selected and self.selected.square is not None:
+			if self.selected:
 				if (rule := self.selected.squares.get(square)) is not None:
 					if isinstance(rule, chess.rules.Promotion):
 						self.promoted = rule

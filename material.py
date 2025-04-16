@@ -17,6 +17,8 @@ if TYPE_CHECKING:
 
 class Piece(chess.theme.Highlightable):
 
+	square: chess.algebra.Square
+
 	value: int = 0
 	width: int = 0
 	ghost: int = 0
@@ -30,13 +32,10 @@ class Piece(chess.theme.Highlightable):
 	stock: chess.algebra.Squares
 
 
-	def __init__(self, game: chess.engine.Game, color: chess.algebra.Color,
-		square: chess.algebra.Square | None = None,
-	):
+	def __init__(self, game: chess.engine.Game, color: chess.algebra.Color):
 		super().__init__()
 
 		self.color = color
-		self.square = square
 		self.game = game
 
 		self._moved: bool = False
@@ -63,10 +62,8 @@ class Piece(chess.theme.Highlightable):
 
 
 	@classmethod
-	def fromside(cls, side: chess.engine.Side,
-		square: chess.algebra.Square | None = None,
-	) -> Self:
-		return cls(side.game, side.color, square)
+	def fromside(cls, side: chess.engine.Side) -> Self:
+		return cls(side.game, side.color)
 
 
 	@property
@@ -79,7 +76,7 @@ class Piece(chess.theme.Highlightable):
 	def rect(self) -> pygame.Rect:
 		return self.surf.get_rect(
 			center = self.square.rect.center + chess.theme.PIECE_OFFSET,
-		) if self.square is not None else self.surf.get_rect()
+		)
 
 	@property
 	def side(self) -> chess.engine.Side:
@@ -106,23 +103,22 @@ class Piece(chess.theme.Highlightable):
 
 
 	def clicked(self, event: pygame.event.Event) -> bool:
-		if (selected := self.square is not None and self.square.clicked(event)):
+		if clicked := self.square.clicked(event):
 			self.game.selected = self
 
-		return selected
+		return clicked
 
 	def draw(self, screen: pygame.Surface):
-		if self.square is not None:
-			if self.ghost:
-				surf = copy(self.surf)
-				surf.fill((*chess.theme.HIGH, 85 * (3 - self.ghost)),
-					special_flags = pygame.BLEND_RGBA_MULT,
-				)
+		if self.ghost:
+			surf = copy(self.surf)
+			surf.fill((*chess.theme.HIGH, 85 * (3 - self.ghost)),
+				special_flags = pygame.BLEND_RGBA_MULT,
+			)
 
-			else:
-				surf = self.surf
+		else:
+			surf = self.surf
 
-			screen.blit(surf, self.rect)
+		screen.blit(surf, self.rect)
 
 
 class Melee(Piece):
@@ -131,14 +127,13 @@ class Melee(Piece):
 	def targets(self) -> chess.algebra.Squares:
 		targets = super().targets
 
-		if self.square is not None:
-			for move in self.moves:
-				try:
-					if step := chess.rules.Move(self.square + move, self): targets.add(step)
-					if step := chess.rules.Capt(self.square + move, self): targets.add(step)
+		for move in self.moves:
+			try:
+				if step := chess.rules.Move(self.square + move, self): targets.add(step)
+				if step := chess.rules.Capt(self.square + move, self): targets.add(step)
 
-				except ValueError:
-					continue
+			except ValueError:
+				continue
 
 		return targets
 
@@ -149,19 +144,18 @@ class Ranged(Piece):
 	def targets(self) -> chess.algebra.Squares:
 		targets = super().targets
 
-		if self.square is not None:
-			for move in self.moves:
-				target = self.square
+		for move in self.moves:
+			target = self.square
 
-				try:
-					while step := chess.rules.Move(target := target + move, self):
-						targets.add(step)
-
-				except ValueError:
-					continue
-
-				if step := chess.rules.Capt(target, self):
+			try:
+				while step := chess.rules.Move(target := target + move, self):
 					targets.add(step)
+
+			except ValueError:
+				continue
+
+			if step := chess.rules.Capt(target, self):
+				targets.add(step)
 
 		return targets
 
@@ -296,7 +290,7 @@ class King(Melee, Star):
 	def squares(self) -> chess.algebra.Squares:
 		squares = super().squares
 
-		if self.square is not None and not self.moved:
+		if not self.moved:
 			if step := chess.rules.CastWest(self.square + chess.algebra.Vector.W2, self): squares.add(step)
 			if step := chess.rules.CastEast(self.square + chess.algebra.Vector.E2, self): squares.add(step)
 
@@ -304,7 +298,6 @@ class King(Melee, Star):
 
 	@property
 	def safe(self) -> bool:
-		assert self.square is not None
 		return self.square not in self.side.other.targets.capts
 
 
@@ -377,34 +370,33 @@ class Pawn(Piece):
 	def targets(self) -> chess.algebra.Squares:
 		targets = super().targets
 
-		if self.square is not None:
-			for move in self.moves * self.color:
-				try:
-					if step := chess.rules.Move(target := self.square + move, self):
-						targets.add(
-							chess.rules.specialize(step,
-								chess.rules.Promotion,
-							)
+		for move in self.moves * self.color:
+			try:
+				if step := chess.rules.Move(target := self.square + move, self):
+					targets.add(
+						chess.rules.specialize(step,
+							chess.rules.Promotion,
 						)
+					)
 
-						if step := chess.rules.Rush(target := target + move, self):
-							targets.add(step)
+					if step := chess.rules.Rush(target := target + move, self):
+						targets.add(step)
 
-				except ValueError:
-					continue
+			except ValueError:
+				continue
 
-			for capt in self.capts * self.color:
-				try:
-					if step := chess.rules.Capt(self.square + capt, self):
-						targets.add(
-							chess.rules.specialize(step,
-								chess.rules.EnPassant,
-								chess.rules.Promotion,
-							)
+		for capt in self.capts * self.color:
+			try:
+				if step := chess.rules.Capt(self.square + capt, self):
+					targets.add(
+						chess.rules.specialize(step,
+							chess.rules.EnPassant,
+							chess.rules.Promotion,
 						)
+					)
 
-				except ValueError:
-					continue
+			except ValueError:
+				continue
 
 		return targets
 
@@ -415,7 +407,7 @@ class Pawn(Piece):
 				chess.theme.PIECE_OFFSET.x * 49 // 25,
 				chess.theme.PIECE_OFFSET.y * 25 // 24,
 			),
-		) if self.square is not None else self.surf.get_rect()
+		)
 
 
 	def promote(self, to: Officer):
@@ -435,7 +427,7 @@ class Ghost(Piece):
 				chess.theme.PIECE_OFFSET.x * 49 // 25,
 				chess.theme.PIECE_OFFSET.y * 25 // 24,
 			),
-		) if self.square is not None else self.surf.get_rect()
+		)
 
 
 class Pieces(chess.collection):
@@ -452,7 +444,7 @@ class Pieces(chess.collection):
 
 		for piece in pieces:
 			match piece:
-				case King  (): self.king = piece
+				case King  (): self.king  = piece
 				case Ghost (): self.ghost = piece
 
 				case Queen (): self.queens .add(piece)

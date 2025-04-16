@@ -94,7 +94,6 @@ class Move(Base, chess.algebra.square):
 
 #	@property
 #	def source(self) -> chess.algebra.Square:
-#		assert self.piece.square is not None
 #		return self.piece.square
 
 #	@property
