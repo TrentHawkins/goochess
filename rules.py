@@ -38,7 +38,7 @@ class Base(ABC):
 		return self.side.game
 
 	@property
-	def king(self) -> chess.material.King:
+	def king(self) -> chess.material.King | None:
 		return self.side.king
 
 
@@ -68,9 +68,8 @@ class Move(Base, chess.algebra.square):
 		return (other := self.game[self.target]) is None or isinstance(other, chess.material.Ghost)
 
 	def __enter__(self) -> Self:
-		self.piece(self.target,
-			move = False,
-		)
+		with self.game.dry_run:
+			self.piece(self.target)
 
 		return self
 
@@ -81,10 +80,11 @@ class Move(Base, chess.algebra.square):
 	):
 		assert self.source is not None
 
-		self.piece(self.source,
-			move = False,
-			kept = self.other,
-		)
+		with self.game.dry_run:
+			self.piece(self.source,
+				kept = self.other,
+			)
+
 		self.other = None
 
 
@@ -94,18 +94,11 @@ class Move(Base, chess.algebra.square):
 
 #	@property
 #	def source(self) -> chess.algebra.Square:
-#		assert self.piece.square is not None
 #		return self.piece.square
 
 #	@property
 #	def target(self) -> chess.algebra.Square:
 #		return chess.algebra.Square(self)
-
-
-	def highlight(self, screen: pygame.Surface,
-		width: int = 1,
-	):
-		return super().highlight(screen, width)
 
 
 class Capt(Move):
@@ -120,11 +113,12 @@ class Capt(Move):
 		return (other := self.game[self.target]) is not None and self.piece.color != other.color
 
 
-	def highlight(self, screen: pygame.Surface,
-		width: int = 1,
-	):
+	def highlight(self, screen: pygame.Surface, **kwargs):
 		assert self.other is not None
-		return super().highlight(screen, self.other.width)
+		return super().highlight(screen,
+			width = self.other.width,
+			thick = 8,
+		)
 
 
 class Spec(Move):
@@ -151,7 +145,7 @@ class Rush(Spec):
 		assert self.source is not None; self.middle = self.source + chess.algebra.Vector.S * self.side.color
 
 	def __call__(self) -> Self:
-		self.side.ghost = self.game[self.middle] = chess.material.Ghost(self.side)
+		self.side.ghost = self.game[self.middle] = chess.material.Ghost(self.game, self.side.color)
 
 		return super().__call__()
 
@@ -220,7 +214,7 @@ class Cast(Spec, ABC):
 
 
 	def __bool__(self) -> bool:
-		return not self.king.moved and not self.rook.moved and self.king.safe \
+		return self.king is not None and not self.king.moved and not self.rook.moved and self.king.safe \
 		and all(self.game[self.king.square + move]    is None                    for move in self.moves) \
 		and all(          self.king.square + capt not in self.side.other.targets for capt in self.capts)
 
@@ -247,8 +241,8 @@ class CastWest(Cast):
 
 
 	@property
-	def rook(self) -> chess.material.Rook:
-		return self.side.west_rook
+	def rook(self) -> chess.material.Rook | None:
+		return self.side.arook
 
 
 class CastEast(Cast):
@@ -265,8 +259,8 @@ class CastEast(Cast):
 
 
 	@property
-	def rook(self) -> chess.material.Rook:
-		return self.side.east_rook
+	def rook(self) -> chess.material.Rook | None:
+		return self.side.hrook
 
 
 def specialize(move: Move, *mods: type[Mod]) -> Move:
