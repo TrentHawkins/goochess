@@ -202,7 +202,7 @@ class Side(
 		self.sync()
 
 
-class History(list[chess.rules.Move]):
+class History(list[chess.rules.Move | None]):
 
 	@property
 	def last(self) -> chess.rules.Move | None:
@@ -211,7 +211,7 @@ class History(list[chess.rules.Move]):
 	@property
 	def half_clock(self) -> int:
 		for index, rule in enumerate(reversed(self)):
-			if isinstance(rule, chess.rules.Capt) or isinstance(rule.piece, chess.material.Pawn):
+			if rule is not None and (isinstance(rule, chess.rules.Capt) or isinstance(rule.piece, chess.material.Pawn)):
 				return index
 
 		return len(self)
@@ -311,7 +311,7 @@ class Game(Board):
 					index += 1
 
 		if turn == "b":
-			game.history.append(None)  # type: ignore
+			game.history.append(None)
 
 		for symbol in castling:
 			match symbol:
@@ -324,6 +324,12 @@ class Game(Board):
 			square = chess.algebra.Square.fromnotation(enpassant)
 			color = game.current.color
 			game.current.ghost = game[square] = chess.material.Ghost(game, color)
+
+		history_size = 2 * (int(full) - 1) + (1 if turn == "b" else 0)
+
+		# Append dummies until history length matches
+		while len(game.history) < history_size:
+			game.history.append(None)
 
 		return game
 
