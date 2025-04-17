@@ -45,12 +45,10 @@ class Piece(chess.theme.Highlightable):
 		return self.black if self.color else self.white
 
 	def __call__(self, target: chess.algebra.Square,
-		move: bool = True,
 		kept: Piece | None = None,
 	) -> Self:
 		assert (source := self.square) is not None
 
-		self._moved = self._moved or move
 		self.game[source], self.game[target] = kept, self.game[source]
 
 		return self
@@ -274,18 +272,17 @@ class King(Melee, Star):
 
 
 	def __call__(self, target: chess.algebra.Square,
-		move: bool = True,
 		kept: Piece | None = None,
 	) -> Self:
 		assert (source := self.square) is not None
 
-		if not self.moved and move:
+		if not self.moved:
 			if self.side.arook is not None and target == source + chess.algebra.Vector.E2:
-				self.side.arook(target + chess.algebra.Vector.W, move, kept)
+				self.side.arook(target + chess.algebra.Vector.W, kept)
 			if self.side.hrook is not None and target == source + chess.algebra.Vector.W2:
-				self.side.hrook(target + chess.algebra.Vector.E, move, kept)
+				self.side.hrook(target + chess.algebra.Vector.E, kept)
 
-		return super().__call__(target, move, kept)
+		return super().__call__(target, kept)
 
 
 	@property
@@ -354,18 +351,17 @@ class Pawn(Piece):
 
 
 #	def __call__(self, target: chess.algebra.Square,
-#		move: bool = True,
 #		kept: Piece | None = None,
 #	) -> Self:
 #		assert (source := self.square) is not None
 #
-#		if move and not self.moved and target == source + chess.algebra.Vector.S2 * self.color:
+#		if not self.moved and target == source + chess.algebra.Vector.S2 * self.color:
 #			self.side.ghost = self.game[source + chess.algebra.Vector.S  * self.color] = Ghost(self.side)
 #
-#		if move and isinstance(self.game[target], Ghost):
+#		if isinstance(self.game[target], Ghost):
 #			self.game[target + chess.algebra.Vector.N * self.color] = kept
 #
-#		return super().__call__(target, move, kept)
+#		return super().__call__(target, kept)
 
 
 	@property
