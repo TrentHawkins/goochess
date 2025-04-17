@@ -2,8 +2,9 @@ from __future__ import annotations
 
 
 from collections import defaultdict
+from contextlib import contextmanager
 from datetime import datetime
-from typing import Generator, Iterable, SupportsIndex, Self, cast
+from typing import Generator, SupportsIndex, Self
 
 import pygame
 
@@ -77,6 +78,12 @@ class Board(list[Piece], chess.theme.Drawable):
 		#		chess.theme.RESOLUTION // 2,
 		#	)
 		)
+
+	@property
+	@contextmanager
+	def dry_run(self):
+		original, self.testing = self.testing, True; yield
+		self.testing = original
 
 
 	def update(self, square: chess.algebra.Square,
@@ -223,6 +230,9 @@ class History(list[chess.rules.Move]):
 
 class Game(Board):
 
+	testing = bool()
+
+
 	def __init__(self,
 		pieces: list[Piece] | None = None,
 	):
@@ -246,16 +256,18 @@ class Game(Board):
 	def __setitem__(self, key: chess.algebra.Square, value: chess.material.Piece | None):
 		super().__setitem__(key, value)
 
-		self.black.append(value)
-		self.white.append(value)
+		if not self.testing:
+			self.black.append(value)
+			self.white.append(value)
 
 	def __delitem__(self, key: chess.algebra.Square):
 		value = self[key]
 
 		super().__delitem__(key)
 
-		self.black.remove(value)
-		self.white.remove(value)
+		if not self.testing:
+			self.black.remove(value)
+			self.white.remove(value)
 
 	def __iadd__(self, rule: chess.rules.Move) -> Self:
 		self.history.append(rule())

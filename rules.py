@@ -68,9 +68,8 @@ class Move(Base, chess.algebra.square):
 		return (other := self.game[self.target]) is None or isinstance(other, chess.material.Ghost)
 
 	def __enter__(self) -> Self:
-		self.piece(self.target,
-			move = False,
-		)
+		with self.game.dry_run:
+			self.piece(self.target)
 
 		return self
 
@@ -81,10 +80,11 @@ class Move(Base, chess.algebra.square):
 	):
 		assert self.source is not None
 
-		self.piece(self.source,
-			move = False,
-			kept = self.other,
-		)
+		with self.game.dry_run:
+			self.piece(self.source,
+				kept = self.other,
+			)
+
 		self.other = None
 
 
