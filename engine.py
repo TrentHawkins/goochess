@@ -273,7 +273,8 @@ class Game(Board):
 		self.history.append(rule())
 
 		if (ghost := self.current.ghost) is not None:
-			del self[ghost.square]
+			if self[ghost.square] is ghost:
+				del self[ghost.square]
 
 		return self
 
