@@ -43,8 +43,7 @@ class Board(list[Piece], chess.theme.Drawable):
 		super().__setitem__(key, value)
 
 	def __delitem__(self, key: chess.algebra.Square):
-		piece = self[key] = None
-		del piece
+		self[key] = None
 
 
 	@property
@@ -299,14 +298,14 @@ class Game(Board):
 					index += 1
 
 		if turn == "b":
-			game.history.append(None)
+			game.history.append(None)  # type: ignore
 
 		for symbol in castling:
 			match symbol:
-				case "K": game.white.arook = game[chess.algebra.Square.H1]
-				case "Q": game.white.hrook = game[chess.algebra.Square.A1]
-				case "k": game.black.arook = game[chess.algebra.Square.H8]
-				case "q": game.black.hrook = game[chess.algebra.Square.A8]
+				case "K": game.white.arook = game[chess.algebra.Square.H1]  # type: ignore
+				case "Q": game.white.hrook = game[chess.algebra.Square.A1]  # type: ignore
+				case "k": game.black.arook = game[chess.algebra.Square.H8]  # type: ignore
+				case "q": game.black.hrook = game[chess.algebra.Square.A8]  # type: ignore
 
 		if enpassant != "-":
 			square = chess.algebra.Square.fromnotation(enpassant)
