@@ -73,16 +73,9 @@ class Piece(chess.theme.Highlightable):
 
 
 	@property
-	def forsyth_edwards(self) -> str:
-		piece_types = {
-			"r": Rook,
-			"n": Knight,
-			"b": Bishop,
-			"q": Queen,
-			"k": King,
-			"p": Pawn,
-		}
-		return piece_types[self.__class__.__name__.lower()[0]]
+	@classmethod
+	def forsyth_edwards(cls) -> str:
+		return cls.__name__[0]
 
 	@property
 	def moved(self) -> bool:
