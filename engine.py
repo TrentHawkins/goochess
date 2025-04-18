@@ -47,6 +47,25 @@ class Board(list[Piece], chess.theme.Drawable):
 		self[key] = None
 
 
+	@classmethod
+	def from_forsyth_edwards(cls,
+		notation: str = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR",
+	) -> Self:
+		board = cls()
+
+		index = 0
+
+		for row in notation.split("/"):
+			for char in row:
+				if piece_found := not char.isdigit():
+					square = chess.algebra.Square(index)
+					board[square] = chess.material.Piece.from_forsyth_edwards(board, char)  # type: ignore  # HACK
+
+				index += 1 if piece_found else int(char)
+
+		return board
+
+
 	@property
 	def forsyth_edwards(self) -> str:
 		notation = ""
@@ -283,32 +302,9 @@ class Game(Board):
 	def from_forsyth_edwards(cls,
 		notation: str = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1",
 	) -> Self:
-		game = cls()
-		board, turn, castling, enpassant, half, full = notation.split()
+		board, turn, castling, enpassant, _, full = notation.split()
 
-		index = 0
-
-		for row in board.split("/"):
-			for char in row:
-				if char.isdigit():
-					index += int(char)
-
-				else:
-					square = chess.algebra.Square(index)
-					color = chess.algebra.Color.BLACK if char.islower() else chess.algebra.Color.WHITE
-					piece_types = {
-						"p": chess.material.Pawn,
-						"r": chess.material.Rook,
-						"n": chess.material.Knight,
-						"b": chess.material.Bishop,
-						"q": chess.material.Queen,
-						"k": chess.material.King,
-					}
-					piece_type = piece_types[char.lower()]
-					piece = piece_type(game, color)
-					game[square] = piece
-
-					index += 1
+		game = super().from_forsyth_edwards(board)
 
 		if turn == "b":
 			game.history.append(None)
@@ -327,7 +323,6 @@ class Game(Board):
 
 		history_size = 2 * (int(full) - 1) + (1 if turn == "b" else 0)
 
-		# Append dummies until history length matches
 		while len(game.history) < history_size:
 			game.history.append(None)
 
