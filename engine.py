@@ -151,12 +151,27 @@ class Side(
 		self.ghost: chess.material.Ghost | None = None
 
 	def __iter__(self) -> Generator[chess.material.Piece]:
-		for piece_type, pieces in self.items():
+		for pieces in self.values():
 			for piece in pieces:
 				yield piece
 
 	def __bool__(self) -> bool:
 		return self is self.game.current
+
+
+	@classmethod
+	def from_forsyth_edwards(cls, game: Game, color: chess.algebra.Color, castling: str) -> Self:
+		side = cls(game, color)
+
+		if color:
+			if "k" in castling: side.arook = game[chess.algebra.Square.H8]  # type: ignore
+			if "q" in castling: side.hrook = game[chess.algebra.Square.A8]  # type: ignore
+
+		else:
+			if "K" in castling: side.arook = game[chess.algebra.Square.H1]  # type: ignore
+			if "Q" in castling: side.hrook = game[chess.algebra.Square.A1]  # type: ignore
+
+		return side
 
 
 	@property
@@ -223,6 +238,13 @@ class Side(
 
 class History(list[chess.rules.Move | None]):
 
+	@classmethod
+	def from_forsyth_edwards(cls, full_clock: str, turn: str) -> Self:
+		total_moves = 2 * (int(full_clock) - 1) + (1 if turn == "b" else 0)
+
+		return cls([None] * total_moves)
+
+
 	@property
 	def last(self) -> chess.rules.Move | None:
 		return self.get(-1)
@@ -238,6 +260,10 @@ class History(list[chess.rules.Move | None]):
 	@property
 	def full_clock(self) -> int:
 		return len(self) // 2 + 1
+
+	@property
+	def forsyth_edwards(self) -> str:
+		return f"{self.half_clock} {self.full_clock}"
 
 
 	def get(self, index: SupportsIndex,
@@ -309,22 +335,15 @@ class Game(Board):
 		if turn == "b":
 			game.history.append(None)
 
-		for symbol in castling:
-			match symbol:
-				case "K": game.white.arook = game[chess.algebra.Square.H1]  # type: ignore
-				case "Q": game.white.hrook = game[chess.algebra.Square.A1]  # type: ignore
-				case "k": game.black.arook = game[chess.algebra.Square.H8]  # type: ignore
-				case "q": game.black.hrook = game[chess.algebra.Square.A8]  # type: ignore
+		game.white = Side.from_forsyth_edwards(game, chess.algebra.Color.WHITE, castling)
+		game.black = Side.from_forsyth_edwards(game, chess.algebra.Color.BLACK, castling)
 
 		if enpassant != "-":
 			square = chess.algebra.Square.fromnotation(enpassant)
 			color = game.current.color
 			game.current.ghost = game[square] = chess.material.Ghost(game, color)
 
-		history_size = 2 * (int(full) - 1) + (1 if turn == "b" else 0)
-
-		while len(game.history) < history_size:
-			game.history.append(None)
+		game.history = History.from_forsyth_edwards(full, turn)
 
 		return game
 
@@ -336,20 +355,13 @@ class Game(Board):
 		current = "b" if self.current.color else "w"
 		enpassant = repr(self.current.ghost.square) if self.current.ghost is not None else "-"
 
-		return " ".join(
-			[notation, current, enpassant, self.castling,
-				str(self.history.half_clock),
-				str(self.history.full_clock),
-			]
-		)
-
+		return " ".join([notation, current, enpassant, self.castling, self.history.forsyth_edwards])
 
 	@property
 	def castling(self) -> str:
 		castling  = self.white.forsyth_edwards + self.black.forsyth_edwards
 
 		return castling if castling else "-"
-
 
 	@property
 	def current(self) -> Side:
