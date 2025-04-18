@@ -54,15 +54,39 @@ class Piece(chess.theme.Highlightable):
 		return self
 
 
-	@property
-	def moved(self) -> bool:
-		return self._moved or self.square not in self.stock * self.color
+	@classmethod
+	def from_forsyth_edwards(cls, game: chess.engine.Game, char: str) -> Self:
+		piece_types = {
+			"r": Rook,
+			"n": Knight,
+			"b": Bishop,
+			"q": Queen,
+			"k": King,
+			"p": Pawn,
+		}
+		return piece_types[char.lower()](game, chess.algebra.Color.BLACK if char.islower() else chess.algebra.Color.WHITE)
 
 
 	@classmethod
 	def fromside(cls, side: chess.engine.Side) -> Self:
 		return cls(side.game, side.color)
 
+
+	@property
+	def forsyth_edwards(self) -> str:
+		piece_types = {
+			"r": Rook,
+			"n": Knight,
+			"b": Bishop,
+			"q": Queen,
+			"k": King,
+			"p": Pawn,
+		}
+		return piece_types[self.__class__.__name__.lower()[0]]
+
+	@property
+	def moved(self) -> bool:
+		return self._moved or self.square not in self.stock * self.color
 
 	@property
 	def decal(self) -> str:

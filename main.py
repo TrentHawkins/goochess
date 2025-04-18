@@ -9,7 +9,7 @@ import chess.engine
 
 running = True
 
-game = chess.engine.Game.from_forsyth_edwards()
+game = chess.engine.Game.from_forsyth_edwards("rnbqkbnr/ppppp1pp/8/4Pp2/8/8/PPPP1PPP/RNBQKBNR w KQkq f6 0 1")
 
 while running:
 	for event in pygame.event.get():
