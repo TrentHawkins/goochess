@@ -340,8 +340,8 @@ class Game(Board):
 
 		if enpassant != "-":
 			square = chess.algebra.Square.fromnotation(enpassant)
-			color = game.current.color
-			game.current.ghost = game[square] = chess.material.Ghost(game, color)
+			color = game.current.other.color
+			game.current.other.ghost = game[square] = chess.material.Ghost(game, color)
 
 		game.history = History.from_forsyth_edwards(full, turn)
 
