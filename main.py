@@ -18,9 +18,6 @@ while running:
 
 		game.clicked(event)
 
-	chess.theme.screen.fill(chess.theme.EMPTY)
-	chess.theme.screen.fill(chess.theme.DARK, special_flags = pygame.BLEND_RGBA_MULT)
-
 	game.draw(chess.theme.screen)
 
 	pygame.display.flip()
