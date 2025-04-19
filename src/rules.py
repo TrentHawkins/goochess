@@ -8,16 +8,16 @@ from typing import TYPE_CHECKING, Self, cast
 
 import pygame
 
-import chess.theme
-import chess.algebra
+import src.theme
+import src.algebra
 
-if TYPE_CHECKING: import chess.material
-if TYPE_CHECKING: import chess.engine
+if TYPE_CHECKING: import src.material
+if TYPE_CHECKING: import src.engine
 
 
 class Base(ABC):
 
-	def __init__(self,side: chess.engine.Side):
+	def __init__(self,side: src.engine.Side):
 		self.side = side
 
 	@abstractmethod
@@ -34,25 +34,25 @@ class Base(ABC):
 
 
 	@property
-	def game(self) -> chess.engine.Game:
+	def game(self) -> src.engine.Game:
 		return self.side.game
 
 	@property
-	def king(self) -> chess.material.King | None:
+	def king(self) -> src.material.King | None:
 		return self.side.king
 
 
-class Move(Base, chess.algebra.square):
+class Move(Base, src.algebra.square):
 
-	highlight_color = chess.theme.GREEN
+	highlight_color = src.theme.GREEN
 	symbol = "∘"
 
 
-	def __init__(self, square: chess.algebra.Square, piece: chess.material.Piece):
+	def __init__(self, square: src.algebra.Square, piece: src.material.Piece):
 		super(Base, self).__init__(square)
 
 		self.source = piece.square
-		self.target = chess.algebra.Square(square)
+		self.target = src.algebra.Square(square)
 
 		self.piece = piece
 		self.other = self.game[self.target]
@@ -66,7 +66,7 @@ class Move(Base, chess.algebra.square):
 		return self
 
 	def __bool__(self) -> bool:
-		return (other := self.game[self.target]) is None or isinstance(other, chess.material.Ghost)
+		return (other := self.game[self.target]) is None or isinstance(other, src.material.Ghost)
 
 	def __enter__(self) -> Self:
 		with self.game.dry_run:
@@ -90,21 +90,21 @@ class Move(Base, chess.algebra.square):
 
 
 	@property
-	def side(self) -> chess.engine.Side:
+	def side(self) -> src.engine.Side:
 		return self.piece.side
 
 #	@property
-#	def source(self) -> chess.algebra.Square:
+#	def source(self) -> src.algebra.Square:
 #		return self.piece.square
 
 #	@property
-#	def target(self) -> chess.algebra.Square:
-#		return chess.algebra.Square(self)
+#	def target(self) -> src.algebra.Square:
+#		return src.algebra.Square(self)
 
 
 class Capt(Move):
 
-	highlight_color = chess.theme.RED
+	highlight_color = src.theme.RED
 	symbol = "×"
 
 
@@ -122,7 +122,7 @@ class Capt(Move):
 
 class Spec(Move):
 
-	highlight_color = chess.theme.BLUE
+	highlight_color = src.theme.BLUE
 
 
 class Mod(Move):
@@ -138,13 +138,13 @@ class Mod(Move):
 
 class Rush(Spec):
 
-	def __init__(self, square: chess.algebra.Square, piece: chess.material.Piece):
+	def __init__(self, square: src.algebra.Square, piece: src.material.Piece):
 		super().__init__(square, piece)
 
-		assert self.source is not None; self.middle = self.source + chess.algebra.Vector.S * self.side.color
+		assert self.source is not None; self.middle = self.source + src.algebra.Vector.S * self.side.color
 
 	def __call__(self) -> Self:
-		self.side.ghost = self.game[self.middle] = chess.material.Ghost(self.game, self.side.color)
+		self.side.ghost = self.game[self.middle] = src.material.Ghost(self.game, self.side.color)
 
 		return super().__call__()
 
@@ -157,7 +157,7 @@ class EnPassant(Mod, Capt):
 	def __init__(self, move: Move):
 		super().__init__(move)
 
-		assert self.source is not None; self.middle = self.target + chess.algebra.Vector.S * self.side.other.color
+		assert self.source is not None; self.middle = self.target + src.algebra.Vector.S * self.side.other.color
 
 	def __call__(self) -> Self:
 		del self.game[self.middle]
@@ -165,7 +165,7 @@ class EnPassant(Mod, Capt):
 		return super().__call__()
 
 	def __bool__(self) -> bool:
-		return self.other is not None and isinstance(self.other, chess.material.Ghost) and super().__bool__()
+		return self.other is not None and isinstance(self.other, src.material.Ghost) and super().__bool__()
 
 
 	def highlight(self, screen: pygame.Surface, **kwargs):
@@ -188,7 +188,7 @@ class Promotion(Mod):
 	def __call__(self) -> Self:
 		super().__call__()
 
-		if isinstance(self.piece, chess.material.Pawn):
+		if isinstance(self.piece, src.material.Pawn):
 			self.piece.promote(self.officer)
 
 		return self
@@ -201,15 +201,15 @@ class Promotion(Mod):
 
 
 	@cached_property
-	def officers(self) -> cycle[chess.material.Officer]:
-		assert isinstance(self.piece, chess.material.Pawn)
-		return cycle(chess.material.Officer)
+	def officers(self) -> cycle[src.material.Officer]:
+		assert isinstance(self.piece, src.material.Pawn)
+		return cycle(src.material.Officer)
 
 
 class Cast(Spec, ABC):
 
-	capts: chess.algebra.Vectors
-	moves: chess.algebra.Vectors
+	capts: src.algebra.Vectors
+	moves: src.algebra.Vectors
 
 
 	def __bool__(self) -> bool:
@@ -220,18 +220,18 @@ class Cast(Spec, ABC):
 
 	@property
 	@abstractmethod
-	def rook(self) -> chess.material.Rook:
+	def rook(self) -> src.material.Rook:
 		...
 
 
 class CastWest(Cast):
 
-	capts = chess.algebra.Vectors(
-		chess.algebra.Vector.W ,
-		chess.algebra.Vector.W2,
+	capts = src.algebra.Vectors(
+		src.algebra.Vector.W ,
+		src.algebra.Vector.W2,
 	)
-	moves = capts | chess.algebra.Vectors(
-		chess.algebra.Vector.W3,
+	moves = capts | src.algebra.Vectors(
+		src.algebra.Vector.W3,
 	)
 
 
@@ -240,15 +240,15 @@ class CastWest(Cast):
 
 
 	@property
-	def rook(self) -> chess.material.Rook | None:
+	def rook(self) -> src.material.Rook | None:
 		return self.side.arook
 
 
 class CastEast(Cast):
 
-	capts = chess.algebra.Vectors(
-		chess.algebra.Vector.E ,
-		chess.algebra.Vector.E2,
+	capts = src.algebra.Vectors(
+		src.algebra.Vector.E ,
+		src.algebra.Vector.E2,
 	)
 	moves = capts
 
@@ -258,7 +258,7 @@ class CastEast(Cast):
 
 
 	@property
-	def rook(self) -> chess.material.Rook | None:
+	def rook(self) -> src.material.Rook | None:
 		return self.side.hrook
 
 

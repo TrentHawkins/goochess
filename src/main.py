@@ -3,13 +3,13 @@ from __future__ import annotations
 
 import pygame  #; pygame.init()
 
-import chess.theme
-import chess.engine
+import src.theme
+import src.engine
 
 
 running = True
 
-game = chess.engine.Game.from_forsyth_edwards()
+game = src.engine.Game.from_forsyth_edwards()
 
 while running:
 	for event in pygame.event.get():
@@ -18,7 +18,7 @@ while running:
 
 		game.clicked(event)
 
-	game.draw(chess.theme.screen)
+	game.draw(src.theme.screen)
 
 	pygame.display.flip()
 
