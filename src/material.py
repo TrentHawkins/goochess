@@ -49,9 +49,18 @@ class Piece(src.theme.Highlightable):
 	) -> Self:
 		assert (source := self.square) is not None
 
-		self.game[source], self.game[target] = kept, self.game[source]
+		del self.game[target]
+
+		self.game[source] = kept
+		self.game[target] = self
 
 		return self
+
+	def __hash__(self) -> int:
+		return id(self)
+
+	def __eq__(self, other) -> bool:
+		return self is other
 
 
 	@classmethod
@@ -71,7 +80,7 @@ class Piece(src.theme.Highlightable):
 			case "♔": return King  (game, src.algebra.Color.WHITE)
 
 	@classmethod
-	def fromside(cls, side: src.engine.Side) -> Self:
+	def from_side(cls, side: src.engine.Side) -> Self:
 		return cls(side.game, side.color)
 
 
@@ -100,10 +109,6 @@ class Piece(src.theme.Highlightable):
 		return self.game.black if self.color else self.game.white
 
 	@property
-	def king(self) -> King | None:
-		return self.side.king
-
-	@property
 	def targets(self) -> src.algebra.Squares:
 		return src.algebra.Squares()
 
@@ -112,8 +117,8 @@ class Piece(src.theme.Highlightable):
 		squares = self.targets.copy()
 
 		for step in self.targets:
-			with step:
-				if self.king is not None and not self.king.safe:
+			with step.preview:
+				if self.side.king is not None and not self.side.king.safe:
 					squares.discard(step)
 
 		return squares
@@ -414,12 +419,12 @@ class Pawn(Piece):
 
 
 	def promote(self, to: Officer):
-		self.game[self.square] = to.value.fromside(self.side)
+		self.game[self.square] = to.value.from_side(self.side)
 
 class Ghost(Piece):
 
 	width = 2
-	ghost = 3
+	ghost = 2
 
 
 	@property
