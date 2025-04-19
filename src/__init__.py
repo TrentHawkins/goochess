@@ -66,11 +66,9 @@ class array[T: (int, float)](tuple[T, ...]):
 	def __add__(self, other: Self) -> Self: return self.__class__(*(left + right for left, right in zip(self, other)))
 	def __sub__(self, other: Self) -> Self: return self.__class__(*(left - right for left, right in zip(self, other)))
 
-	def __mul__(self, times: T) -> Self:
-		return self.__class__(*(left * times for left in self))
-
-	def __floordiv__(self, times: T) -> Self:
-		return self.__class__(*(left // times for left in self))
+	def __mul__     (self, times: T) -> Self: return self.__class__(*(left  * times for left  in self))
+	def __rmul__    (self, times: T) -> Self: return self.__class__(*(right * times for right in self))
+	def __floordiv__(self, times: T) -> Self: return self.__class__(*(left // times for left  in self))
 
 	def __pos__(self) -> Self: return self.__class__(*(+left for left in self))
 	def __neg__(self) -> Self: return self.__class__(*(-left for left in self))

@@ -2,18 +2,16 @@ from __future__ import annotations
 
 
 from enum import Enum
-from itertools import product
-from pathlib import Path
 import re
-from typing import TYPE_CHECKING, Self
+from typing import TYPE_CHECKING, Self, overload
 
 import pygame
 
-import chess
-import chess.theme
+import src
+import src.theme
 
 if TYPE_CHECKING:
-	import chess.rules
+	import src.rules
 
 
 class Color(int, Enum):
@@ -65,7 +63,7 @@ class Rank(int, Enum):
 		return self == self._1 if color else self == self._8
 
 
-class vector(chess.array,
+class vector(src.array,
 	dimension = 2,
 ):
 
@@ -132,15 +130,26 @@ class Vector(vector, Enum,
 		return representation
 
 
-class Vectors(chess.collection[vector]):
+class Vectors(src.collection[vector]):
 
+	@overload
 	def __mul__(self, other: Vectors, /) -> Vectors:
-		return Vectors(*(left + right for left in self for right in other))
+		...
+
+	@overload
+	def __mul__(self, other: int, /) -> Vectors:
+		...
+
+	def __mul__(self, other: Vectors | int, /) -> Vectors:
+		match other:
+			case Vectors(): return Vectors(*(left + right for left in self for right in other))
+			case     int(): return Vectors(*(left * other for left in self))
+			case         _: return NotImplemented
 
 
-class square(int, chess.theme.Highlightable):
+class square(int, src.theme.Highlightable):
 
-	highlight_color: chess.theme.RGB
+	highlight_color: src.theme.RGB
 
 
 	def __new__(cls, x: int, *_):
@@ -149,16 +158,8 @@ class square(int, chess.theme.Highlightable):
 	def __init__(self, x: int, *args):
 		super().__init__(*args)
 
-		self.black = chess.theme.BLACK
-		self.white = chess.theme.WHITE
-
-		self.rect = pygame.Rect(
-			pygame.Vector2(
-				chess.theme.SQUARE_W * (self.file),
-				chess.theme.SQUARE_H * (self.rank >> 3) + chess.theme.BOARD_OFFSET * 11 // 12,
-			),
-			pygame.Vector2(*chess.theme.SQUARE),
-		)
+		self.black = src.theme.BLACK
+		self.white = src.theme.WHITE
 
 
 	@property
@@ -174,15 +175,24 @@ class square(int, chess.theme.Highlightable):
 		return Color((((self.rank >> 3) + self.file & 1) << 1) - 1)
 
 	@property
-	def decal(self) -> Path:
-		return Path("chess/graphics/board/bevel.png")
+	def decal(self) -> str:
+		return self.__class__.__name__
+
+	@property
+	def rect(self) -> pygame.Rect:
+		return pygame.Rect(
+			pygame.Vector2(
+				src.theme.SQUARE_W * (self.file),
+				src.theme.SQUARE_H * (self.rank >> 3) + src.theme.BOARD_OFFSET * 11 // 12,
+			),
+			pygame.Vector2(*src.theme.SQUARE),
+		)
 
 
 	def clicked(self, event: pygame.event.Event) -> bool:
 		return event.type == pygame.MOUSEBUTTONDOWN and event.button == 1 and self.rect.collidepoint(event.pos)
 
 	def draw(self, screen: pygame.Surface):
-		self.surf = pygame.transform.smoothscale(pygame.image.load(self.decal).convert(), chess.theme.SQUARE)
 		screen.fill(self.black if self.color else self.white, self.rect)
 
 		super().draw(screen,
@@ -191,6 +201,7 @@ class square(int, chess.theme.Highlightable):
 
 	def highlight(self, screen: pygame.Surface,
 		width: int = 1,
+		thick: int = 0,
 	):
 		rect = self.rect.inflate(
 			-self.rect.width  // (width + 1) * 24 // 25,
@@ -203,7 +214,7 @@ class square(int, chess.theme.Highlightable):
 			flags = pygame.SRCALPHA,
 		)
 
-		pygame.draw.ellipse(surf, self.highlight_color, surf.get_rect())
+		pygame.draw.ellipse(surf, self.highlight_color, surf.get_rect(), thick)
 		screen.blit(surf, rect,
 			special_flags = pygame.BLEND_RGB_ADD,
 		)
@@ -255,20 +266,28 @@ class Square(square, Enum):
 			yield cls(square)
 
 
-class Squares(chess.collection[square]):
+class Squares(src.collection[square]):
 
-	def __add__(self, other: Vectors, /) -> Squares:
-		return Squares(*(left + right for left in self for right in other))
+	def __add__(self, other: Vectors, /) -> Squares: return Squares(*(left + right for left in self for right in other))
+	def __mul__(self, color: Color  , /) -> Squares: return Squares(*(left * color for left in self))
 
 
 	@property
 	def moves(self) -> Squares:
-		return self.filter(chess.rules.Move)
+		return self.filter(src.rules.Move)
 
 	@property
 	def capts(self) -> Squares:
-		return self.filter(chess.rules.Capt)
+		return self.filter(src.rules.Capt)
 
 	@property
 	def specs(self) -> Squares:
-		return self.filter(chess.rules.Spec)
+		return self.filter(src.rules.Mod)
+
+
+	def get(self, square: Square) -> src.rules.Move | None:
+		for rule in self:
+			if rule.target == square:
+				return rule
+
+		return None
