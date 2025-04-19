@@ -424,7 +424,7 @@ class Pawn(Piece):
 class Ghost(Piece):
 
 	width = 2
-	ghost = 2
+	ghost = 3
 
 
 	@property

@@ -47,7 +47,7 @@ class Board(list[Piece], src.theme.Drawable):
 		super().__setitem__(key, value)
 
 	def __delitem__(self, key: src.algebra.Square):
-		self[key] = None
+		super().__setitem__(key, None)
 
 
 	@classmethod
@@ -303,6 +303,7 @@ class Game(Board):
 			self.white.discard(value)
 
 		super().__delitem__(key)
+
 
 	def __iadd__(self, rule: src.rules.Move) -> Self:
 		self.history.append(rule())
