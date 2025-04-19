@@ -45,6 +45,7 @@ class Base(ABC):
 class Move(Base, chess.algebra.square):
 
 	highlight_color = chess.theme.GREEN
+	symbol = "∘"
 
 
 	def __init__(self, square: chess.algebra.Square, piece: chess.material.Piece):
@@ -57,7 +58,7 @@ class Move(Base, chess.algebra.square):
 		self.other = self.game[self.target]
 
 	def __repr__(self) -> str:
-		return repr(self.piece) + repr(self.source) + "-" + repr(self.target)
+		return repr(self.piece) + repr(self.source) + self.symbol + repr(self.target)
 
 	def __call__(self) -> Self:
 		self.piece(self.target)
@@ -104,10 +105,8 @@ class Move(Base, chess.algebra.square):
 class Capt(Move):
 
 	highlight_color = chess.theme.RED
+	symbol = "×"
 
-
-	def __repr__(self) -> str:
-		return super().__repr__().replace("-", "×")
 
 	def __bool__(self) -> bool:
 		return (other := self.game[self.target]) is not None and self.piece.color != other.color
@@ -195,7 +194,7 @@ class Promotion(Mod):
 		return self
 
 	def __repr__(self) -> str:
-		return super().__repr__() + repr(self.rank)
+		return super().__repr__() + repr(self.officer.value.forsyth_edwards)
 
 	def __bool__(self) -> bool:
 		return self.target.rank.final(self.piece.color) and super().__bool__()

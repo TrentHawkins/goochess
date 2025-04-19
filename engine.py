@@ -19,6 +19,9 @@ Piece = chess.material.Piece | None
 
 class Board(list[Piece], chess.theme.Drawable):
 
+	default = "♜♞♝♛♚♝♞♜/♟♟♟♟♟♟♟♟/8/8/8/8/♙♙♙♙♙♙♙♙/♖♘♗♕♔♗♘♖"
+
+
 	def __init__(self,
 		pieces: list[Piece] | None = None,
 	):
@@ -49,8 +52,11 @@ class Board(list[Piece], chess.theme.Drawable):
 
 	@classmethod
 	def from_forsyth_edwards(cls,
-		notation: str = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR",
+		notation: str | None = None,
 	) -> Self:
+		if notation is None:
+			notation = cls.default
+
 		board = cls()
 
 		index = 0
@@ -276,6 +282,7 @@ class History(list[chess.rules.Move | None]):
 class Game(Board):
 
 	testing = bool()
+	default = f"{Board.default} w KQkq - 0 1"
 
 
 	def __init__(self,
@@ -291,9 +298,6 @@ class Game(Board):
 
 	def __next__(self) -> Side:
 		return self.current
-
-	def __repr__(self) -> str:
-		...  # TODO: FEN (full)
 
 	def __hash__(self) -> int:
 		return hash(datetime.now().timestamp())
@@ -326,8 +330,11 @@ class Game(Board):
 
 	@classmethod
 	def from_forsyth_edwards(cls,
-		notation: str = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1",
+		notation: str | None = None,
 	) -> Self:
+		if notation is None:
+			notation = cls.default
+
 		board, turn, castling, enpassant, _, full = notation.split()
 
 		game = super().from_forsyth_edwards(board)

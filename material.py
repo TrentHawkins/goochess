@@ -42,7 +42,7 @@ class Piece(chess.theme.Highlightable):
 
 
 	def __repr__(self) -> str:
-		return self.black if self.color else self.white
+		return self.forsyth_edwards
 
 	def __call__(self, target: chess.algebra.Square,
 		kept: Piece | None = None,
@@ -55,17 +55,20 @@ class Piece(chess.theme.Highlightable):
 
 
 	@classmethod
-	def from_forsyth_edwards(cls, game: chess.engine.Game, char: str) -> Self:
-		piece_types = {
-			"r": Rook,
-			"n": Knight,
-			"b": Bishop,
-			"q": Queen,
-			"k": King,
-			"p": Pawn,
-		}
-		return piece_types[char.lower()](game, chess.algebra.Color.BLACK if char.islower() else chess.algebra.Color.WHITE)
-
+	def from_forsyth_edwards(cls, game: chess.engine.Game, symbol: str) -> Piece | None:
+		match symbol:
+			case "♟": return Pawn  (game, chess.algebra.Color.BLACK)
+			case "♙": return Pawn  (game, chess.algebra.Color.WHITE)
+			case "♜": return Rook  (game, chess.algebra.Color.BLACK)
+			case "♖": return Rook  (game, chess.algebra.Color.WHITE)
+			case "♞": return Knight(game, chess.algebra.Color.BLACK)
+			case "♘": return Knight(game, chess.algebra.Color.WHITE)
+			case "♝": return Bishop(game, chess.algebra.Color.BLACK)
+			case "♗": return Bishop(game, chess.algebra.Color.WHITE)
+			case "♛": return Queen (game, chess.algebra.Color.BLACK)
+			case "♕": return Queen (game, chess.algebra.Color.WHITE)
+			case "♚": return King  (game, chess.algebra.Color.BLACK)
+			case "♔": return King  (game, chess.algebra.Color.WHITE)
 
 	@classmethod
 	def fromside(cls, side: chess.engine.Side) -> Self:
@@ -74,15 +77,7 @@ class Piece(chess.theme.Highlightable):
 
 	@property
 	def forsyth_edwards(self) -> str:
-		piece_types = {
-			"r": Rook,
-			"n": Knight,
-			"b": Bishop,
-			"q": Queen,
-			"k": King,
-			"p": Pawn,
-		}
-		return piece_types[self.__class__.__name__.lower()[0]]
+		return self.black if self.color else self.white
 
 	@property
 	def moved(self) -> bool:
@@ -187,8 +182,8 @@ class Rook(Ranged):
 	value: int = 5
 	width: int = 5
 
-	black: str = "r"  # "\u265c"
-	white: str = "R"  # "\u2656"
+	black: str = "♜"
+	white: str = "♖"
 
 	moves = chess.algebra.Vectors(
 		chess.algebra.Vector.N,
@@ -216,8 +211,8 @@ class Bishop(Ranged, Assymetric):
 	value: int = 3
 	width: int = 6
 
-	black: str = "b"  # "\u265d"
-	white: str = "B"  # "\u2657"
+	black: str = "♝"
+	white: str = "♗"
 
 	moves = chess.algebra.Vectors(
 		chess.algebra.Vector.NE,
@@ -236,8 +231,8 @@ class Knight(Melee, Assymetric):
 	value: int = 3
 	width: int = 5
 
-	black: str = "n"  # "\u265e"
-	white: str = "N"  # "\u2658"
+	black: str = "♞"
+	white: str = "♘"
 
 	moves = Rook.moves * Bishop.moves - Rook.moves
 #	moves = chess.algebra.Vectors(
@@ -273,8 +268,8 @@ class Queen(Ranged, Star):
 
 	value: int = 9
 
-	black: str = "q"  # "\u265b"
-	white: str = "Q"  # "\u2655"
+	black: str = "♛"
+	white: str = "♕"
 
 	stock = chess.algebra.Squares(
 		chess.algebra.Square.D8,
@@ -283,8 +278,8 @@ class Queen(Ranged, Star):
 
 class King(Melee, Star):
 
-	black: str = "k"  # "\u265a"
-	white: str = "K"  # "\u2654"
+	black: str = "♚"
+	white: str = "♔"
 
 	specs = chess.algebra.Vectors(
 		chess.algebra.Vector.W2,
@@ -352,8 +347,8 @@ class Pawn(Piece):
 	value: int = 1
 	width: int = 2
 
-	black: str = "\u265f"
-	white: str = "\u2659"
+	black: str = "♟"
+	white: str = "♙"
 
 	moves = chess.algebra.Vectors(
 		chess.algebra.Vector.S,
@@ -372,20 +367,6 @@ class Pawn(Piece):
 		chess.algebra.Square.G7,
 		chess.algebra.Square.H7,
 	)
-
-
-#	def __call__(self, target: chess.algebra.Square,
-#		kept: Piece | None = None,
-#	) -> Self:
-#		assert (source := self.square) is not None
-#
-#		if not self.moved and target == source + chess.algebra.Vector.S2 * self.color:
-#			self.side.ghost = self.game[source + chess.algebra.Vector.S  * self.color] = Ghost(self.side)
-#
-#		if isinstance(self.game[target], Ghost):
-#			self.game[target + chess.algebra.Vector.N * self.color] = kept
-#
-#		return super().__call__(target, kept)
 
 
 	@property
@@ -449,29 +430,3 @@ class Ghost(Piece):
 				chess.theme.PIECE_OFFSET.y * 25 // 24,
 			),
 		)
-
-
-class Pieces(chess.collection):
-
-	def __init__(self, *pieces: Piece):
-		self.king: King | None = None
-		self.ghost: Ghost | None = None
-
-		self.queens: set[Queen] = set()
-		self.rooks: set[Rook] = set()
-		self.knights: set[Knight] = set()
-		self.bishops: set[Bishop] = set()
-		self.pawns: set[Pawn] = set()
-
-		for piece in pieces:
-			match piece:
-				case King  (): self.king  = piece
-				case Ghost (): self.ghost = piece
-
-				case Queen (): self.queens .add(piece)
-				case Rook  (): self.rooks  .add(piece)
-				case Knight(): self.knights.add(piece)
-				case Bishop(): self.bishops.add(piece)
-				case Pawn  (): self.pawns  .add(piece)
-
-				case _      : ...
