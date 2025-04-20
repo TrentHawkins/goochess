@@ -120,6 +120,14 @@ class Board(list[Piece], src.theme.Drawable):
 		if target != source and (piece := self[source]) is not None:
 			piece(target)
 
+	def draw(self, screen: pygame.Surface):
+		for square in src.algebra.Square:
+			square.draw(screen)
+
+		super().draw(screen,
+			special_flags = pygame.BLEND_RGBA_MULT,
+		)
+
 
 class Side(
 	defaultdict[
@@ -379,12 +387,7 @@ class Game(Board):
 
 
 	def draw(self, screen: pygame.Surface):
-		for square in src.algebra.Square:
-			square.draw(screen)
-
-		super().draw(screen,
-			special_flags = pygame.BLEND_RGBA_MULT,
-		)
+		super().draw(screen)
 
 		if self.selected is not None:
 			for square in self.selected.squares:

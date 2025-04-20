@@ -183,8 +183,8 @@ class square(int, src.theme.Highlightable):
 		return pygame.Rect(
 			pygame.Vector2(
 				src.theme.SQUARE_W * (self.file),
-				src.theme.SQUARE_H * (self.rank >> 3) + src.theme.BOARD_OFFSET * 11 // 12,
-			),
+				src.theme.SQUARE_H * (self.rank >> 3),
+			) + src.theme.BOARD_OFFSET,
 			pygame.Vector2(*src.theme.SQUARE),
 		)
 
