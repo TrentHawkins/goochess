@@ -18,6 +18,11 @@ while running:
 
 		game.clicked(event)
 
+	src.theme.screen.fill(src.theme.EMPTY)
+	src.theme.screen.fill(src.theme.DARK,
+		special_flags = pygame.BLEND_RGBA_MULT,
+	)
+
 	game.draw(src.theme.screen)
 
 	pygame.display.flip()
