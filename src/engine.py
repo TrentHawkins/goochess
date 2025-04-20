@@ -47,7 +47,7 @@ class Board(list[Piece], src.theme.Drawable):
 		super().__setitem__(key, value)
 
 	def __delitem__(self, key: src.algebra.Square):
-		self[key] = None
+		super().__setitem__(key, None)
 
 
 	@classmethod
@@ -104,12 +104,6 @@ class Board(list[Piece], src.theme.Drawable):
 		#	)
 		)
 
-	@property
-	@contextmanager
-	def dry_run(self):
-		original, self.testing = self.testing, True; yield
-		self.testing = original
-
 
 	def update(self, square: src.algebra.Square,
 		piece: src.material.Piece | None = None,
@@ -130,7 +124,7 @@ class Board(list[Piece], src.theme.Drawable):
 class Side(
 	defaultdict[
 		type[src.material.Piece],
-		list[src.material.Piece],
+		set [src.material.Piece],
 	]
 ):
 
@@ -138,7 +132,7 @@ class Side(
 
 
 	def __init__(self, game: Game, color: src.algebra.Color):
-		super().__init__(list)
+		super().__init__(set)
 
 		self.game = game
 		self.color = color
@@ -207,9 +201,7 @@ class Side(
 		return notation
 
 
-	def sync(self,
-		piece: src.material.Piece | None = None,
-	):
+	def sync(self, piece: src.material.Piece):
 		match piece:
 			case src.material.King(): self.king = piece
 			case src.material.Rook():
@@ -220,26 +212,20 @@ class Side(
 			case src.material.Ghost():
 				self.ghost = piece
 
-	def append(self, piece: src.material.Piece | None):
+	def add(self, piece: src.material.Piece | None):
 		if piece is None or piece.color != self.color:
 			return
 
 		self.last_type = type(piece)
-		self[piece.__class__].append(piece)
+		self[piece.__class__].add(piece)
 
 		self.sync(piece)
 
-	def remove(self, piece: src.material.Piece | None):
+	def discard(self, piece: src.material.Piece | None):
 		if piece is None or piece.color != self.color:
 			return
 
-		try:
-			self[piece.__class__].remove(piece)
-
-		except ValueError:
-			return
-
-		self.sync()
+		self[piece.__class__].discard(piece)
 
 
 class History(list[src.rules.Move | None]):
@@ -306,17 +292,18 @@ class Game(Board):
 		super().__setitem__(key, value)
 
 		if not self.testing:
-			self.black.append(value)
-			self.white.append(value)
+			self.black.add(value)
+			self.white.add(value)
 
 	def __delitem__(self, key: src.algebra.Square):
 		value = self[key]
 
+		if not self.testing:
+			self.black.discard(value)
+			self.white.discard(value)
+
 		super().__delitem__(key)
 
-		if not self.testing:
-			self.black.remove(value)
-			self.white.remove(value)
 
 	def __iadd__(self, rule: src.rules.Move) -> Self:
 		self.history.append(rule())
@@ -337,13 +324,23 @@ class Game(Board):
 
 		board, turn, castling, enpassant, _, full = notation.split()
 
-		game = super().from_forsyth_edwards(board)
+		game = cls()
+
+		game.white = Side.from_forsyth_edwards(game, src.algebra.Color.WHITE, castling)
+		game.black = Side.from_forsyth_edwards(game, src.algebra.Color.BLACK, castling)
 
 		if turn == "b":
 			game.history.append(None)
 
-		game.white = Side.from_forsyth_edwards(game, src.algebra.Color.WHITE, castling)
-		game.black = Side.from_forsyth_edwards(game, src.algebra.Color.BLACK, castling)
+		index = 0
+
+		for row in board.split("/"):
+			for char in row:
+				if piece_found := not char.isdigit():
+					square = src.algebra.Square(index)
+					game[square] = src.material.Piece.from_forsyth_edwards(game, char)
+
+				index += 1 if piece_found else int(char)
 
 		if enpassant != "-":
 			square = src.algebra.Square.fromnotation(enpassant)
@@ -373,6 +370,12 @@ class Game(Board):
 	@property
 	def current(self) -> Side:
 		return self.black if len(self.history) & 1 else self.white
+
+	@property
+	@contextmanager
+	def dry_run(self):
+		original, self.testing = self.testing, True; yield
+		self.testing = original
 
 
 	def draw(self, screen: pygame.Surface):

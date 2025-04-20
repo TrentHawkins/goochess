@@ -105,8 +105,8 @@ screen = pygame.display.set_mode(WINDOW)
 
 class Main(Enum):
 
-	BOARD  = pygame.transform.smoothscale(pygame.image.load(f"graphics/board/stone1.jpg").convert(), WINDOW)
-	GAME   = pygame.transform.smoothscale(pygame.image.load(f"graphics/board/stone1.jpg").convert(), WINDOW)
+	BOARD  = pygame.transform.smoothscale(pygame.image.load(f"graphics/board/oak-wood.jpg").convert(), WINDOW)
+	GAME   = pygame.transform.smoothscale(pygame.image.load(f"graphics/board/oak-wood.jpg").convert(), WINDOW)
 	SQUARE = pygame.transform.smoothscale(pygame.image.load(f"graphics/board/bevel.png" ).convert(), SQUARE)
 
 	BPIECE = pygame.Surface(PIECE,
