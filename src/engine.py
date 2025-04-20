@@ -4,6 +4,7 @@ from __future__ import annotations
 from collections import defaultdict
 from contextlib import contextmanager
 from datetime import datetime
+from os import linesep
 from typing import Generator, SupportsIndex, Self
 
 import pygame
@@ -238,6 +239,10 @@ class Side(
 
 class History(list[src.rules.Move | None]):
 
+	def __repr__(self) -> str:
+		return self.print()
+
+
 	@classmethod
 	def from_forsyth_edwards(cls, full_clock: str, turn: str) -> Self:
 		total_moves = 2 * (int(full_clock) - 1) + (1 if turn == "b" else 0)
@@ -271,6 +276,22 @@ class History(list[src.rules.Move | None]):
 	) -> src.rules.Move | None:
 		try: return self[index]
 		except IndexError: return default
+
+	def print(self,
+		window: int | None = None,
+	) -> str:
+		notation = ""
+
+		for index, rule in enumerate(self):
+			if window is not None and index > window:
+				break
+
+			if rule is None: notation += f"{index}         "
+			else:            notation += f"{index} {rule}"
+
+			notation += linesep
+
+		return notation
 
 
 class Game(Board):
@@ -351,7 +372,7 @@ class Game(Board):
 				index += 1 if piece_found else int(char)
 
 		if enpassant != "-":
-			square = src.algebra.Square.fromnotation(enpassant)
+			square = src.algebra.Square.from_algebraic(enpassant)
 			color = game.current.other.color
 			game.current.other.ghost = game[square] = src.material.Ghost(game, color)
 
@@ -381,8 +402,8 @@ class Game(Board):
 
 	@property
 	@contextmanager
-	def dry_run(self):
-		original, self.testing = self.testing, True; yield
+	def dry_run(self) -> Generator[Self]:
+		original, self.testing = self.testing, True; yield self
 		self.testing = original
 
 

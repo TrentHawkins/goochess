@@ -255,7 +255,7 @@ class Square(square, Enum):
 
 
 	@classmethod
-	def fromnotation(cls, notation: str) -> Self:
+	def from_algebraic(cls, notation: str) -> Self:
 		file, rank = notation
 
 		return cls((0o10 - int(rank) << 3) + ord(file) - ord("a"))
