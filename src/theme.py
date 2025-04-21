@@ -35,6 +35,17 @@ SQUARE = pygame.Vector2(
 )
 SQUARE_OFFSET = SQUARE.x // 2
 
+CORNER = SQUARE // 6
+
+FILE = pygame.Vector2(
+	SQUARE.x,
+	CORNER.y,
+)
+RANK = pygame.Vector2(
+	CORNER.x,
+	SQUARE.y,
+)
+
 PIECE_W = BOARD_W *   5 //  32
 PIECE_H = PIECE_W * 460 // 360
 PIECE = pygame.Vector2(
@@ -106,7 +117,11 @@ class Main(Enum):
 
 	BOARD  = pygame.transform.smoothscale(pygame.image.load(f"graphics/board/oak-wood.jpg").convert(), WINDOW)
 	GAME   = pygame.transform.smoothscale(pygame.image.load(f"graphics/board/oak-wood.jpg").convert(), WINDOW)
-	SQUARE = pygame.transform.smoothscale(pygame.image.load(f"graphics/board/bevel.png" ).convert(), SQUARE)
+
+	CORNER = pygame.transform.smoothscale(pygame.image.load(f"graphics/bevel/corner.png").convert(), CORNER)
+	FILE   = pygame.transform.smoothscale(pygame.image.load(f"graphics/bevel/file.png"  ).convert(), FILE  )
+	RANK   = pygame.transform.smoothscale(pygame.image.load(f"graphics/bevel/rank.png"  ).convert(), RANK  )
+	SQUARE = pygame.transform.smoothscale(pygame.image.load(f"graphics/bevel/square.png").convert(), SQUARE)
 
 	BPIECE = pygame.Surface(PIECE,
 		flags = pygame.SRCALPHA,
@@ -157,7 +172,7 @@ class Drawable(pygame.sprite.Sprite):
 
 
 	def draw(self, screen: pygame.Surface, *,
-		special_flags: int,
+		special_flags: int = 0,
 	):
 		screen.blit(
 			self.surf,

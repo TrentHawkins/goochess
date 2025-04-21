@@ -122,8 +122,9 @@ class Board(list[Piece], src.theme.Drawable):
 			piece(target)
 
 	def draw(self, screen: pygame.Surface):
-		for square in src.algebra.Square:
-			square.draw(screen)
+		for file   in src.algebra.File  : file  .draw(screen)
+		for rank   in src.algebra.Rank  : rank  .draw(screen)
+		for square in src.algebra.Square: square.draw(screen)
 
 		super().draw(screen,
 			special_flags = pygame.BLEND_RGBA_MULT,
@@ -240,7 +241,7 @@ class Side(
 class History(list[src.rules.Move | None]):
 
 	def __repr__(self) -> str:
-		return self.print()
+		return self.window()
 
 
 	@classmethod
@@ -277,15 +278,17 @@ class History(list[src.rules.Move | None]):
 		try: return self[index]
 		except IndexError: return default
 
-	def print(self,
-		window: int | None = None,
+	def window(self,
+		size: int | None = None,
 	) -> str:
 		notation = ""
 
-		for index, rule in enumerate(self):
-			if window is not None and index > window:
-				break
+		if size == None:
+			size = len(self)
 
+		for index, rule in enumerate(self[-size:],
+			start = len(self) - size,
+		):
 			if rule is None: notation += f"{index}         "
 			else:            notation += f"{index} {rule}"
 

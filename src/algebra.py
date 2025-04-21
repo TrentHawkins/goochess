@@ -27,7 +27,24 @@ class Color(int, Enum):
 		return "⬛" if self + 1 else "⬜"
 
 
-class File(int, Enum):
+class file(int, src.theme.Drawable):
+
+	def __new__(cls, x: int, *_):
+		return super().__new__(cls, x)
+
+	def __init__(self, x: int, *args):
+		super().__init__(*args)
+
+
+	@property
+	def rect(self) -> pygame.Rect:
+		return self.surf.get_rect(
+			left = +src.theme.SQUARE.x * self + src.theme.BOARD_OFFSET.x,
+			top  = -src.theme.CORNER.y        + src.theme.BOARD_OFFSET.y,
+		)
+
+
+class File(file, Enum):
 
 	A_ = 0o00  # A
 	B_ = 0o01  # B
@@ -43,7 +60,24 @@ class File(int, Enum):
 		return self.name.strip("_").lower()
 
 
-class Rank(int, Enum):
+class rank(int, src.theme.Drawable):
+
+	def __new__(cls, x: int, *_):
+		return super().__new__(cls, x)
+
+	def __init__(self, x: int, *args):
+		super().__init__(*args)
+
+
+	@property
+	def rect(self) -> pygame.Rect:
+		return self.surf.get_rect(
+			left = -src.theme.CORNER.x               + src.theme.BOARD_OFFSET.x,
+			top  = +src.theme.SQUARE.y * (self >> 3) + src.theme.BOARD_OFFSET.y,
+		)
+
+
+class Rank(rank, Enum):
 
 	_8 = 0o00  # 8
 	_7 = 0o10  # 7
@@ -180,12 +214,9 @@ class square(int, src.theme.Highlightable):
 
 	@property
 	def rect(self) -> pygame.Rect:
-		return pygame.Rect(
-			pygame.Vector2(
-				src.theme.SQUARE_W * (self.file),
-				src.theme.SQUARE_H * (self.rank >> 3),
-			) + src.theme.BOARD_OFFSET,
-			pygame.Vector2(*src.theme.SQUARE),
+		return self.surf.get_rect(
+			top  = src.theme.SQUARE_H * (self.rank >> 3) + src.theme.BOARD_OFFSET.y,
+			left = src.theme.SQUARE_W * (self.file     ) + src.theme.BOARD_OFFSET.x,
 		)
 
 

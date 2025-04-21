@@ -1,0 +1,37 @@
+<mxfile host="Electron" agent="Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) draw.io/26.2.2 Chrome/134.0.6998.178 Electron/35.1.2 Safari/537.36" version="26.2.2">
+  <diagram name="Page-1" id="nHzvoF0e87Y2690Xo1ev">
+    <mxGraphModel dx="707" dy="468" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="240" pageHeight="210" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="OugirGucVOUAvJeAqI80-1" value="" style="whiteSpace=wrap;html=1;aspect=fixed;fillColor=#BBBBBB;strokeColor=none;" parent="1" vertex="1">
+          <mxGeometry x="160" y="130" width="80" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="OugirGucVOUAvJeAqI80-2" value="" style="whiteSpace=wrap;html=1;aspect=fixed;fillColor=#EEEEEE;strokeColor=none;" parent="1" vertex="1">
+          <mxGeometry x="160" width="80" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="OugirGucVOUAvJeAqI80-3" value="" style="whiteSpace=wrap;html=1;aspect=fixed;fillColor=#DDDDDD;strokeColor=none;" parent="1" vertex="1">
+          <mxGeometry width="80" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="OugirGucVOUAvJeAqI80-4" value="" style="whiteSpace=wrap;html=1;aspect=fixed;fillColor=#AAAAAA;strokeColor=none;" parent="1" vertex="1">
+          <mxGeometry y="130" width="80" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="Wazu7IJVKDVCNvOERVV5-3" value="" style="shape=trapezoid;perimeter=trapezoidPerimeter;whiteSpace=wrap;html=1;fixedSize=1;rotation=270;size=10;fillColor=#DDDDDD;strokeColor=none;rounded=1;" parent="1" vertex="1">
+          <mxGeometry x="125" y="95" width="210" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="Wazu7IJVKDVCNvOERVV5-5" value="" style="shape=trapezoid;perimeter=trapezoidPerimeter;whiteSpace=wrap;html=1;fixedSize=1;rotation=90;size=10;fillColor=#BBBBBB;strokeColor=none;rounded=1;" parent="1" vertex="1">
+          <mxGeometry x="-95" y="95" width="210" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="Wazu7IJVKDVCNvOERVV5-2" value="" style="shape=trapezoid;perimeter=trapezoidPerimeter;whiteSpace=wrap;html=1;fixedSize=1;size=20;fillColor=#999999;strokeColor=none;rounded=1;" parent="1" vertex="1">
+          <mxGeometry y="180" width="240" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="Wazu7IJVKDVCNvOERVV5-4" value="" style="shape=trapezoid;perimeter=trapezoidPerimeter;whiteSpace=wrap;html=1;fixedSize=1;rotation=-180;strokeColor=none;rounded=1;" parent="1" vertex="1">
+          <mxGeometry width="240" height="10" as="geometry" />
+        </mxCell>
+        <mxCell id="Wazu7IJVKDVCNvOERVV5-6" value="" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#CCCCCC;strokeColor=none;arcSize=5;glass=0;shadow=0;" parent="1" vertex="1">
+          <mxGeometry x="20" y="10" width="200" height="170" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>
