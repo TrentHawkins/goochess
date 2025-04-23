@@ -71,6 +71,10 @@ class Move(Base, src.algebra.square):
 
 
 	@property
+	def decal(self) -> str:
+		return  src.algebra.Square.__name__.upper()
+
+	@property
 	def side(self) -> src.engine.Side:
 		return self.piece.side
 

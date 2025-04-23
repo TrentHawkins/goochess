@@ -45,10 +45,19 @@ class file(int, src.theme.Drawable):
 		)
 
 
+	def draw(self, screen: pygame.Surface):
+		super().draw(screen)
+		self.label(screen)
+
 	def ward(self, screen: pygame.Surface):
-		rect = copy(self.rect)
-		rect.move_ip(0, src.theme.BOARD.y + src.theme.CORNER.y)
-		screen.blit(self.surf, rect)
+		rect = self.rect.move(0, src.theme.BOARD.y + src.theme.CORNER.y)
+
+		super().draw(screen,
+			rect = rect,
+		)
+		self.label(screen,
+			rect = rect,
+		)
 
 
 class File(file, Enum):
@@ -84,10 +93,19 @@ class rank(int, src.theme.Drawable):
 		)
 
 
+	def draw(self, screen: pygame.Surface):
+		super().draw(screen)
+		self.label(screen)
+
 	def ward(self, screen: pygame.Surface):
-		rect = copy(self.rect)
-		rect.move_ip(src.theme.BOARD.x + src.theme.CORNER.x, 0)
-		screen.blit(self.surf, rect)
+		rect = self.rect.move(src.theme.BOARD.x + src.theme.CORNER.x, 0)
+
+		super().draw(screen,
+			rect = rect,
+		)
+		self.label(screen,
+			rect = rect,
+		)
 
 
 class Rank(rank, Enum):

@@ -5,7 +5,7 @@ from abc import abstractmethod
 from copy import copy
 from enum import Enum
 
-import pygame
+import pygame  # ; pygame.init()
 
 
 type RGB = tuple[
@@ -13,6 +13,7 @@ type RGB = tuple[
 	int,
 	int,
 ]
+
 
 WINDOW = pygame.Vector2(
 	2160,
@@ -72,6 +73,12 @@ DARK = (
 	0x33,
 	0x33,
 )
+LABEL = (
+	0x66,
+	0x66,
+	0x66,
+)
+
 RED = (
 	0x66,
 	0x00,
@@ -107,6 +114,10 @@ BLACK = (
 	0x77,
 	0x66,
 	0x55,
+)
+
+FONT = pygame.font.SysFont("firacode", SQUARE_H // 6,
+	bold = True,
 )
 
 
@@ -171,12 +182,27 @@ class Drawable(pygame.sprite.Sprite):
 		return self.surf.get_rect()
 
 
+	def label(self, screen: pygame.Surface,
+		rect: pygame.Rect | None = None,
+	):
+		if rect is None:
+			rect = self.rect
+
+		text = FONT.render(repr(self).upper(), True, LABEL)
+		rect = text.get_rect(
+			center = rect.center,
+		)
+		screen.blit(text, rect)
+
 	def draw(self, screen: pygame.Surface, *,
 		special_flags: int = 0,
+		rect: pygame.Rect | None = None,
 	):
-		screen.blit(
-			self.surf,
-			self.rect, special_flags = special_flags,
+		if rect is None:
+			rect = self.rect
+
+		screen.blit(self.surf, rect,
+			special_flags = special_flags,
 		)
 
 
