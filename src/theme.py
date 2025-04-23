@@ -189,6 +189,12 @@ class Drawable(pygame.sprite.Sprite):
 			rect = self.rect
 
 		text = FONT.render(repr(self).upper(), True, LABEL)
+		text = pygame.transform.smoothscale(text,
+			(
+				text.get_width(),
+				text.get_height() * 8 // 9,
+			)
+		)
 		rect = text.get_rect(
 			center = rect.center,
 		)
