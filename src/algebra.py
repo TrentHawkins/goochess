@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 
+from copy import copy
 from enum import Enum
 import re
 from typing import TYPE_CHECKING, Self, overload
@@ -44,6 +45,12 @@ class file(int, src.theme.Drawable):
 		)
 
 
+	def ward(self, screen: pygame.Surface):
+		rect = copy(self.rect)
+		rect.move_ip(0, src.theme.BOARD.y + src.theme.CORNER.y)
+		screen.blit(self.surf, rect)
+
+
 class File(file, Enum):
 
 	A_ = 0o00  # A
@@ -75,6 +82,12 @@ class rank(int, src.theme.Drawable):
 			left = -src.theme.CORNER.x               + src.theme.BOARD_OFFSET.x,
 			top  = +src.theme.SQUARE.y * (self >> 3) + src.theme.BOARD_OFFSET.y,
 		)
+
+
+	def ward(self, screen: pygame.Surface):
+		rect = copy(self.rect)
+		rect.move_ip(src.theme.BOARD.x + src.theme.CORNER.x, 0)
+		screen.blit(self.surf, rect)
 
 
 class Rank(rank, Enum):
