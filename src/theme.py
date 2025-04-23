@@ -116,7 +116,7 @@ BLACK = (
 	0x55,
 )
 
-FONT = pygame.font.SysFont("firacode", SQUARE_H // 6,
+FONT = pygame.font.SysFont(None, SQUARE_H // 6,
 	bold = True,
 )
 
@@ -188,7 +188,7 @@ class Drawable(pygame.sprite.Sprite):
 		if rect is None:
 			rect = self.rect
 
-		text = FONT.render(repr(self).upper(), True, LABEL)
+		text = FONT.render(repr(self).upper(), True, DARK)
 		text = pygame.transform.smoothscale(text,
 			(
 				text.get_width(),
@@ -196,7 +196,7 @@ class Drawable(pygame.sprite.Sprite):
 			)
 		)
 		rect = text.get_rect(
-			center = rect.center,
+			center = rect.center - pygame.Vector2(0, SQUARE.y // 126),
 		)
 		screen.blit(text, rect)
 
