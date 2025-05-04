@@ -133,15 +133,15 @@ class Board(list[Piece], src.theme.Drawable):
 		for square in src.algebra.Square:
 			square.draw(screen)
 
-		surf = src.theme.Main.CORNER.value
+	#	surf = src.theme.Main.CORNER.value
 
-		rect = src.theme.BOARD_OFFSET
-		size = src.theme.BOARD + rect
+	#	rect = src.theme.BOARD_OFFSET
+	#	size = src.theme.BOARD + rect
 
-		screen.blit(surf, surf.get_rect(bottom = rect.y, right = rect.x))
-		screen.blit(surf, surf.get_rect(   top = size.y, right = rect.x))
-		screen.blit(surf, surf.get_rect(   top = size.y,  left = size.x))
-		screen.blit(surf, surf.get_rect(bottom = rect.y,  left = size.x))
+	#	screen.blit(surf, surf.get_rect(bottom = rect.y, right = rect.x))
+	#	screen.blit(surf, surf.get_rect(   top = size.y, right = rect.x))
+	#	screen.blit(surf, surf.get_rect(   top = size.y,  left = size.x))
+	#	screen.blit(surf, surf.get_rect(bottom = rect.y,  left = size.x))
 
 		super().draw(screen,
 			special_flags = pygame.BLEND_RGBA_MULT,
@@ -431,8 +431,12 @@ class Game(Board):
 		super().draw(screen)
 
 		if self.selected is not None:
-			for square in self.selected.squares:
-				square.highlight(screen)
+			if self.promoted is not None and self.selected is self.promoted.piece:
+				self.promoted.highlight(screen)
+
+			else:
+				for square in self.selected.squares:
+					square.highlight(screen)
 
 		for piece in self:
 			if piece is not None:

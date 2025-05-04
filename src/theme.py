@@ -36,7 +36,7 @@ SQUARE = pygame.Vector2(
 )
 SQUARE_OFFSET = SQUARE.x // 2
 
-CORNER = SQUARE // 6
+CORNER = SQUARE // 4
 
 FILE = pygame.Vector2(
 	SQUARE.x,
@@ -69,14 +69,19 @@ BRIGHT = (
 	0x33,
 )
 DARK = (
+	0x44,
 	0x33,
-	0x33,
-	0x33,
+	0x22,
+)
+FLASH = (
+	0xCC,
+	0xCC,
+	0xCC,
 )
 LABEL = (
-	0x66,
-	0x66,
-	0x66,
+	0xCC,
+	0xCC,
+	0xCC,
 )
 
 RED = (
@@ -116,7 +121,7 @@ BLACK = (
 	0x55,
 )
 
-FONT = pygame.font.SysFont(None, SQUARE_H // 6,
+FONT = pygame.font.SysFont(None, SQUARE_H // 4,
 	bold = True,
 )
 
@@ -128,8 +133,8 @@ class Main(Enum):
 
 	BOARD  = pygame.transform.smoothscale(pygame.image.load(f"graphics/board/oak-wood.jpg").convert(), WINDOW)
 	GAME   = pygame.transform.smoothscale(pygame.image.load(f"graphics/board/oak-wood.jpg").convert(), WINDOW)
+	BEVEL  = pygame.transform.smoothscale(pygame.transform.rotate(GAME, 180.0), BOARD.get_size() + ())
 
-	CORNER = pygame.transform.smoothscale(pygame.image.load(f"graphics/bevel/corner.png").convert(), CORNER)
 	FILE   = pygame.transform.smoothscale(pygame.image.load(f"graphics/bevel/file.png"  ).convert(), FILE  )
 	RANK   = pygame.transform.smoothscale(pygame.image.load(f"graphics/bevel/rank.png"  ).convert(), RANK  )
 	SQUARE = pygame.transform.smoothscale(pygame.image.load(f"graphics/bevel/square.png").convert(), SQUARE)
@@ -188,7 +193,7 @@ class Drawable(pygame.sprite.Sprite):
 		if rect is None:
 			rect = self.rect
 
-		text = FONT.render(repr(self).upper(), True, DARK)
+		text = FONT.render(repr(self).upper(), True, LABEL)
 		text = pygame.transform.smoothscale(text,
 			(
 				text.get_width(),

@@ -22,8 +22,8 @@ while running:
 
 		game.clicked(event)
 
-	src.theme.screen.fill(src.theme.EMPTY)
-	src.theme.screen.fill(src.theme.DARK,
+	src.theme.screen.fill(src.theme.DARK)
+	src.theme.screen.fill(src.theme.FLASH,
 		special_flags = pygame.BLEND_RGBA_MULT,
 	)
 
