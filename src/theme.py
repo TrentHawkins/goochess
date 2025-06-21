@@ -5,7 +5,7 @@ from abc import abstractmethod
 from copy import copy
 from enum import Enum
 
-import pygame
+import pygame  # ; pygame.init()
 
 
 type RGB = tuple[
@@ -14,19 +14,19 @@ type RGB = tuple[
 	int,
 ]
 
-RESOLUTION = 1440
+
 WINDOW = pygame.Vector2(
-	RESOLUTION,
-	RESOLUTION,
+	2160,
+	1440,
 )
 
-BOARD_W = RESOLUTION
+BOARD_W = 1440
 BOARD_H = BOARD_W * 8 // 9
 BOARD = pygame.Vector2(
 	BOARD_W,
 	BOARD_H,
 )
-BOARD_OFFSET = BOARD_W - BOARD_H
+BOARD_OFFSET = pygame.Vector2(WINDOW.x - BOARD.x, (BOARD.x - BOARD.y) * 3 // 2) // 2
 
 SQUARE_W = BOARD_W // 8
 SQUARE_H = BOARD_H // 8
@@ -34,7 +34,18 @@ SQUARE = pygame.Vector2(
 	SQUARE_W,
 	SQUARE_H,
 )
-SQUARE_OFFSET = SQUARE_W // 2
+SQUARE_OFFSET = SQUARE.x // 2
+
+CORNER = SQUARE // 4
+
+FILE = pygame.Vector2(
+	SQUARE.x,
+	CORNER.y,
+)
+RANK = pygame.Vector2(
+	CORNER.x,
+	SQUARE.y,
+)
 
 PIECE_W = BOARD_W *   5 //  32
 PIECE_H = PIECE_W * 460 // 360
@@ -43,8 +54,8 @@ PIECE = pygame.Vector2(
 	PIECE_H,
 )
 PIECE_OFFSET = pygame.Vector2(
-	+PIECE_W     // 100,
-	-PIECE_H * 2 // 13 ,
+	+PIECE.x     // 100,
+	-PIECE.y * 2 // 13 ,
 )
 
 HIGH = (
@@ -58,10 +69,21 @@ BRIGHT = (
 	0x33,
 )
 DARK = (
+	0x44,
 	0x33,
-	0x33,
-	0x33,
+	0x22,
 )
+FLASH = (
+	0xCC,
+	0xCC,
+	0xCC,
+)
+LABEL = (
+	0xCC,
+	0xCC,
+	0xCC,
+)
+
 RED = (
 	0x66,
 	0x00,
@@ -99,6 +121,10 @@ BLACK = (
 	0x55,
 )
 
+FONT = pygame.font.SysFont(None, SQUARE_H // 4,
+	bold = True,
+)
+
 
 screen = pygame.display.set_mode(WINDOW)
 
@@ -107,7 +133,11 @@ class Main(Enum):
 
 	BOARD  = pygame.transform.smoothscale(pygame.image.load(f"graphics/board/oak-wood.jpg").convert(), WINDOW)
 	GAME   = pygame.transform.smoothscale(pygame.image.load(f"graphics/board/oak-wood.jpg").convert(), WINDOW)
-	SQUARE = pygame.transform.smoothscale(pygame.image.load(f"graphics/board/bevel.png" ).convert(), SQUARE)
+	BEVEL  = pygame.transform.smoothscale(pygame.transform.rotate(GAME, 180.0), BOARD.get_size() + ())
+
+	FILE   = pygame.transform.smoothscale(pygame.image.load(f"graphics/bevel/file.png"  ).convert(), FILE  )
+	RANK   = pygame.transform.smoothscale(pygame.image.load(f"graphics/bevel/rank.png"  ).convert(), RANK  )
+	SQUARE = pygame.transform.smoothscale(pygame.image.load(f"graphics/bevel/square.png").convert(), SQUARE)
 
 	BPIECE = pygame.Surface(PIECE,
 		flags = pygame.SRCALPHA,
@@ -157,12 +187,33 @@ class Drawable(pygame.sprite.Sprite):
 		return self.surf.get_rect()
 
 
-	def draw(self, screen: pygame.Surface, *,
-		special_flags: int,
+	def label(self, screen: pygame.Surface,
+		rect: pygame.Rect | None = None,
 	):
-		screen.blit(
-			self.surf,
-			self.rect, special_flags = special_flags,
+		if rect is None:
+			rect = self.rect
+
+		text = FONT.render(repr(self).upper(), True, LABEL)
+		text = pygame.transform.smoothscale(text,
+			(
+				text.get_width(),
+				text.get_height() * 8 // 9,
+			)
+		)
+		rect = text.get_rect(
+			center = rect.center - pygame.Vector2(0, SQUARE.y // 126),
+		)
+		screen.blit(text, rect)
+
+	def draw(self, screen: pygame.Surface, *,
+		special_flags: int = 0,
+		rect: pygame.Rect | None = None,
+	):
+		if rect is None:
+			rect = self.rect
+
+		screen.blit(self.surf, rect,
+			special_flags = special_flags,
 		)
 
 

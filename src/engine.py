@@ -4,6 +4,7 @@ from __future__ import annotations
 from collections import defaultdict
 from contextlib import contextmanager
 from datetime import datetime
+from os import linesep
 from typing import Generator, SupportsIndex, Self
 
 import pygame
@@ -120,6 +121,32 @@ class Board(list[Piece], src.theme.Drawable):
 		if target != source and (piece := self[source]) is not None:
 			piece(target)
 
+	def draw(self, screen: pygame.Surface):
+		for file in src.algebra.File:
+			file.draw(screen)
+			file.ward(screen)
+
+		for rank in src.algebra.Rank:
+			rank.draw(screen)
+			rank.ward(screen)
+
+		for square in src.algebra.Square:
+			square.draw(screen)
+
+	#	surf = src.theme.Main.CORNER.value
+
+	#	rect = src.theme.BOARD_OFFSET
+	#	size = src.theme.BOARD + rect
+
+	#	screen.blit(surf, surf.get_rect(bottom = rect.y, right = rect.x))
+	#	screen.blit(surf, surf.get_rect(   top = size.y, right = rect.x))
+	#	screen.blit(surf, surf.get_rect(   top = size.y,  left = size.x))
+	#	screen.blit(surf, surf.get_rect(bottom = rect.y,  left = size.x))
+
+		super().draw(screen,
+			special_flags = pygame.BLEND_RGBA_MULT,
+		)
+
 
 class Side(
 	defaultdict[
@@ -230,6 +257,10 @@ class Side(
 
 class History(list[src.rules.Move | None]):
 
+	def __repr__(self) -> str:
+		return self.window()
+
+
 	@classmethod
 	def from_forsyth_edwards(cls, full_clock: str, turn: str) -> Self:
 		total_moves = 2 * (int(full_clock) - 1) + (1 if turn == "b" else 0)
@@ -263,6 +294,24 @@ class History(list[src.rules.Move | None]):
 	) -> src.rules.Move | None:
 		try: return self[index]
 		except IndexError: return default
+
+	def window(self,
+		size: int | None = None,
+	) -> str:
+		notation = ""
+
+		if size == None:
+			size = len(self)
+
+		for index, rule in enumerate(self[-size:],
+			start = len(self) - size,
+		):
+			if rule is None: notation += f"{index}         "
+			else:            notation += f"{index} {rule}"
+
+			notation += linesep
+
+		return notation
 
 
 class Game(Board):
@@ -343,7 +392,7 @@ class Game(Board):
 				index += 1 if piece_found else int(char)
 
 		if enpassant != "-":
-			square = src.algebra.Square.fromnotation(enpassant)
+			square = src.algebra.Square.from_algebraic(enpassant)
 			color = game.current.other.color
 			game.current.other.ghost = game[square] = src.material.Ghost(game, color)
 
@@ -373,22 +422,21 @@ class Game(Board):
 
 	@property
 	@contextmanager
-	def dry_run(self):
-		original, self.testing = self.testing, True; yield
+	def dry_run(self) -> Generator[Self]:
+		original, self.testing = self.testing, True; yield self
 		self.testing = original
 
 
 	def draw(self, screen: pygame.Surface):
-		for square in src.algebra.Square:
-			square.draw(screen)
-
-		super().draw(screen,
-			special_flags = pygame.BLEND_RGBA_MULT,
-		)
+		super().draw(screen)
 
 		if self.selected is not None:
-			for square in self.selected.squares:
-				square.highlight(screen)
+			if self.promoted is not None and self.selected is self.promoted.piece:
+				self.promoted.highlight(screen)
+
+			else:
+				for square in self.selected.squares:
+					square.highlight(screen)
 
 		for piece in self:
 			if piece is not None:

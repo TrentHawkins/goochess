@@ -71,6 +71,10 @@ class Move(Base, src.algebra.square):
 
 
 	@property
+	def decal(self) -> str:
+		return  src.algebra.Square.__name__.upper()
+
+	@property
 	def side(self) -> src.engine.Side:
 		return self.piece.side
 
@@ -216,7 +220,7 @@ class CastWest(Cast):
 
 
 	def __repr__(self) -> str:
-		return "O-O-O"
+		return "〇─〇─〇"
 
 
 	@property
@@ -234,7 +238,7 @@ class CastEast(Cast):
 
 
 	def __repr__(self) -> str:
-		return "O-O"
+		return "〇─〇"
 
 
 	@property
