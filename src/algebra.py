@@ -33,7 +33,7 @@ class file(int, src.theme.Drawable):
 	def __new__(cls, x: int, *_):
 		return super().__new__(cls, x)
 
-	def __init__(self, x: int, *args):
+	def __init__(self, _: int, *args):
 		super().__init__(*args)
 
 
@@ -145,15 +145,13 @@ class vector(src.array,
 		return pygame.Vector2(self)
 
 
-class Vector(vector, Enum,
-	dimension = 2,
-):
+class Vector(vector, Enum):
 
-	O = vector( 0,  0)  # null
-	N = vector( 0, -1)  # king queen rook pawn(white)
-	E = vector(+1,  0)  # king queen rook
-	S = vector( 0, +1)  # king queen rook pawn(black)
-	W = vector(-1,  0)  # king queen rook
+	O = ( 0,  0)  # null
+	N = ( 0, -1)  # king queen rook pawn(white)
+	E = (+1,  0)  # king queen rook
+	S = ( 0, +1)  # king queen rook pawn(black)
+	W = (-1,  0)  # king queen rook
 
 	N2 = N * 2  # pawn(white leap)
 	S2 = S * 2  # pawn(black leap)

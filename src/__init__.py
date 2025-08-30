@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 
-from typing import Iterable, Hashable, Self
+from typing import Iterable, Hashable, Self, overload
 
 
 class collection[T: Hashable](set):
@@ -46,29 +46,71 @@ class collection[T: Hashable](set):
 		return self.__class__(*(item for item in self if isinstance(item, by)))
 
 
-class array[T: (int, float)](tuple[T, ...]):
+class array(tuple[int, ...]):
 
 	dimension: int
 
 	def __init_subclass__(cls, *args,
-		dimension: int,
+		dimension: int | None = None,
 	**kwargs):
-		cls.dimension = dimension
+		super().__init_subclass__(*args, **kwargs)
 
-		return super().__init_subclass__(*args, **kwargs)
+		if dimension is not None:
+			cls.dimension = dimension
+			cls.zero = cls(*(0 for _ in range(cls.dimension)))
 
-	def __new__(cls, *components) -> Self:
-		return super().__new__(cls, components[:cls.dimension])
+	def __new__(cls, *components: int) -> Self:
+		assert cls.dimension == len(components)
+		return super().__new__(cls, components)
 
-	def __bool__(self,) -> bool:
-		return bool(sum(self))
+	def __len__(self) -> int:
+		return self.dimension
 
-	def __add__(self, other: Self) -> Self: return self.__class__(*(left + right for left, right in zip(self, other)))
-	def __sub__(self, other: Self) -> Self: return self.__class__(*(left - right for left, right in zip(self, other)))
+	def __pos__(self) -> Self: return self
+	def __neg__(self) -> Self: return self.zero - self
 
-	def __mul__     (self, times: T) -> Self: return self.__class__(*(left  * times for left  in self))
-	def __rmul__    (self, times: T) -> Self: return self.__class__(*(right * times for right in self))
-	def __floordiv__(self, times: T) -> Self: return self.__class__(*(left // times for left  in self))
+	def __add__(self, other: array, /) -> Self: return self.__class__(*(left + right for left, right in zip(self, other)))
+	def __sub__(self, other: array, /) -> Self: return self.__class__(*(left - right for left, right in zip(self, other)))
+	def __mul__(self, times: int  , /) -> Self: return self.__class__(*(left * times for left        in     self        ))
 
-	def __pos__(self) -> Self: return self.__class__(*(+left for left in self))
-	def __neg__(self) -> Self: return self.__class__(*(-left for left in self))
+	def __radd__(self, other: array, /) -> Self: return  self + other
+	def __rsub__(self, other: array, /) -> Self: return -self + other
+	def __rmul__(self, times: int  , /) -> Self: return  self * times
+
+	def __matmul__(self, other: array, /) -> int:
+		return sum((right * left for left, right in zip(self, other)))
+
+	def __rmatmul__(self, other: array, /) -> int:
+		return self @ other
+
+	def __abs__(self) -> int:
+		return self @ self
+
+
+class zerosumarray(array):
+
+	def __new__(cls, *components: int) -> Self:
+		projection = sum(components)
+		normalizer = cls.dimension if projection else 1
+
+		return super().__new__(cls, *(normalizer * component - projection for component in components))
+
+	def __len__(self) -> int:
+		return super().__len__() - 1
+
+
+class arrays(collection[array]):
+
+	@overload
+	def __mul__(self, other: set[array], /) -> Self:
+		...
+
+	@overload
+	def __mul__(self, other: set[array], /) -> Self:
+		...
+
+	def __mul__(self, other: set[array] | int, /) -> Self:
+		match other:
+			case set(): return self.__class__(*(left + right for left in self for right in other))
+			case int(): return self.__class__(*(left * other for left in self))
+			case     _: return NotImplemented

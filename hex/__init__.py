@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 
-from typing import Iterable, Hashable, Self, cast
+from typing import Iterable, Hashable, Self
 
 
 class collection[T: Hashable](set):
@@ -46,48 +46,54 @@ class collection[T: Hashable](set):
 		return self.__class__(*(item for item in self if isinstance(item, by)))
 
 
-class array[T: int](tuple[T, ...]):
+class array(tuple[int, ...]):
 
 	dimension: int
-	traceless: bool = False
 
-
-	def __init_subclass__(cls, *args: type,
-		dimension: int,
-		traceless: bool = False,
+	def __init_subclass__(cls, *args,
+		dimension: int | None = None,
 	**kwargs):
-		cls.dimension = dimension
-		cls.traceless = traceless
+		super().__init_subclass__(*args, **kwargs)
 
-		return super().__init_subclass__(*args, **kwargs)
+		if dimension is not None:
+			cls.dimension = dimension
+			cls.zero = cls(*(0 for _ in range(cls.dimension)))
 
 	def __new__(cls, *components: int) -> Self:
-		components = components[:cls.dimension]
+		assert cls.dimension == len(components)
+		return super().__new__(cls, components)
 
-		if cls.traceless:
-			trace = sum(components)
-			if trace % cls.dimension:
-				raise ValueError(f"Trace {trace} is not divisible by dimension {cls.dimension}")
+	def __len__(self) -> int:
+		return self.dimension
 
-			trace //= cls.dimension
-			components = tuple(component - trace for component in components)
+	def __pos__(self) -> Self: return self
+	def __neg__(self) -> Self: return self.zero - self
 
-		return super().__new__(cls, (cast(T, component) for component in components))
+	def __add__(self, other: array, /) -> Self: return self.__class__(*(left + right for left, right in zip(self, other)))
+	def __sub__(self, other: array, /) -> Self: return self.__class__(*(left - right for left, right in zip(self, other)))
+	def __mul__(self, times: int  , /) -> Self: return self.__class__(*(left * times for left        in     self        ))
 
-	def __bool__(self,) -> bool:
-		return bool(sum(self))
+	def __radd__(self, other: array, /) -> Self: return  self + other
+	def __rsub__(self, other: array, /) -> Self: return -self + other
+	def __rmul__(self, times: int  , /) -> Self: return  self * times
 
-	def __add__(self, other: Self) -> Self: return self.__class__(*(left + right for left, right in zip(self, other)))
-	def __sub__(self, other: Self) -> Self: return self.__class__(*(left - right for left, right in zip(self, other)))
+	def __matmul__(self, other: array, /) -> int:
+		return sum((right * left for left, right in zip(self, other)))
 
-	def __mul__     (self, times: T) -> Self: return self.__class__(*(left  * times for left  in self))
-	def __rmul__    (self, times: T) -> Self: return self.__class__(*(right * times for right in self))
-	def __floordiv__(self, times: T) -> Self: return self.__class__(*(left // times for left  in self))
+	def __rmatmul__(self, other: array, /) -> int:
+		return self @ other
 
-	def __pos__(self) -> Self: return self.__class__(*(+left for left in self))
-	def __neg__(self) -> Self: return self.__class__(*(-left for left in self))
+	def __abs__(self) -> int:
+		return self @ self
 
 
-	@property
-	def dim(self) -> int:
-		return self.dimension - self.traceless
+class zerosumarray(array):
+
+	def __new__(cls, *components: int) -> Self:
+		projection = sum(components)
+		normalizer = cls.dimension if projection else 1
+
+		return super().__new__(cls, *(normalizer * component - projection for component in components))
+
+	def __len__(self) -> int:
+		return super().__len__() - 1

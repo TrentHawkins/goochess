@@ -2,7 +2,7 @@ from __future__ import annotations
 
 
 from enum import Enum, Flag, auto
-from typing import Generator, overload
+from typing import Generator, Self, overload
 
 import hex
 
@@ -14,7 +14,7 @@ class Color(int, Flag):
 	RED   = auto()
 
 
-class vector(hex.array[int],
+class vector(hex.array,
 	dimension = 3,
 	traceless = True,
 ):
@@ -56,15 +56,15 @@ class Vector(vector, Enum,
 class Vectors(hex.collection[vector]):
 
 	@overload
-	def __mul__(self, other: Vectors, /) -> Vectors:
+	def __mul__(self, other: Vectors, /) -> Self:
 		...
 
 	@overload
-	def __mul__(self, other: int, /) -> Vectors:
+	def __mul__(self, other: int, /) -> Self:
 		...
 
-	def __mul__(self, other: Vectors | int, /) -> Vectors:
+	def __mul__(self, other: Vectors | int, /) -> Self:
 		match other:
-			case Vectors(): return Vectors(*(left + right for left in self for right in other))
-			case     int(): return Vectors(*(left * other for left in self))
+			case Vectors(): return self.__class__(*(left + right for left in self for right in other))
+			case     int(): return self.__class__(*(left * other for left in self))
 			case         _: return NotImplemented
