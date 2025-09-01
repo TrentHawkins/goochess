@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 
-from typing import Iterable, Hashable, Self, overload
+from typing import Iterable, Hashable, Self
 
 
 class collection[T: Hashable](set):
@@ -65,23 +65,8 @@ class array(tuple[int, ...]):
 			cls.dimension = dimension
 			cls.zero = cls(*(0 for _ in range(cls.dimension)))
 
-#	def __new__(cls, *components: int) -> Self:
-#		assert cls.dimension == len(components)
-#		return super().__new__(cls, components if not cls.traceless else cls.retrace(*components))
-
-	@overload
 	def __new__(cls, *components: int) -> Self:
-		...
-
-	@overload
-	def __new__(cls, *components: Iterable[int]) -> Self:
-		...
-
-	def __new__(cls, *components) -> Self:
-		if len(components) == 1:
-			components, *_ = components
-			components = tuple(components)
-
+		assert cls.dimension == len(components)
 		return super().__new__(cls, components if not cls.traceless else cls.retrace(*components))
 
 	def __len__(self) -> int:
@@ -111,22 +96,6 @@ class array(tuple[int, ...]):
 	@classmethod
 	def retrace(cls, *components: int) -> tuple[int, ...]:
 		trace = sum(components)
+		norm = cls.dimension if trace else 1
 
-		return tuple(cls.dimension * component - trace for component in components) if trace else tuple(components)
-
-
-class arrays(collection[array]):
-
-	@overload
-	def __mul__(self, other: set[array], /) -> Self:
-		...
-
-	@overload
-	def __mul__(self, other: set[array], /) -> Self:
-		...
-
-	def __mul__(self, other: set[array] | int, /) -> Self:
-		match other:
-			case set(): return self.__class__(*(left + right for left in self for right in other))
-			case int(): return self.__class__(*(left * other for left in self))
-			case     _: return NotImplemented
+		return tuple(norm * component - trace for component in components)

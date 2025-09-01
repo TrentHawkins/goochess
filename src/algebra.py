@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 
+from copy import copy
 from enum import Enum
 import re
 from typing import TYPE_CHECKING, Self, overload
@@ -27,7 +28,39 @@ class Color(int, Enum):
 		return "⬛" if self + 1 else "⬜"
 
 
-class File(int, Enum):
+class file(int, src.theme.Drawable):
+
+	def __new__(cls, x: int, *_):
+		return super().__new__(cls, x)
+
+	def __init__(self, _: int, *args):
+		super().__init__(*args)
+
+
+	@property
+	def rect(self) -> pygame.Rect:
+		return self.surf.get_rect(
+			left = +src.theme.SQUARE.x * self + src.theme.BOARD_OFFSET.x,
+			top  = -src.theme.CORNER.y        + src.theme.BOARD_OFFSET.y,
+		)
+
+
+	def draw(self, screen: pygame.Surface):
+	#	super().draw(screen)
+		self.label(screen)
+
+	def ward(self, screen: pygame.Surface):
+		rect = self.rect.move(0, src.theme.BOARD.y + src.theme.CORNER.y)
+
+	#	super().draw(screen,
+	#		rect = rect,
+	#	)
+		self.label(screen,
+			rect = rect,
+		)
+
+
+class File(file, Enum):
 
 	A_ = 0o00  # A
 	B_ = 0o01  # B
@@ -43,7 +76,39 @@ class File(int, Enum):
 		return self.name.strip("_").lower()
 
 
-class Rank(int, Enum):
+class rank(int, src.theme.Drawable):
+
+	def __new__(cls, x: int, *_):
+		return super().__new__(cls, x)
+
+	def __init__(self, x: int, *args):
+		super().__init__(*args)
+
+
+	@property
+	def rect(self) -> pygame.Rect:
+		return self.surf.get_rect(
+			left = -src.theme.CORNER.x               + src.theme.BOARD_OFFSET.x,
+			top  = +src.theme.SQUARE.y * (self >> 3) + src.theme.BOARD_OFFSET.y,
+		)
+
+
+	def draw(self, screen: pygame.Surface):
+	#	super().draw(screen)
+		self.label(screen)
+
+	def ward(self, screen: pygame.Surface):
+		rect = self.rect.move(src.theme.BOARD.x + src.theme.CORNER.x, 0)
+
+	#	super().draw(screen,
+	#		rect = rect,
+	#	)
+		self.label(screen,
+			rect = rect,
+		)
+
+
+class Rank(rank, Enum):
 
 	_8 = 0o00  # 8
 	_7 = 0o10  # 7
@@ -80,9 +145,7 @@ class vector(src.array,
 		return pygame.Vector2(self)
 
 
-class Vector(vector, Enum,
-	dimension = 2,
-):
+class Vector(vector, Enum):
 
 	O = vector( 0,  0)  # null
 	N = vector( 0, -1)  # king queen rook pawn(white)
@@ -180,12 +243,9 @@ class square(int, src.theme.Highlightable):
 
 	@property
 	def rect(self) -> pygame.Rect:
-		return pygame.Rect(
-			pygame.Vector2(
-				src.theme.SQUARE_W * (self.file),
-				src.theme.SQUARE_H * (self.rank >> 3) + src.theme.BOARD_OFFSET * 11 // 12,
-			),
-			pygame.Vector2(*src.theme.SQUARE),
+		return self.surf.get_rect(
+			top  = src.theme.SQUARE_H * (self.rank >> 3) + src.theme.BOARD_OFFSET.y,
+			left = src.theme.SQUARE_W * (self.file     ) + src.theme.BOARD_OFFSET.x,
 		)
 
 
@@ -255,7 +315,7 @@ class Square(square, Enum):
 
 
 	@classmethod
-	def fromnotation(cls, notation: str) -> Self:
+	def from_algebraic(cls, notation: str) -> Self:
 		file, rank = notation
 
 		return cls((0o10 - int(rank) << 3) + ord(file) - ord("a"))
