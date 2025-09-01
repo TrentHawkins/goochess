@@ -2,7 +2,6 @@ from __future__ import annotations
 
 
 from collections import defaultdict
-from contextlib import contextmanager
 from datetime import datetime
 from os import linesep
 from typing import Generator, SupportsIndex, Self
@@ -207,7 +206,7 @@ class Side(
 
 	@property
 	def targets(self) -> src.algebra.Squares:
-		return src.algebra.Squares.union(*(piece.targets for piece in self))
+		return src.algebra.Squares.union(*(piece.targets.capts for piece in self))
 
 	@property
 	def other(self) -> Side:
@@ -316,7 +315,7 @@ class History(list[src.rules.Move | None]):
 
 class Game(Board):
 
-	testing = bool()
+	testing = False
 	default = f"{Board.default} w KQkq - 0 1"
 
 
@@ -419,12 +418,6 @@ class Game(Board):
 	@property
 	def current(self) -> Side:
 		return self.black if len(self.history) & 1 else self.white
-
-	@property
-	@contextmanager
-	def dry_run(self) -> Generator[Self]:
-		original, self.testing = self.testing, True; yield self
-		self.testing = original
 
 
 	def draw(self, screen: pygame.Surface):

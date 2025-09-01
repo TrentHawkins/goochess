@@ -48,23 +48,44 @@ class collection[T: Hashable](set):
 
 class array(tuple[int, ...]):
 
-	dimension: int
+	dimension: int  = 0
+	traceless: bool = False
+
 
 	def __init_subclass__(cls, *args,
-		dimension: int | None = None,
+		dimension: int  | None = None,
+		traceless: bool | None = None,
 	**kwargs):
 		super().__init_subclass__(*args, **kwargs)
+
+		if traceless is not None:
+			cls.traceless = traceless
 
 		if dimension is not None:
 			cls.dimension = dimension
 			cls.zero = cls(*(0 for _ in range(cls.dimension)))
 
+#	def __new__(cls, *components: int) -> Self:
+#		assert cls.dimension == len(components)
+#		return super().__new__(cls, components if not cls.traceless else cls.retrace(*components))
+
+	@overload
 	def __new__(cls, *components: int) -> Self:
-		assert cls.dimension == len(components)
-		return super().__new__(cls, components)
+		...
+
+	@overload
+	def __new__(cls, *components: Iterable[int]) -> Self:
+		...
+
+	def __new__(cls, *components) -> Self:
+		if len(components) == 1:
+			components, *_ = components
+			components = tuple(components)
+
+		return super().__new__(cls, components if not cls.traceless else cls.retrace(*components))
 
 	def __len__(self) -> int:
-		return self.dimension
+		return self.dimension - self.traceless
 
 	def __pos__(self) -> Self: return self
 	def __neg__(self) -> Self: return self.zero - self
@@ -87,16 +108,11 @@ class array(tuple[int, ...]):
 		return self @ self
 
 
-class zerosumarray(array):
+	@classmethod
+	def retrace(cls, *components: int) -> tuple[int, ...]:
+		trace = sum(components)
 
-	def __new__(cls, *components: int) -> Self:
-		projection = sum(components)
-		normalizer = cls.dimension if projection else 1
-
-		return super().__new__(cls, *(normalizer * component - projection for component in components))
-
-	def __len__(self) -> int:
-		return super().__len__() - 1
+		return tuple(cls.dimension * component - trace for component in components) if trace else tuple(components)
 
 
 class arrays(collection[array]):

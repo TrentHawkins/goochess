@@ -147,11 +147,11 @@ class vector(src.array,
 
 class Vector(vector, Enum):
 
-	O = ( 0,  0)  # null
-	N = ( 0, -1)  # king queen rook pawn(white)
-	E = (+1,  0)  # king queen rook
-	S = ( 0, +1)  # king queen rook pawn(black)
-	W = (-1,  0)  # king queen rook
+	O = vector( 0,  0)  # null
+	N = vector( 0, -1)  # king queen rook pawn(white)
+	E = vector(+1,  0)  # king queen rook
+	S = vector( 0, +1)  # king queen rook pawn(black)
+	W = vector(-1,  0)  # king queen rook
 
 	N2 = N * 2  # pawn(white leap)
 	S2 = S * 2  # pawn(black leap)

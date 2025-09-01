@@ -2,7 +2,6 @@ from __future__ import annotations
 
 
 from abc import ABC, abstractmethod
-from contextlib import contextmanager
 from itertools import cycle
 from functools import cached_property
 from typing import TYPE_CHECKING, Generator, Self, cast
@@ -69,6 +68,15 @@ class Move(Base, src.algebra.square):
 	def __bool__(self) -> bool:
 		return (other := self.game[self.target]) is None or isinstance(other, src.material.Ghost)
 
+	def __enter__(self) -> Self:
+		self.piece(self.target)
+
+		return self
+
+	def __exit__(self, *_):
+		self.piece(self.source, kept = self.other)
+		self.other = None
+
 
 	@property
 	def decal(self) -> str:
@@ -77,13 +85,6 @@ class Move(Base, src.algebra.square):
 	@property
 	def side(self) -> src.engine.Side:
 		return self.piece.side
-
-	@property
-	@contextmanager
-	def preview(self) -> Generator[Self]:
-		with self.game.dry_run:
-			self.piece(self.target                   ); yield self
-			self.piece(self.source, kept = self.other);       self.other = None
 
 
 class Capt(Move):

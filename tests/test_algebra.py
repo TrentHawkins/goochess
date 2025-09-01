@@ -3,14 +3,15 @@ from __future__ import annotations
 
 from itertools import product
 
-from src import zerosumarray
+from src import array
 
 
 class TestHex:
 
 	def test_initialization(self):
-		class hex(zerosumarray,
+		class hex(array,
 			dimension = 3,
+			traceless = True,
 		):
 
 			...

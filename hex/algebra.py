@@ -22,10 +22,7 @@ class vector(hex.array,
 	...
 
 
-class Vector(vector, Enum,
-	dimension = 3,
-	traceless = True,
-):
+class Vector(vector, Enum):
 
 	OO = ( 0,  0,  0)
 	BP = ( 0,  0, +3)

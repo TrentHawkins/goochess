@@ -117,7 +117,7 @@ class Piece(src.theme.Highlightable):
 		squares = self.targets.copy()
 
 		for step in self.targets:
-			with step.preview:
+			with step:
 				if self.side.king is not None and not self.side.king.safe:
 					squares.discard(step)
 
@@ -170,14 +170,12 @@ class Ranged(Piece):
 			target = self.square
 
 			try:
-				while step := src.rules.Move(target := target + move, self):
-					targets.add(step)
+				while step := src.rules.Move(target := target + move, self): targets.add(step)
+				if    step := src.rules.Capt(target                 , self): targets.add(step)
 
 			except ValueError:
 				continue
 
-			if step := src.rules.Capt(target, self):
-				targets.add(step)
 
 		return targets
 
@@ -321,7 +319,7 @@ class King(Melee, Star):
 
 	@property
 	def safe(self) -> bool:
-		return self.square not in self.side.other.targets.capts
+		return self.square not in self.side.other.targets
 
 
 class Officer(Enum):
