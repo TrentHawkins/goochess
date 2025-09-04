@@ -206,7 +206,7 @@ class Side(
 
 	@property
 	def targets(self) -> src.algebra.Squares:
-		return src.algebra.Squares.union(*(piece.targets.capts for piece in self))
+		return src.algebra.Squares.union(*(piece.targets for piece in self))
 
 	@property
 	def other(self) -> Side:
@@ -438,7 +438,9 @@ class Game(Board):
 						screen.blit(self.promoted.officer.surf(self.promoted.piece.color), self.promoted.piece.rect)
 
 					else:
-						piece.highlight(screen)
+						piece.highlight(screen,
+						#	highlight_color = src.theme.GREEN,
+						)
 
 				else:
 					piece.draw(screen)

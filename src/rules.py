@@ -10,8 +10,8 @@ import pygame
 
 import src.theme
 import src.algebra
+import src.material
 
-if TYPE_CHECKING: import src.material
 if TYPE_CHECKING: import src.engine
 
 
@@ -97,9 +97,10 @@ class Capt(Move):
 		return (other := self.game[self.target]) is not None and self.piece.color != other.color
 
 
-	def highlight(self, screen: pygame.Surface, **kwargs):
+	def highlight(self, screen: pygame.Surface):
 		assert self.other is not None
-		return super().highlight(screen,
+
+		super().highlight(screen,
 			width = self.other.width,
 			thick = 8,
 		)

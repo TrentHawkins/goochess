@@ -266,15 +266,12 @@ class square(int, src.theme.Highlightable):
 		rect = self.rect.inflate(
 			-self.rect.width  // (width + 1) * 24 // 25,
 			-self.rect.height // (width + 1) * 24 // 25,
-		).move(
-			+self.rect.width  // 100,
-			-self.rect.height // 100,
 		)
 		surf = pygame.Surface(rect.size,
 			flags = pygame.SRCALPHA,
 		)
 
-		pygame.draw.ellipse(surf, self.highlight_color, surf.get_rect(), thick)
+		pygame.draw.ellipse(surf, self.highlight_color, surf.get_rect(), thick * self.rect.width // 128)
 		screen.blit(surf, rect,
 			special_flags = pygame.BLEND_RGB_ADD,
 		)

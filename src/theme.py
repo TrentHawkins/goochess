@@ -3,7 +3,8 @@ from __future__ import annotations
 
 from abc import abstractmethod
 from copy import copy
-from enum import Enum
+from enum import Enum, nonmember
+from pathlib import Path
 
 import pygame  # ; pygame.init()
 
@@ -16,11 +17,11 @@ type RGB = tuple[
 
 
 WINDOW = pygame.Vector2(
+	3840,
 	2160,
-	1440,
 )
 
-BOARD_W = 1440
+BOARD_W = 2160
 BOARD_H = BOARD_W * 8 // 9
 BOARD = pygame.Vector2(
 	BOARD_W,
@@ -55,7 +56,7 @@ PIECE = pygame.Vector2(
 )
 PIECE_OFFSET = pygame.Vector2(
 	+PIECE.x     // 100,
-	-PIECE.y * 2 // 13 ,
+	-PIECE.y * 4 //  27,
 )
 
 HIGH = (
@@ -129,14 +130,20 @@ FONT = pygame.font.SysFont(None, SQUARE_H // 4,
 screen = pygame.display.set_mode(WINDOW)
 
 
+def root(qualname) -> Path:
+	return Path(*qualname.split("."))
+
+
 class Main(Enum):
 
-	BOARD  = pygame.transform.smoothscale(pygame.image.load(f"graphics/board/oak-wood.jpg").convert(), WINDOW)
-	GAME   = pygame.transform.smoothscale(pygame.image.load(f"graphics/board/oak-wood.jpg").convert(), WINDOW)
+	BOARD  = pygame.transform.smoothscale(pygame.image.load("graphics/board/oak-wood.jpg").convert(), WINDOW)
+	GAME   = pygame.transform.smoothscale(pygame.image.load("graphics/board/oak-wood.jpg").convert(), WINDOW)
+
 	BEVEL  = pygame.transform.smoothscale(pygame.transform.rotate(GAME, 180.0), BOARD.get_size() + ())
 
 	FILE   = pygame.transform.smoothscale(pygame.image.load(f"graphics/bevel/file.png"  ).convert(), FILE  )
 	RANK   = pygame.transform.smoothscale(pygame.image.load(f"graphics/bevel/rank.png"  ).convert(), RANK  )
+
 	SQUARE = pygame.transform.smoothscale(pygame.image.load(f"graphics/bevel/square.png").convert(), SQUARE)
 
 	BPIECE = pygame.Surface(PIECE,
@@ -228,7 +235,7 @@ class Highlightable(Drawable):
 
 	def highlight(self, screen: pygame.Surface,
 		highlight_color: RGB | None = None,
-	):
+	**kwargs):
 		surf = copy(self.surf)
 		surf.fill(highlight_color if highlight_color is not None else self.highlight_color,
 			special_flags = pygame.BLEND_RGB_ADD,

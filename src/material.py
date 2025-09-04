@@ -100,9 +100,7 @@ class Piece(src.theme.Highlightable):
 
 	@property
 	def rect(self) -> pygame.Rect:
-		return self.surf.get_rect(
-			center = self.square.rect.center + src.theme.PIECE_OFFSET,
-		)
+		return self.surf.get_rect(center = self.square.rect.center).move(src.theme.PIECE_OFFSET)
 
 	@property
 	def side(self) -> src.engine.Side:
@@ -183,7 +181,7 @@ class Ranged(Piece):
 class Rook(Ranged):
 
 	value: int = 5
-	width: int = 5
+	width: int = 6
 
 	black: str = "♜"
 	white: str = "♖"
@@ -212,7 +210,7 @@ class Assymetric(Piece):
 class Bishop(Ranged, Assymetric):
 
 	value: int = 3
-	width: int = 6
+	width: int = 7
 
 	black: str = "♝"
 	white: str = "♗"
@@ -229,10 +227,18 @@ class Bishop(Ranged, Assymetric):
 	)
 
 
+	@property
+	def rect(self) -> pygame.Rect:
+		return super().rect.move(
+			-src.theme.PIECE_OFFSET.x / 8,
+			0,
+		)
+
+
 class Knight(Melee, Assymetric):
 
 	value: int = 3
-	width: int = 5
+	width: int = 6
 
 	black: str = "♞"
 	white: str = "♘"
@@ -256,7 +262,7 @@ class Knight(Melee, Assymetric):
 
 class Star(Piece):
 
-	width: int = 8
+	width: int = 10
 
 #	moves = src.algebra.Vectors(
 #			src.algebra.Vector.N, src.algebra.Vector.NE,
@@ -265,6 +271,14 @@ class Star(Piece):
 #			src.algebra.Vector.W, src.algebra.Vector.NW,
 #	)
 	moves = Rook.moves | Bishop.moves
+
+
+	@property
+	def rect(self) -> pygame.Rect:
+		return super().rect.move(
+			-src.theme.PIECE_OFFSET.x * 2 //  7,
+			-src.theme.PIECE_OFFSET.y     // 35,
+		)
 
 
 class Queen(Ranged, Star):
@@ -373,6 +387,13 @@ class Pawn(Piece):
 
 
 	@property
+	def rect(self) -> pygame.Rect:
+		return super().rect.move(
+			src.theme.PIECE_OFFSET.x * 2 //  7,
+			src.theme.PIECE_OFFSET.y     // 14,
+		)
+
+	@property
 	def targets(self) -> src.algebra.Squares:
 		targets = super().targets
 
@@ -406,16 +427,6 @@ class Pawn(Piece):
 
 		return targets
 
-	@property
-	def rect(self) -> pygame.Rect:
-		return self.surf.get_rect(
-			center = self.square.rect.center + pygame.Vector2(
-				src.theme.PIECE_OFFSET.x * 49 // 25,
-				src.theme.PIECE_OFFSET.y * 25 // 24,
-			),
-		)
-
-
 	def promote(self, to: Officer):
 		self.game[self.square] = to.value.from_side(self.side)
 
@@ -427,9 +438,7 @@ class Ghost(Piece):
 
 	@property
 	def rect(self) -> pygame.Rect:
-		return self.surf.get_rect(
-			center = self.square.rect.center + pygame.Vector2(
-				src.theme.PIECE_OFFSET.x * 49 // 25,
-				src.theme.PIECE_OFFSET.y * 25 // 24,
-			),
+		return super().rect.move(
+			src.theme.PIECE_OFFSET.x * 2 //  7,
+			src.theme.PIECE_OFFSET.y     // 14,
 		)
