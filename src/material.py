@@ -178,6 +178,14 @@ class Ranged(Piece):
 		return targets
 
 
+	@property
+	def rect(self) -> pygame.Rect:
+		return super().rect.move(
+			-src.theme.PIECE_OFFSET.x //  4,
+			0,
+		)
+
+
 class Rook(Ranged):
 
 	value: int = 5
@@ -227,14 +235,6 @@ class Bishop(Ranged, Assymetric):
 	)
 
 
-	@property
-	def rect(self) -> pygame.Rect:
-		return super().rect.move(
-			-src.theme.PIECE_OFFSET.x / 8,
-			0,
-		)
-
-
 class Knight(Melee, Assymetric):
 
 	value: int = 3
@@ -276,8 +276,8 @@ class Star(Piece):
 	@property
 	def rect(self) -> pygame.Rect:
 		return super().rect.move(
-			-src.theme.PIECE_OFFSET.x * 2 //  7,
-			-src.theme.PIECE_OFFSET.y     // 35,
+			0,
+			-src.theme.PIECE_OFFSET.y // 35,
 		)
 
 
@@ -439,6 +439,6 @@ class Ghost(Piece):
 	@property
 	def rect(self) -> pygame.Rect:
 		return super().rect.move(
-			src.theme.PIECE_OFFSET.x * 2 //  7,
+			src.theme.PIECE_OFFSET.x * 4 // 11,
 			src.theme.PIECE_OFFSET.y     // 14,
 		)

@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 
-from copy import copy
 from enum import Enum
 import re
 from typing import TYPE_CHECKING, Self, overload
@@ -46,15 +45,9 @@ class file(int, src.theme.Drawable):
 
 
 	def draw(self, screen: pygame.Surface):
-	#	super().draw(screen)
-		self.label(screen)
-
-	def ward(self, screen: pygame.Surface):
 		rect = self.rect.move(0, src.theme.BOARD.y + src.theme.CORNER.y)
 
-	#	super().draw(screen,
-	#		rect = rect,
-	#	)
+		self.label(screen)
 		self.label(screen,
 			rect = rect,
 		)
@@ -94,15 +87,9 @@ class rank(int, src.theme.Drawable):
 
 
 	def draw(self, screen: pygame.Surface):
-	#	super().draw(screen)
-		self.label(screen)
-
-	def ward(self, screen: pygame.Surface):
 		rect = self.rect.move(src.theme.BOARD.x + src.theme.CORNER.x, 0)
 
-	#	super().draw(screen,
-	#		rect = rect,
-	#	)
+		self.label(screen)
 		self.label(screen,
 			rect = rect,
 		)
@@ -128,7 +115,7 @@ class Rank(rank, Enum):
 		return self == self._1 if color else self == self._8
 
 
-class vector(src.array,
+class array(src.array,
 	dimension = 2,
 ):
 
@@ -145,13 +132,13 @@ class vector(src.array,
 		return pygame.Vector2(self)
 
 
-class Vector(vector, Enum):
+class Vector(array, Enum):
 
-	O = vector( 0,  0)  # null
-	N = vector( 0, -1)  # king queen rook pawn(white)
-	E = vector(+1,  0)  # king queen rook
-	S = vector( 0, +1)  # king queen rook pawn(black)
-	W = vector(-1,  0)  # king queen rook
+	O = array( 0,  0)  # null
+	N = array( 0, -1)  # king queen rook pawn(white)
+	E = array(+1,  0)  # king queen rook
+	S = array( 0, +1)  # king queen rook pawn(black)
+	W = array(-1,  0)  # king queen rook
 
 	N2 = N * 2  # pawn(white leap)
 	S2 = S * 2  # pawn(black leap)
@@ -193,7 +180,7 @@ class Vector(vector, Enum):
 		return representation
 
 
-class Vectors(src.collection[vector]):
+class Vectors(src.collection[array]):
 
 	@overload
 	def __mul__(self, other: Vectors, /) -> Vectors:

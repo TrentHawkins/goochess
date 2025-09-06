@@ -17,11 +17,11 @@ type RGB = tuple[
 
 
 WINDOW = pygame.Vector2(
-	3840,
 	2160,
+	1440,
 )
 
-BOARD_W = 2160
+BOARD_W = 1440
 BOARD_H = BOARD_W * 8 // 9
 BOARD = pygame.Vector2(
 	BOARD_W,

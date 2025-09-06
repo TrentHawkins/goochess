@@ -78,9 +78,10 @@ class array(tuple[int, ...]):
 		...
 
 	def __new__(cls, *components) -> Self:
-		if len(components) == 1:
-			components, *_ = components
-			components = tuple(components)
+		head, *rest = components
+
+		if not rest and isinstance(head, Iterable):
+			components = tuple(head)
 
 		return super().__new__(cls, components if not cls.traceless else cls.retrace(*components))
 
@@ -122,10 +123,10 @@ class arrays(collection[array]):
 		...
 
 	@overload
-	def __mul__(self, other: set[array], /) -> Self:
+	def __mul__(self, other: int, /) -> Self:
 		...
 
-	def __mul__(self, other: set[array] | int, /) -> Self:
+	def __mul__(self, other, /) -> Self:
 		match other:
 			case set(): return self.__class__(*(left + right for left in self for right in other))
 			case int(): return self.__class__(*(left * other for left in self))

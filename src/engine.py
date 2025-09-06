@@ -121,16 +121,9 @@ class Board(list[Piece], src.theme.Drawable):
 			piece(target)
 
 	def draw(self, screen: pygame.Surface):
-		for file in src.algebra.File:
-			file.draw(screen)
-			file.ward(screen)
-
-		for rank in src.algebra.Rank:
-			rank.draw(screen)
-			rank.ward(screen)
-
-		for square in src.algebra.Square:
-			square.draw(screen)
+		for file   in src.algebra.File  : file  .draw(screen)
+		for rank   in src.algebra.Rank  : rank  .draw(screen)
+		for square in src.algebra.Square: square.draw(screen)
 
 	#	surf = src.theme.Main.CORNER.value
 
