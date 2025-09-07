@@ -316,19 +316,6 @@ class Squares(src.collection[square]):
 	def __mul__(self, color: Color  , /) -> Squares: return Squares(*(left * color for left in self))
 
 
-	@property
-	def moves(self) -> Squares:
-		return self.filter(src.rules.Move)
-
-	@property
-	def capts(self) -> Squares:
-		return self.filter(src.rules.Capt)
-
-	@property
-	def specs(self) -> Squares:
-		return self.filter(src.rules.Mod)
-
-
 	def get(self, square: Square) -> src.rules.Move | None:
 		for rule in self:
 			if rule.target == square:

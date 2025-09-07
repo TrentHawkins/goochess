@@ -389,8 +389,8 @@ class Pawn(Piece):
 	@property
 	def rect(self) -> pygame.Rect:
 		return super().rect.move(
-			src.theme.PIECE_OFFSET.x * 2 //  7,
-			src.theme.PIECE_OFFSET.y     // 14,
+			src.theme.PIECE_OFFSET.x //  3,
+			src.theme.PIECE_OFFSET.y // 14,
 		)
 
 	@property

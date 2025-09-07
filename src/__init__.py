@@ -42,9 +42,6 @@ class collection[T: Hashable](set):
 	def copy(self) -> Self:
 		return self.__class__(*self)
 
-	def filter(self, by: type[T]) -> Self:
-		return self.__class__(*(item for item in self if isinstance(item, by)))
-
 
 class array(tuple[int, ...]):
 

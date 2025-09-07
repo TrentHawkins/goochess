@@ -50,28 +50,6 @@ class Board(list[Piece], src.theme.Drawable):
 		super().__setitem__(key, None)
 
 
-	@classmethod
-	def from_forsyth_edwards(cls,
-		notation: str | None = None,
-	) -> Self:
-		if notation is None:
-			notation = cls.default
-
-		board = cls()
-
-		index = 0
-
-		for row in notation.split("/"):
-			for char in row:
-				if piece_found := not char.isdigit():
-					square = src.algebra.Square(index)
-					board[square] = src.material.Piece.from_forsyth_edwards(board, char)  # type: ignore  # HACK
-
-				index += 1 if piece_found else int(char)
-
-		return board
-
-
 	@property
 	def forsyth_edwards(self) -> str:
 		notation = ""
