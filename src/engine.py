@@ -227,6 +227,9 @@ class Side(
 
 class History(list[src.rules.Move | None]):
 
+	def __reversed__(self) -> Generator[src.rules.Move | None]:
+		yield from super().__reversed__()
+
 	def __repr__(self) -> str:
 		return self.window()
 
