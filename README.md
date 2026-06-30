@@ -17,7 +17,9 @@ Board themes and piece themes are independent typed Python specifications
 registered in `app/theme.py`. Board themes define board assets, colors, labels,
 and move highlights; piece themes define sprites, placement, capture sizing, and
 piece effects. Layout is configured separately. Assets remain under `graphics/`.
-The bundled defaults are the `wood` board and `default` pieces.
+The bundled board themes are `bevel` and `wood`; `bevel` restores the framed,
+grey-toned historical design and is the default. The bundled piece theme is
+`default`.
 
 ## How to play
 

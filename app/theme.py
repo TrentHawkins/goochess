@@ -62,6 +62,16 @@ class BoardThemeSpec:
 	palette: BoardPalette
 	background: Path
 	square: Path
+	frame: BoardFrameSpec | None = None
+
+
+@dataclass(frozen = True, slots = True)
+class BoardFrameSpec:
+
+	corner: Path
+	file: Path
+	rank: Path
+	depth_divisor: int = 6
 
 
 @dataclass(frozen = True, slots = True)
@@ -87,6 +97,7 @@ class BoardTheme:
 	background: pygame.Surface
 	square: pygame.Surface
 	font: pygame.font.Font
+	frame: BoardFrame | None = None
 
 
 	@classmethod
@@ -102,12 +113,41 @@ class BoardTheme:
 		font = pygame.font.SysFont(None, layout.square_size[1] // 4,
 			bold = True,
 		)
+		frame = None
+		if spec.frame is not None:
+			square_w, square_h = layout.square_size
+			corner_size = (
+				square_w // spec.frame.depth_divisor,
+				square_h // spec.frame.depth_divisor,
+			)
+			frame = BoardFrame(
+				corner = pygame.transform.smoothscale(
+					_image("Board", spec.name, spec.frame.corner, "frame corner"),
+					corner_size,
+				),
+				file = pygame.transform.smoothscale(
+					_image("Board", spec.name, spec.frame.file, "frame file"),
+					(square_w, corner_size[1]),
+				),
+				rank = pygame.transform.smoothscale(
+					_image("Board", spec.name, spec.frame.rank, "frame rank"),
+					(corner_size[0], square_h),
+				),
+			)
 
-		return cls(spec, background, square, font)
+		return cls(spec, background, square, font, frame)
 
 	@property
 	def palette(self) -> BoardPalette:
 		return self.spec.palette
+
+
+@dataclass(frozen = True, slots = True)
+class BoardFrame:
+
+	corner: pygame.Surface
+	file: pygame.Surface
+	rank: pygame.Surface
 
 
 @dataclass(frozen = True, slots = True)
@@ -211,17 +251,34 @@ WOOD_BOARD = BoardThemeSpec(
 	square = Path("graphics/bevel/square.png"),
 )
 
+BEVEL_BOARD = BoardThemeSpec(
+	name = "bevel",
+	palette = BoardPalette(
+		background = (0xDD, 0xCC, 0xBB),
+		flash = (0x33, 0x33, 0x33),
+		label = (0x33, 0x33, 0x33),
+	),
+	background = Path("graphics/board/oak-wood.jpg"),
+	square = Path("graphics/bevel/square.png"),
+	frame = BoardFrameSpec(
+		corner = Path("graphics/bevel/corner.png"),
+		file = Path("graphics/bevel/file.png"),
+		rank = Path("graphics/bevel/rank.png"),
+	),
+)
+
 DEFAULT_PIECES = PieceThemeSpec(
 	name = "default",
 	effects = PieceEffects(),
 	styles = _default_piece_styles(),
 )
 
-DEFAULT_BOARD_THEME = WOOD_BOARD.name
+DEFAULT_BOARD_THEME = BEVEL_BOARD.name
 DEFAULT_PIECE_THEME = DEFAULT_PIECES.name
 
 BOARD_THEMES: Mapping[str, BoardThemeSpec] = MappingProxyType({
 	WOOD_BOARD.name: WOOD_BOARD,
+	BEVEL_BOARD.name: BEVEL_BOARD,
 })
 PIECE_THEMES: Mapping[str, PieceThemeSpec] = MappingProxyType({
 	DEFAULT_PIECES.name: DEFAULT_PIECES,

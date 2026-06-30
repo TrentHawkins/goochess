@@ -100,7 +100,7 @@ Turn is derived solely from `len(game.history)`: even is White, odd is Black. `H
 
 Move objects subclass square behavior, so a highlighted destination also carries execution and notation state. `rules.specialize()` dynamically composes modifiers onto an existing move. Castling moves the rook inside `King.__call__`; pawn rush creates a `Ghost`, and en passant removes the pawn behind that ghost.
 
-`GameView` reads `Game` and `InteractionState`, then composes `BoardView`, `MoveView`, and `PieceView`. Rendering never mutates core objects. Layout is independent from appearance. `BoardThemeSpec` defines board assets and board/highlight colors; `PieceThemeSpec` defines explicit type/color styles and piece effects. Their separate registries currently provide the `wood` board and `default` pieces, which `Appearance` composes after Pygame initialization.
+`GameView` reads `Game` and `InteractionState`, then composes `BoardView`, `MoveView`, and `PieceView`. Rendering never mutates core objects. Layout is independent from appearance. `BoardThemeSpec` defines board assets, optional bevel-frame assets, and board/highlight colors; `PieceThemeSpec` defines explicit type/color styles and piece effects. Their separate registries provide `bevel` (the default historical framed board), unframed `wood`, and `default` pieces, which `Appearance` composes after Pygame initialization.
 
 ## Known Limitations and Risk Areas
 

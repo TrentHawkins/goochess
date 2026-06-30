@@ -32,17 +32,23 @@ def test_independent_theme_registries_and_assets(pygame_screen):
 	layout = LayoutSpec()
 	appearance = load_appearance(layout)
 
-	assert tuple(BOARD_THEMES) == (DEFAULT_BOARD_THEME,)
+	assert tuple(BOARD_THEMES) == ("wood", DEFAULT_BOARD_THEME)
 	assert tuple(PIECE_THEMES) == (DEFAULT_PIECE_THEME,)
-	assert appearance.board.spec.name == "wood"
+	assert appearance.board.spec.name == "bevel"
 	assert appearance.pieces.spec.name == "default"
 	assert len(appearance.pieces.surfaces) == 14
 	assert appearance.board.background.get_size() == layout.window
 	assert appearance.board.square.get_size() == layout.square_size
+	assert appearance.board.frame is not None
+	assert appearance.board.frame.corner.get_size() == (30, 26)
+	assert appearance.board.frame.file.get_size() == (180, 26)
+	assert appearance.board.frame.rank.get_size() == (30, 160)
+
+	assert load_appearance(layout, board = "wood").board.frame is None
 
 
 def test_unknown_themes_list_available_names():
-	with pytest.raises(ValueError, match = "available board themes: wood"):
+	with pytest.raises(ValueError, match = "available board themes: bevel, wood"):
 		board_theme_spec("missing")
 
 	with pytest.raises(ValueError, match = "available piece themes: default"):
@@ -52,7 +58,7 @@ def test_unknown_themes_list_available_names():
 def test_missing_board_asset_identifies_theme_and_asset(pygame_screen):
 	spec = replace(board_theme_spec(), background = Path("graphics/missing.png"))
 
-	with pytest.raises(FileNotFoundError, match = "Board theme 'wood' asset 'background'"):
+	with pytest.raises(FileNotFoundError, match = "Board theme 'bevel' asset 'background'"):
 		BoardTheme.load(spec, LayoutSpec())
 
 

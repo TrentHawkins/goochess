@@ -146,20 +146,62 @@ class BoardView:
 
 	def draw(self, screen: pygame.Surface) -> None:
 		board_w, board_h = self.layout.spec.board_size
-		corner_w, corner_h = self.layout.spec.corner_size
+		board_rect = self.layout.board_rect
+		square_w, square_h = self.layout.spec.square_size
+		frame = self.theme.frame
 
 		for file in src.algebra.File:
-			rect = self.layout.file_rect(file)
+			if frame is None:
+				rect = self.layout.file_rect(file)
+				other = rect.move(0, board_h + rect.height)
+			else:
+				rect = frame.file.get_rect(
+					left = board_rect.left + square_w * int(file),
+					bottom = board_rect.top,
+				)
+				other = rect.move(0, board_h + rect.height)
+				screen.blit(frame.file, rect)
+				screen.blit(frame.file, other)
+
 			self.label(screen, file, rect)
-			self.label(screen, file, rect.move(0, board_h + corner_h))
+			self.label(screen, file, other)
 
 		for rank in src.algebra.Rank:
-			rect = self.layout.rank_rect(rank)
+			if frame is None:
+				rect = self.layout.rank_rect(rank)
+				other = rect.move(board_w + rect.width, 0)
+			else:
+				rect = frame.rank.get_rect(
+					right = board_rect.left,
+					top = board_rect.top + square_h * (int(rank) >> 3),
+				)
+				other = rect.move(board_w + rect.width, 0)
+				screen.blit(frame.rank, rect)
+				screen.blit(frame.rank, other)
+
 			self.label(screen, rank, rect)
-			self.label(screen, rank, rect.move(board_w + corner_w, 0))
+			self.label(screen, rank, other)
 
 		for square in src.algebra.Square:
 			SquareView(square, self.layout, self.theme).draw(screen)
+
+		if frame is not None:
+			screen.blit(frame.corner, frame.corner.get_rect(
+				right = board_rect.left,
+				bottom = board_rect.top,
+			))
+			screen.blit(frame.corner, frame.corner.get_rect(
+				right = board_rect.left,
+				top = board_rect.bottom,
+			))
+			screen.blit(frame.corner, frame.corner.get_rect(
+				left = board_rect.right,
+				top = board_rect.bottom,
+			))
+			screen.blit(frame.corner, frame.corner.get_rect(
+				left = board_rect.right,
+				bottom = board_rect.top,
+			))
 
 		screen.blit(self.theme.background, self.theme.background.get_rect(),
 			special_flags = pygame.BLEND_RGBA_MULT,
