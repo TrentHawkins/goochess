@@ -5,10 +5,7 @@ from enum import Enum
 import re
 from typing import TYPE_CHECKING, Self, overload
 
-import pygame
-
 import src
-import src.theme
 
 if TYPE_CHECKING:
 	import src.rules
@@ -27,30 +24,10 @@ class Color(int, Enum):
 		return "⬛" if self + 1 else "⬜"
 
 
-class file(int, src.theme.Drawable):
+class file(int):
 
 	def __new__(cls, x: int, *_):
 		return super().__new__(cls, x)
-
-	def __init__(self, _: int, *args):
-		super().__init__(*args)
-
-
-	@property
-	def rect(self) -> pygame.Rect:
-		return self.surf.get_rect(
-			left = +src.theme.SQUARE.x * self + src.theme.BOARD_OFFSET.x,
-			top  = -src.theme.CORNER.y        + src.theme.BOARD_OFFSET.y,
-		)
-
-
-	def draw(self, screen: pygame.Surface):
-		rect = self.rect.move(0, src.theme.BOARD.y + src.theme.CORNER.y)
-
-		self.label(screen)
-		self.label(screen,
-			rect = rect,
-		)
 
 
 class File(file, Enum):
@@ -69,30 +46,10 @@ class File(file, Enum):
 		return self.name.strip("_").lower()
 
 
-class rank(int, src.theme.Drawable):
+class rank(int):
 
 	def __new__(cls, x: int, *_):
 		return super().__new__(cls, x)
-
-	def __init__(self, x: int, *args):
-		super().__init__(*args)
-
-
-	@property
-	def rect(self) -> pygame.Rect:
-		return self.surf.get_rect(
-			left = -src.theme.CORNER.x               + src.theme.BOARD_OFFSET.x,
-			top  = +src.theme.SQUARE.y * (self >> 3) + src.theme.BOARD_OFFSET.y,
-		)
-
-
-	def draw(self, screen: pygame.Surface):
-		rect = self.rect.move(src.theme.BOARD.x + src.theme.CORNER.x, 0)
-
-		self.label(screen)
-		self.label(screen,
-			rect = rect,
-		)
 
 
 class Rank(rank, Enum):
@@ -126,10 +83,6 @@ class array(src.array,
 	@property
 	def rank(self) -> int:
 		return self[1] << 3
-
-	@property
-	def pygame(self) -> pygame.Vector2:
-		return pygame.Vector2(self)
 
 
 class Vector(array, Enum):
@@ -197,20 +150,14 @@ class Vectors(src.collection[array]):
 			case         _: return NotImplemented
 
 
-class square(int, src.theme.Highlightable):
-
-	highlight_color: src.theme.RGB
+class square(int):
 
 
 	def __new__(cls, x: int, *_):
 		return super().__new__(cls, x)
 
-	def __init__(self, x: int, *args):
-		super().__init__(*args)
-
-		self.black = src.theme.BLACK
-		self.white = src.theme.WHITE
-
+	def __init__(self, _: int, *args):
+		...
 
 	@property
 	def rank(self) -> Rank:
@@ -223,48 +170,6 @@ class square(int, src.theme.Highlightable):
 	@property
 	def color(self) -> Color:
 		return Color((((self.rank >> 3) + self.file & 1) << 1) - 1)
-
-	@property
-	def decal(self) -> str:
-		return self.__class__.__name__
-
-	@property
-	def rect(self) -> pygame.Rect:
-		return self.surf.get_rect(
-			top  = src.theme.SQUARE_H * (self.rank >> 3) + src.theme.BOARD_OFFSET.y,
-			left = src.theme.SQUARE_W * (self.file     ) + src.theme.BOARD_OFFSET.x,
-		)
-
-
-	def clicked(self, event: pygame.event.Event) -> bool:
-		return event.type == pygame.MOUSEBUTTONDOWN and event.button == 1 and self.rect.collidepoint(event.pos)
-
-	def draw(self, screen: pygame.Surface):
-		screen.fill(self.black if self.color else self.white, self.rect)
-
-		super().draw(screen,
-			special_flags = pygame.BLEND_RGBA_MULT,
-		)
-
-	def highlight(self, screen: pygame.Surface,
-		width: int = 1,
-		thick: int = 0,
-	):
-		rect = self.rect.inflate(
-			-self.rect.width  // (width + 1) * 24 // 25,
-			-self.rect.height // (width + 1) * 24 // 25,
-		)
-		surf = pygame.Surface(rect.size,
-			flags = pygame.SRCALPHA,
-		)
-
-		pygame.draw.ellipse(surf, self.highlight_color, surf.get_rect(), thick * self.rect.width // 128)
-		screen.blit(surf, rect,
-			special_flags = pygame.BLEND_RGB_ADD,
-		)
-	#	screen.fill(self.highlight_color, self.rect,
-	#		special_flags = pygame.BLEND_RGB_ADD,
-	#	)
 
 
 class Square(square, Enum):

@@ -2,13 +2,8 @@ from __future__ import annotations
 
 
 from abc import ABC, abstractmethod
-from itertools import cycle
-from functools import cached_property
-from typing import TYPE_CHECKING, Generator, Self, cast
+from typing import TYPE_CHECKING, Self, cast
 
-import pygame
-
-import src.theme
 import src.algebra
 import src.material
 
@@ -44,7 +39,6 @@ class Base(ABC):
 
 class Move(Base, src.algebra.square):
 
-	highlight_color = src.theme.GREEN
 	symbol = "∘"
 
 
@@ -79,17 +73,12 @@ class Move(Base, src.algebra.square):
 
 
 	@property
-	def decal(self) -> str:
-		return  src.algebra.Square.__name__.upper()
-
-	@property
 	def side(self) -> src.engine.Side:
 		return self.piece.side
 
 
 class Capt(Move):
 
-	highlight_color = src.theme.RED
 	symbol = "×"
 
 
@@ -97,18 +86,8 @@ class Capt(Move):
 		return (other := self.game[self.target]) is not None and self.piece.color != other.color
 
 
-	def highlight(self, screen: pygame.Surface):
-		assert self.other is not None
-
-		super().highlight(screen,
-			width = self.other.width,
-			thick = 8,
-		)
-
-
 class Spec(Move):
-
-	highlight_color = src.theme.BLUE
+	...
 
 
 class Mod(Move):
@@ -154,22 +133,12 @@ class EnPassant(Mod, Capt):
 		return self.other is not None and isinstance(self.other, src.material.Ghost) and super().__bool__()
 
 
-	def highlight(self, screen: pygame.Surface, **kwargs):
-		super().highlight(screen, **kwargs)
-
-		if self.other is not None:
-			self.other.ghost = 1
-
-		#	if (piece := self.game[self.middle]) is not None:
-		#		piece.ghost = 2
-
-
 class Promotion(Mod):
 
 	def __init__(self, move: Move):
 		super().__init__(move)
 
-		self.officer = next(self.officers)
+		self.officer = src.material.Officer.Q
 
 	def __call__(self) -> Self:
 		super().__call__()
@@ -184,12 +153,6 @@ class Promotion(Mod):
 
 	def __bool__(self) -> bool:
 		return self.target.rank.final(self.piece.color) and super().__bool__()
-
-
-	@cached_property
-	def officers(self) -> cycle[src.material.Officer]:
-		assert isinstance(self.piece, src.material.Pawn)
-		return cycle(src.material.Officer)
 
 
 class Cast(Spec, ABC):

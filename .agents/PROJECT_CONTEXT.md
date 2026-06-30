@@ -1,10 +1,10 @@
 # Goochess Project Context
 
-This is a durable architecture snapshot of `main` at `bf215e0` (2026-06-30). Recheck it when the implementation changes.
+This durable architecture snapshot reflects the Pygame application extraction completed on 2026-06-30. Recheck it when the implementation changes.
 
 ## Purpose and Status
 
-Goochess is a local, two-player chess GUI whose design emphasizes semantic Python objects: squares, vectors, pieces, and moves carry behavior rather than being plain records. The standard 8×8 game is playable and implements legal-move highlighting, king-safety filtering, castling, en passant, and interactive promotion. It does not implement AI, networking, persistence, menus, clocks, or game-ending conditions.
+Goochess is a behavior-rich chess core with an optional local, two-player Pygame frontend. Squares, vectors, pieces, and moves carry behavior rather than being plain records. The standard 8×8 game implements king-safety filtering, castling, en passant, and promotion; the frontend supplies input, highlighting, and rendering. It does not implement AI, networking, persistence, menus, clocks, or game-ending conditions.
 
 `hex/` is an independent experiment in traceless/cube coordinates and regular-polygon geometry. It is not connected to the playable game. `src/sand.py` is scratch code and has no runtime imports.
 
@@ -25,16 +25,16 @@ These principles are architectural constraints, not incidental traits to remove 
 
 - **Semantic specialization of native types.** `Square`/`Color` specialize integers and enums; vectors specialize tuples; `Squares`/`Vectors` specialize sets; `Board` and `History` specialize lists; `Side` specializes a mapping. Native operations remain available while gaining chess meaning.
 - **An internal domain-specific language.** Operator overloads encode natural relations: vectors add, square differences produce vectors, color multiplication mirrors a position, set operations compose movement spaces, truth tests validate rules, calls execute entities, and representation methods emit notation.
-- **Polymorphic movement taxonomy.** `Melee`, `Ranged`, `Star`, and `Assymetric` capture orthogonal movement or presentation traits. Concrete pieces obtain behavior through a hierarchy and deliberate multiple inheritance instead of switch statements in the engine.
+- **Polymorphic movement taxonomy.** `Melee`, `Ranged`, and `Star` capture orthogonal movement traits. Concrete pieces obtain behavior through a hierarchy and deliberate multiple inheritance instead of switch statements in the engine.
 - **Executable rule/command objects.** A `Move` is simultaneously a destination, a validity predicate, notation, an executable command, and a reversible context. `Capt`, `Rush`, `Promotion`, `EnPassant`, and castling refine that concept rather than returning detached flags.
 - **Transactional rule probing.** `Piece.squares` enters a candidate move, asks whether the king remains safe, and restores state on exit. The same semantic operation supports both real execution and speculative legality checks.
 - **Composable rule specialization.** `rules.specialize()` and `Mod` layer promotion or en-passant semantics onto an existing move. Cross-cutting chess conditions become combinations of rule types rather than branches inside every piece.
 - **Perspective normalization.** Movement and stock positions are declared once from Black's orientation and transformed by `Color` for White. Symmetry is represented algebraically instead of duplicated across sides.
 - **Derived state where practical.** Turn follows history parity; legality is derived from current targets and king safety; material and notation are computed views. `Side` indexes and king/rook/ghost references are deliberate caches that must remain synchronized with the board.
-- **Thin orchestration.** The event loop delegates clicks and drawing to the game; the game delegates movement to rules and pieces. Coordinators sequence domain behavior but do not reimplement it.
-- **Self-description at boundaries.** Domain entities provide chess symbols, algebraic-looking representations, FEN-like state, decal names, and visual behavior. Serialization and rendering consume the same semantic identities used by the rules.
+- **Thin orchestration.** The app controller translates physical input into domain moves, while `Game` delegates movement to rules and pieces. Coordinators sequence domain behavior but do not reimplement it.
+- **Self-description at boundaries.** Domain entities provide chess symbols, algebraic-looking representations, and FEN-like state. The optional app maps those semantic identities to graphical styles without reverse dependencies.
 - **Finite spaces made explicit.** Enums define the closed sets of colors, files, ranks, squares, directions, and promotion officers. Invalid coordinates fail through enum construction instead of requiring repeated range checks.
-- **Convention over registration glue.** Piece class names and colors derive sprite keys, while common properties derive related entities such as `side`, `other`, and `decal`. New concepts should fit the vocabulary without expanding central lookup code unnecessarily.
+- **Explicit presentation mapping.** Typed app-side mappings associate piece type and color with graphical assets. The core retains relationships such as `side` and `other` without knowing asset names or display conventions.
 
 ## Design Decision Order
 
@@ -50,30 +50,35 @@ When extending the engine:
 ## Environment and Entry Point
 
 - Python: `>=3.14` (`.python-version` is `3.14`). The code uses PEP 695 generic/type-alias syntax.
-- Runtime dependency: Pygame 2.6.1, locked by `uv.lock`.
+- Optional `app` dependency: Pygame 2.6.1, locked by `uv.lock`.
 - Development dependency group: Pylint, Pyright, and pytest.
-- Setup: `uv sync`
-- Launch from the repository root: `uv run python -m src.main`
-- Syntax check: `uv run python -m compileall src hex`
+- Core setup: `uv sync`
+- Frontend setup: `uv sync --extra app`
+- Launch from the repository root: `uv run --extra app python -m app.main`
+- Syntax check: `uv run python -m compileall src app hex`
 
-Pylint is configured in `pyproject.toml` for tabs, 132-character lines, error/fatal diagnostics only, and ignoring Pygame's dynamically exported members; Pyright remains responsible for Pygame type checking. There is no build backend, console-script entry point, formatter, Pyright/pytest configuration, CI workflow, release tag, or license file. `requirements.txt` duplicates the runtime `pygame` dependency, while `pyproject.toml` and `uv.lock` are the primary environment description.
+Pylint and pytest are configured in `pyproject.toml`; Pyright remains responsible for Pygame type checking. There is no build backend, console-script entry point, formatter, CI workflow, release tag, or license file. `pyproject.toml` and `uv.lock` are the authoritative environment description.
 
-Always run from the repository root. Importing `src.algebra`, `src.engine`, or `src.material` reaches `src.theme`, which creates a 2160×1440 display and eagerly loads relative paths under `graphics/`. Headless checks require `SDL_VIDEODRIVER=dummy` and usually `SDL_AUDIODRIVER=dummy`.
+Always run the frontend from the repository root because theme specifications use repository-relative asset paths. Importing `src` never initializes Pygame or reads assets. App display tests use `SDL_VIDEODRIVER=dummy` and `SDL_AUDIODRIVER=dummy`.
 
 ## Repository Map
 
 | Path | Role |
 | --- | --- |
 | `src/__init__.py` | Typed set-like `collection`, tuple-like `array`, and vector-set primitives. |
-| `src/algebra.py` | Colors, board coordinates, vectors, square geometry, click detection, and square highlighting. |
-| `src/engine.py` | `Board`, per-color `Side` indexes, `History`, FEN-like loading, game state, drawing, and click dispatch. |
-| `src/material.py` | Piece hierarchy, movement generation, sprites, material values, and promotion choices. |
+| `src/algebra.py` | Colors, board coordinates, vectors, and square geometry. |
+| `src/engine.py` | `Board`, per-color `Side` indexes, `History`, FEN-like loading, and game state. |
+| `src/material.py` | Piece hierarchy, movement generation, material values, and promotion choices. |
 | `src/rules.py` | Executable move objects and specializations for capture, rush, en passant, promotion, and castling. |
-| `src/theme.py` | Fixed layout/color constants, import-time display creation, asset cache, and drawable bases. |
-| `src/main.py` | Uncapped Pygame event/render loop; F12 overwrites `game/screenshot.png`. |
+| `app/controller.py` | Pygame event translation plus selection and pending-promotion state. |
+| `app/views.py` | Composed board, square, move, and piece views; rendering is read-only over core state. |
+| `app/layout.py` | Display geometry, square rectangles, and hit-testing. |
+| `app/theme.py` | Typed theme specifications, registry, validated asset loading, and surface cache. |
+| `app/main.py` | Composition root and event/render loop; F12 overwrites `game/screenshot.png`. |
 | `graphics/` | Runtime piece/bevel images plus board sources (`.jpg`, `.png`, `.xcf`, `.drawio`, `.svg`). |
 | `game/` | Checked-in reference screenshot. |
 | `hex/` | Unwired hex-grid and polygon experiments. |
+| `tests/` | Core characterization, dependency-boundary, controller, layout, theme, and headless view tests. |
 
 ## Domain Model and Invariants
 
@@ -85,26 +90,26 @@ Squares use compact octal-style indexes: `A8 == 0o00`, `H8 == 0o07`, and `A1 == 
 
 Turn is derived solely from `len(game.history)`: even is White, odd is Black. `History` contains executed `Move` objects, with `None` placeholders when loading a later move number.
 
-## Move and Input Flow
+## Domain and Application Flow
 
-1. `Game.clicked()` maps a left-click to a `Square`.
-2. Clicking a current-side piece stores it as `game.selected`.
+1. `GameController` maps a Pygame click through `BoardLayout.square_at()`.
+2. `InteractionState` owns the selected piece and any pending promotion; `Game` contains chess state only.
 3. `Piece.targets` creates pseudo-legal `Move`/`Capt` objects; `Piece.squares` temporarily executes each move as a context manager and removes moves that expose its king.
-4. Clicking a highlighted target calls `game += rule`; this executes the rule, appends it to history, advances the turn, and expires the previous en-passant ghost.
-5. Promotion is staged: choose a target, click the source repeatedly to cycle `Queen/Rook/Knight/Bishop`, then click the target to commit.
+4. The controller calls `game += rule`; this executes the rule, appends it to history, advances the turn, and expires the previous en-passant ghost.
+5. The controller stages promotion, cycles `Officer`, and commits the explicitly configured core `Promotion`.
 
 Move objects subclass square behavior, so a highlighted destination also carries execution and notation state. `rules.specialize()` dynamically composes modifiers onto an existing move. Castling moves the rook inside `King.__call__`; pawn rush creates a `Ghost`, and en passant removes the pawn behind that ghost.
 
-The render order is board labels/squares/background, selected-square highlights, then pieces. `theme.Main` preloads and scales all active images. Piece sprite lookup is convention-based (`BPAWN`, `WQUEEN`, etc.); asymmetric bishops/knights select `*R` variants by color.
+`GameView` reads `Game` and `InteractionState`, then composes `BoardView`, `MoveView`, and `PieceView`. Rendering never mutates core objects. `ThemeSpec` defines layout, palette, explicit type/color piece styles, and asset paths; `Theme` validates and loads surfaces after Pygame initialization. `THEMES` currently registers only `wood`.
 
 ## Known Limitations and Risk Areas
 
-- No committed test source or coverage policy exists. Add deterministic pytest tests under `tests/` before deep rule refactors.
+- The test suite covers representative rules and the core/app boundary but has no coverage threshold.
 - The FEN-like path is not a reliable round trip. `Board.forsyth_edwards` currently mishandles empty runs and leading separators, and `Game.forsyth_edwards` emits castling/en-passant fields in a different order from the parser.
 - A piece's `_moved` flag is initialized but not set during moves. `moved` is inferred from whether the piece occupies a stock square, so returning a king, rook, or pawn to its origin can restore special-move eligibility.
 - `Side.targets` unions occupancy-dependent pseudo-legal targets. Pawn forward moves can appear as attacks while empty diagonal attacks do not, making king-safety and castling changes especially sensitive.
 - Checkmate, stalemate, resignation, draw rules, save/load UI, and animation remain TODOs in `README.md`.
-- Rendering, rules, and state are tightly coupled through back-references and import-time Pygame setup. Refactors should preserve side-index synchronization and validate both move generation and drawing.
+- The frontend uses fixed 2160×1440 geometry and repository-relative asset paths; alternate resolutions and runtime theme selection are not implemented.
 
 ## Change Guidance
 

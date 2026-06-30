@@ -33,7 +33,9 @@ wheels = [
 name = "goochess"
 version = "0.1.0"
 source = { virtual = "." }
-dependencies = [
+
+[package.optional-dependencies]
+app = [
     { name = "pygame" },
 ]
 
@@ -45,7 +47,8 @@ dev = [
 ]
 
 [package.metadata]
-requires-dist = [{ name = "pygame" }]
+requires-dist = [{ name = "pygame", marker = "extra == 'app'" }]
+provides-extras = ["app"]
 
 [package.metadata.requires-dev]
 dev = [

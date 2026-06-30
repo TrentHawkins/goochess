@@ -1,13 +1,9 @@
 from __future__ import annotations
 
 
-from copy import copy
 from enum import Enum
 from typing import TYPE_CHECKING, Self
 
-import pygame
-
-import src.theme
 import src.algebra
 import src.rules
 
@@ -15,13 +11,11 @@ if TYPE_CHECKING:
 	import src.engine
 
 
-class Piece(src.theme.Highlightable):
+class Piece:
 
 	square: src.algebra.Square
 
 	value: int = 0
-	width: int = 0
-	ghost: int = 0
 
 	black: str = " "
 	white: str = " "
@@ -33,8 +27,6 @@ class Piece(src.theme.Highlightable):
 
 
 	def __init__(self, game: src.engine.Game, color: src.algebra.Color):
-		super().__init__()
-
 		self.color = color
 		self.game = game
 
@@ -93,16 +85,6 @@ class Piece(src.theme.Highlightable):
 		return self._moved or self.square not in self.stock * self.color
 
 	@property
-	def decal(self) -> str:
-		color = "b" if self.color else "w"
-
-		return color + super().decal
-
-	@property
-	def rect(self) -> pygame.Rect:
-		return self.surf.get_rect(center = self.square.rect.center).move(src.theme.PIECE_OFFSET)
-
-	@property
 	def side(self) -> src.engine.Side:
 		return self.game.black if self.color else self.game.white
 
@@ -120,25 +102,6 @@ class Piece(src.theme.Highlightable):
 					squares.discard(step)
 
 		return squares
-
-
-	def clicked(self, event: pygame.event.Event) -> bool:
-		if clicked := self.square.clicked(event):
-			self.game.selected = self
-
-		return clicked
-
-	def draw(self, screen: pygame.Surface):
-		if self.ghost:
-			surf = copy(self.surf)
-			surf.fill((*src.theme.HIGH, 85 * (3 - self.ghost)),
-				special_flags = pygame.BLEND_RGBA_MULT,
-			)
-
-		else:
-			surf = self.surf
-
-		screen.blit(surf, self.rect)
 
 
 class Melee(Piece):
@@ -178,14 +141,6 @@ class Ranged(Piece):
 		return targets
 
 
-	@property
-	def rect(self) -> pygame.Rect:
-		return super().rect.move(
-			-src.theme.PIECE_OFFSET.x //  4,
-			0,
-		)
-
-
 class Rook(Ranged):
 
 	value: int = 5
@@ -206,16 +161,7 @@ class Rook(Ranged):
 	)
 
 
-class Assymetric(Piece):
-
-	@property
-	def decal(self) -> str:
-		flipped = "r" if self.color else ""
-
-		return super().decal + flipped
-
-
-class Bishop(Ranged, Assymetric):
+class Bishop(Ranged):
 
 	value: int = 3
 	width: int = 7
@@ -235,7 +181,7 @@ class Bishop(Ranged, Assymetric):
 	)
 
 
-class Knight(Melee, Assymetric):
+class Knight(Melee):
 
 	value: int = 3
 	width: int = 6
@@ -262,8 +208,6 @@ class Knight(Melee, Assymetric):
 
 class Star(Piece):
 
-	width: int = 10
-
 #	moves = src.algebra.Vectors(
 #			src.algebra.Vector.N, src.algebra.Vector.NE,
 #			src.algebra.Vector.E, src.algebra.Vector.SE,
@@ -271,14 +215,6 @@ class Star(Piece):
 #			src.algebra.Vector.W, src.algebra.Vector.NW,
 #	)
 	moves = Rook.moves | Bishop.moves
-
-
-	@property
-	def rect(self) -> pygame.Rect:
-		return super().rect.move(
-			0,
-			-src.theme.PIECE_OFFSET.y // 35,
-		)
 
 
 class Queen(Ranged, Star):
@@ -344,25 +280,9 @@ class Officer(Enum):
 	B = Bishop
 
 
-	def surf(self, color: src.algebra.Color) -> pygame.Surface:
-		mod = "B" if color else "W"
-
-		match self.name:
-			case "Q": surf = src.theme.Main[mod + "QUEEN" ].value.copy()
-			case "R": surf = src.theme.Main[mod + "ROOK"  ].value.copy()
-			case "B": surf = src.theme.Main[mod + "BISHOP"].value.copy()
-			case "N": surf = src.theme.Main[mod + "KNIGHT"].value.copy()
-			case  _ : surf = src.theme.Main[mod + "PAWN"  ].value.copy()
-
-		surf.fill((*src.theme.HIGH, 170), special_flags = pygame.BLEND_RGBA_MULT)
-
-		return surf
-
-
 class Pawn(Piece):
 
 	value: int = 1
-	width: int = 2
 
 	black: str = "♟"
 	white: str = "♙"
@@ -384,14 +304,6 @@ class Pawn(Piece):
 		src.algebra.Square.G7,
 		src.algebra.Square.H7,
 	)
-
-
-	@property
-	def rect(self) -> pygame.Rect:
-		return super().rect.move(
-			src.theme.PIECE_OFFSET.x //  3,
-			src.theme.PIECE_OFFSET.y // 14,
-		)
 
 	@property
 	def targets(self) -> src.algebra.Squares:
@@ -431,14 +343,4 @@ class Pawn(Piece):
 		self.game[self.square] = to.value.from_side(self.side)
 
 class Ghost(Piece):
-
-	width = 2
-	ghost = 3
-
-
-	@property
-	def rect(self) -> pygame.Rect:
-		return super().rect.move(
-			src.theme.PIECE_OFFSET.x * 4 // 11,
-			src.theme.PIECE_OFFSET.y     // 14,
-		)
+	...

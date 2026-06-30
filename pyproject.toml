@@ -1,10 +1,14 @@
 [project]
 name = "goochess"
 version = "0.1.0"
-description = "Semantically written chess game with a GUI built using pygame."
+description = "Behavior-rich chess engine with an optional Pygame frontend."
 readme = "README.md"
 requires-python = ">=3.14"
 dependencies = [
+]
+
+[project.optional-dependencies]
+app = [
     "pygame",
 ]
 
@@ -29,4 +33,12 @@ disable = [
     "C",
     "R",
     "W",
+]
+
+[tool.pytest.ini_options]
+pythonpath = [
+    ".",
+]
+testpaths = [
+    "tests",
 ]

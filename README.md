@@ -1,10 +1,22 @@
 # Graphical Object-Oriented Chess
 
-Start the game with:
+Install the optional Pygame frontend and start the game from the repository root:
 
 ```sh
-python -m src.main
+uv sync --extra app
+uv run --extra app python -m app.main
 ```
+
+The behavior-rich chess core lives in `src/` and has no graphical dependency. The
+optional `app/` package translates Pygame input into core moves and renders core
+state through composed views.
+
+## Themes
+
+Themes are typed Python specifications registered in `app/theme.py`. A theme
+declares its palette, layout, graphical assets, and piece styles; assets remain
+under `graphics/`. The bundled `wood` theme is currently the default and only
+registered theme.
 
 ## How to play
 

@@ -6,10 +6,7 @@ from datetime import datetime
 from os import linesep
 from typing import Generator, SupportsIndex, Self
 
-import pygame
-
 import src.rules
-import src.theme
 import src.algebra
 import src.material
 
@@ -17,7 +14,7 @@ import src.material
 Piece = src.material.Piece | None
 
 
-class Board(list[Piece], src.theme.Drawable):
+class Board(list[Piece]):
 
 	default = "♜♞♝♛♚♝♞♜/♟♟♟♟♟♟♟♟/8/8/8/8/♙♙♙♙♙♙♙♙/♖♘♗♕♔♗♘♖"
 
@@ -34,8 +31,6 @@ class Board(list[Piece], src.theme.Drawable):
 			square = src.algebra.Square(index)
 
 			self[square] = piece
-
-		self.selected: src.material.Piece | None = None
 
 	def __repr__(self) -> str:
 		return self.forsyth_edwards
@@ -73,16 +68,6 @@ class Board(list[Piece], src.theme.Drawable):
 
 		return notation
 
-	@property
-	def rect(self) -> pygame.Rect:
-		return self.surf.get_rect(
-		#	center = pygame.Vector2(
-		#		src.theme.RESOLUTION // 2,
-		#		src.theme.RESOLUTION // 2,
-		#	)
-		)
-
-
 	def update(self, square: src.algebra.Square,
 		piece: src.material.Piece | None = None,
 	):
@@ -97,25 +82,6 @@ class Board(list[Piece], src.theme.Drawable):
 	):
 		if target != source and (piece := self[source]) is not None:
 			piece(target)
-
-	def draw(self, screen: pygame.Surface):
-		for file   in src.algebra.File  : file  .draw(screen)
-		for rank   in src.algebra.Rank  : rank  .draw(screen)
-		for square in src.algebra.Square: square.draw(screen)
-
-	#	surf = src.theme.Main.CORNER.value
-
-	#	rect = src.theme.BOARD_OFFSET
-	#	size = src.theme.BOARD + rect
-
-	#	screen.blit(surf, surf.get_rect(bottom = rect.y, right = rect.x))
-	#	screen.blit(surf, surf.get_rect(   top = size.y, right = rect.x))
-	#	screen.blit(surf, surf.get_rect(   top = size.y,  left = size.x))
-	#	screen.blit(surf, surf.get_rect(bottom = rect.y,  left = size.x))
-
-		super().draw(screen,
-			special_flags = pygame.BLEND_RGBA_MULT,
-		)
 
 
 class Side(
@@ -177,7 +143,7 @@ class Side(
 
 	@property
 	def targets(self) -> src.algebra.Squares:
-		return src.algebra.Squares.union(*(piece.targets for piece in self))
+		return src.algebra.Squares.any(piece.targets for piece in self)
 
 	@property
 	def other(self) -> Side:
@@ -302,7 +268,6 @@ class Game(Board):
 		super().__init__(pieces)
 
 		self.history = History()
-		self.promoted: src.rules.Promotion | None = None
 
 	def __next__(self) -> Side:
 		return self.current
@@ -392,70 +357,3 @@ class Game(Board):
 	@property
 	def current(self) -> Side:
 		return self.black if len(self.history) & 1 else self.white
-
-
-	def draw(self, screen: pygame.Surface):
-		super().draw(screen)
-
-		if self.selected is not None:
-			if self.promoted is not None and self.selected is self.promoted.piece:
-				self.promoted.highlight(screen)
-
-			else:
-				for square in self.selected.squares:
-					square.highlight(screen)
-
-		for piece in self:
-			if piece is not None:
-				if piece is self.selected:
-					if self.promoted is not None and piece is self.promoted.piece:
-						screen.blit(self.promoted.officer.surf(self.promoted.piece.color), self.promoted.piece.rect)
-
-					else:
-						piece.highlight(screen,
-						#	highlight_color = src.theme.GREEN,
-						)
-
-				else:
-					piece.draw(screen)
-
-				piece.ghost = piece.__class__.ghost  # HACK
-
-	def clicked(self, event: pygame.event.Event) -> bool:
-		for square in src.algebra.Square:
-			if not square.clicked(event):
-				continue
-
-			if self.promoted is not None:
-				if square == self.promoted.source:
-					self.promoted.officer = next(self.promoted.officers)
-
-				else:
-					if square == self.promoted.target:
-						self += self.promoted
-
-					self.selected = None
-					self.promoted = None
-
-				return True
-
-			if self.selected:
-				if (rule := self.selected.squares.get(square)) is not None:
-					if isinstance(rule, src.rules.Promotion):
-						self.promoted = rule
-
-					else:
-						self += rule
-						self.selected = None
-
-				else:
-					self.selected = None
-
-				return True
-
-			if (piece := self[square]) is not None and piece.side:
-				self.selected = piece
-
-			return True
-
-		return False
