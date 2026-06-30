@@ -8,6 +8,45 @@ Goochess is a local, two-player chess GUI whose design emphasizes semantic Pytho
 
 `hex/` is an independent experiment in traceless/cube coordinates and regular-polygon geometry. It is not connected to the playable game. `src/sand.py` is scratch code and has no runtime imports.
 
+## Design Philosophy
+
+These principles are architectural constraints, not incidental traits to remove during cleanup:
+
+1. **Model the chess ontology first.** Start from concepts that exist in chess—square, vector, piece, side, move, capture, promotion, history—and make them the primary units of the program. A helper abstraction must justify itself by clarifying that model; implementation convenience alone is not enough.
+2. **Prefer behavior-rich domain entities.** Put an operation on the entity that knows and owns it. Pieces generate their moves, moves validate and execute themselves, sides know their material and opposition, and squares own coordinate behavior. Prefer asking an object to perform a chess operation over extracting its data into a procedural engine.
+3. **Make interactions read as chess.** The public vocabulary and object relationships should form an executable chess language. Expressions such as `piece.targets`, `king.safe`, `side.other`, `game += move`, and `with move` should communicate domain meaning before implementation mechanics. Minimize algorithmic and infrastructural noise in rule code.
+4. **Choose supertypes semantically.** Inheritance is part of the model, not merely a reuse mechanism. An entity should inherit from the most faithful behavioral or mathematical category available: boards are indexed collections, histories are sequences, squares are coordinates, ranged pieces extend shared ranged movement, and captures are specialized moves. Preserve this intent when static tooling or convenience pressures suggest flattening the hierarchy.
+5. **Keep responsibilities at their narrowest natural boundary.** Place each rule with the entity that has the required knowledge, then compose those local responsibilities. `Game` coordinates; it should not absorb piece geometry, move semantics, notation, and rendering policy into a central god object.
+6. **Optimize semantic clarity before runtime speed.** Direct traversal, temporary move execution, and object composition are acceptable when they make the chess rule evident. Optimize only after correctness and profiling establish a real constraint, and retain the semantic interface when changing an implementation.
+7. **Remain Python-native and dependency-light.** Prefer Python's data model, standard library, inheritance, enums, context managers, properties, and operators over frameworks or foreign abstractions. Pygame exists to provide an immediate graphical smoke tester and playable shell; it should support rather than redefine the chess model.
+8. **Treat correctness as compositional.** Local entities should maintain their own invariants so legal game behavior emerges from their interaction. Avoid distant corrective logic that compensates for an entity with an unclear contract.
+
+## Recurring Architectural Patterns
+
+- **Semantic specialization of native types.** `Square`/`Color` specialize integers and enums; vectors specialize tuples; `Squares`/`Vectors` specialize sets; `Board` and `History` specialize lists; `Side` specializes a mapping. Native operations remain available while gaining chess meaning.
+- **An internal domain-specific language.** Operator overloads encode natural relations: vectors add, square differences produce vectors, color multiplication mirrors a position, set operations compose movement spaces, truth tests validate rules, calls execute entities, and representation methods emit notation.
+- **Polymorphic movement taxonomy.** `Melee`, `Ranged`, `Star`, and `Assymetric` capture orthogonal movement or presentation traits. Concrete pieces obtain behavior through a hierarchy and deliberate multiple inheritance instead of switch statements in the engine.
+- **Executable rule/command objects.** A `Move` is simultaneously a destination, a validity predicate, notation, an executable command, and a reversible context. `Capt`, `Rush`, `Promotion`, `EnPassant`, and castling refine that concept rather than returning detached flags.
+- **Transactional rule probing.** `Piece.squares` enters a candidate move, asks whether the king remains safe, and restores state on exit. The same semantic operation supports both real execution and speculative legality checks.
+- **Composable rule specialization.** `rules.specialize()` and `Mod` layer promotion or en-passant semantics onto an existing move. Cross-cutting chess conditions become combinations of rule types rather than branches inside every piece.
+- **Perspective normalization.** Movement and stock positions are declared once from Black's orientation and transformed by `Color` for White. Symmetry is represented algebraically instead of duplicated across sides.
+- **Derived state where practical.** Turn follows history parity; legality is derived from current targets and king safety; material and notation are computed views. `Side` indexes and king/rook/ghost references are deliberate caches that must remain synchronized with the board.
+- **Thin orchestration.** The event loop delegates clicks and drawing to the game; the game delegates movement to rules and pieces. Coordinators sequence domain behavior but do not reimplement it.
+- **Self-description at boundaries.** Domain entities provide chess symbols, algebraic-looking representations, FEN-like state, decal names, and visual behavior. Serialization and rendering consume the same semantic identities used by the rules.
+- **Finite spaces made explicit.** Enums define the closed sets of colors, files, ranks, squares, directions, and promotion officers. Invalid coordinates fail through enum construction instead of requiring repeated range checks.
+- **Convention over registration glue.** Piece class names and colors derive sprite keys, while common properties derive related entities such as `side`, `other`, and `decal`. New concepts should fit the vocabulary without expanding central lookup code unnecessarily.
+
+## Design Decision Order
+
+When extending the engine:
+
+1. Name the chess concept and its invariant.
+2. Identify the entity that naturally owns the required knowledge.
+3. Choose the most semantically accurate existing or native supertype.
+4. Design the interaction so a reader sees the chess rule in the call site.
+5. Keep coordination, representation, and graphical concerns at explicit boundaries.
+6. Add generic machinery or optimize only when the semantic model cannot express the requirement cleanly.
+
 ## Environment and Entry Point
 
 - Python: `>=3.14` (`.python-version` is `3.14`). The code uses PEP 695 generic/type-alias syntax.
