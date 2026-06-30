@@ -18,20 +18,26 @@ type RGB = tuple[int, int, int]
 
 
 @dataclass(frozen = True, slots = True)
-class Palette:
+class BoardPalette:
 
-	high: RGB = (0xFF, 0xFF, 0xFF)
-	bright: RGB = (0x33, 0x33, 0x33)
-	dark: RGB = (0x44, 0x33, 0x22)
+	background: RGB = (0x44, 0x33, 0x22)
 	flash: RGB = (0xCC, 0xCC, 0xCC)
 	label: RGB = (0xCC, 0xCC, 0xCC)
-	red: RGB = (0x66, 0x00, 0x00)
-	green: RGB = (0x22, 0x33, 0x11)
-	gold: RGB = (0x33, 0x22, 0x11)
-	blue: RGB = (0x11, 0x22, 0x33)
+	move: RGB = (0x22, 0x33, 0x11)
+	capture: RGB = (0x66, 0x00, 0x00)
+	special: RGB = (0x11, 0x22, 0x33)
 	white: RGB = (0xAA, 0x99, 0x88)
-	empty: RGB = (0xDD, 0xCC, 0xBB)
 	black: RGB = (0x77, 0x66, 0x55)
+
+
+@dataclass(frozen = True, slots = True)
+class PieceEffects:
+
+	high: RGB = (0xFF, 0xFF, 0xFF)
+	selected: RGB = (0x33, 0x33, 0x33)
+	hidden_alpha: int = 0
+	ghost_alpha: int = 170
+	promotion_alpha: int = 170
 
 
 @dataclass(frozen = True, slots = True)
@@ -50,84 +56,116 @@ class PieceStyle:
 
 
 @dataclass(frozen = True, slots = True)
-class ThemeSpec:
+class BoardThemeSpec:
 
 	name: str
-	layout: LayoutSpec
-	palette: Palette
+	palette: BoardPalette
 	background: Path
 	square: Path
-	pieces: Mapping[PieceKey, PieceStyle]
 
 
 @dataclass(frozen = True, slots = True)
-class Theme:
+class PieceThemeSpec:
 
-	spec: ThemeSpec
+	name: str
+	effects: PieceEffects
+	styles: Mapping[PieceKey, PieceStyle]
+
+
+def _image(theme_kind: str, theme_name: str, path: Path, label: str, *, alpha: bool = False) -> pygame.Surface:
+	if not path.is_file():
+		raise FileNotFoundError(f"{theme_kind} theme {theme_name!r} asset {label!r} not found: {path}")
+
+	loaded = pygame.image.load(path)
+	return loaded.convert_alpha() if alpha else loaded.convert()
+
+
+@dataclass(frozen = True, slots = True)
+class BoardTheme:
+
+	spec: BoardThemeSpec
 	background: pygame.Surface
 	square: pygame.Surface
-	pieces: Mapping[PieceKey, pygame.Surface]
 	font: pygame.font.Font
 
 
 	@classmethod
-	def load(cls, spec: ThemeSpec) -> Theme:
-		def image(path: Path, label: str, *, alpha: bool = False) -> pygame.Surface:
-			if not path.is_file():
-				raise FileNotFoundError(f"Theme {spec.name!r} asset {label!r} not found: {path}")
-
-			loaded = pygame.image.load(path)
-			return loaded.convert_alpha() if alpha else loaded.convert()
-
+	def load(cls, spec: BoardThemeSpec, layout: LayoutSpec) -> BoardTheme:
 		background = pygame.transform.smoothscale(
-			image(spec.background, "background"),
-			spec.layout.window,
+			_image("Board", spec.name, spec.background, "background"),
+			layout.window,
 		)
 		square = pygame.transform.smoothscale(
-			image(spec.square, "square"),
-			spec.layout.square_size,
+			_image("Board", spec.name, spec.square, "square"),
+			layout.square_size,
 		)
-		pieces = {
-			key: pygame.transform.smoothscale(
-				image(style.asset, f"{key.color.name.lower()} {key.piece.__name__.lower()}", alpha = True),
-				spec.layout.piece_size,
-			)
-			for key, style in spec.pieces.items()
-		}
-		font = pygame.font.SysFont(None, spec.layout.square_size[1] // 4,
+		font = pygame.font.SysFont(None, layout.square_size[1] // 4,
 			bold = True,
 		)
 
-		return cls(spec, background, square, MappingProxyType(pieces), font)
+		return cls(spec, background, square, font)
 
 	@property
-	def layout(self) -> LayoutSpec:
-		return self.spec.layout
-
-	@property
-	def palette(self) -> Palette:
+	def palette(self) -> BoardPalette:
 		return self.spec.palette
+
+
+@dataclass(frozen = True, slots = True)
+class PieceTheme:
+
+	spec: PieceThemeSpec
+	surfaces: Mapping[PieceKey, pygame.Surface]
+
+
+	@classmethod
+	def load(cls, spec: PieceThemeSpec, layout: LayoutSpec) -> PieceTheme:
+		surfaces = {
+			key: pygame.transform.smoothscale(
+				_image(
+					"Piece",
+					spec.name,
+					style.asset,
+					f"{key.color.name.lower()} {key.piece.__name__.lower()}",
+					alpha = True,
+				),
+				layout.piece_size,
+			)
+			for key, style in spec.styles.items()
+		}
+
+		return cls(spec, MappingProxyType(surfaces))
+
+	@property
+	def effects(self) -> PieceEffects:
+		return self.spec.effects
 
 	def piece_key(self, piece: src.material.Piece) -> PieceKey:
 		return PieceKey(piece.color, type(piece))
 
-	def piece_style(self, piece: src.material.Piece) -> PieceStyle:
-		return self.spec.pieces[self.piece_key(piece)]
+	def style(self, piece: src.material.Piece) -> PieceStyle:
+		return self.spec.styles[self.piece_key(piece)]
 
-	def piece_surface(self, piece: src.material.Piece) -> pygame.Surface:
-		return self.pieces[self.piece_key(piece)]
+	def surface(self, piece: src.material.Piece) -> pygame.Surface:
+		return self.surfaces[self.piece_key(piece)]
 
 	def officer_surface(self, officer: src.material.Officer, color: src.algebra.Color) -> pygame.Surface:
 		key = PieceKey(color, officer.value)
-		surface = self.pieces[key].copy()
-		surface.fill((*self.palette.high, 170),
+		surface = self.surfaces[key].copy()
+		surface.fill((*self.effects.high, self.effects.promotion_alpha),
 			special_flags = pygame.BLEND_RGBA_MULT,
 		)
 
 		return surface
 
 
-def _wood_piece_styles() -> Mapping[PieceKey, PieceStyle]:
+@dataclass(frozen = True, slots = True)
+class Appearance:
+
+	board: BoardTheme
+	pieces: PieceTheme
+
+
+def _default_piece_styles() -> Mapping[PieceKey, PieceStyle]:
 	styles: dict[PieceKey, PieceStyle] = {}
 	asset_root = Path("graphics/piece")
 
@@ -137,13 +175,13 @@ def _wood_piece_styles() -> Mapping[PieceKey, PieceStyle]:
 	):
 		asymmetric = "r" if color else ""
 		paths = {
-			src.material.Pawn  : f"pawn.png",
-			src.material.Ghost : f"pawn.png",
-			src.material.Rook  : f"rook.png",
+			src.material.Pawn  : "pawn.png",
+			src.material.Ghost : "pawn.png",
+			src.material.Rook  : "rook.png",
 			src.material.Knight: f"knight{asymmetric}.png",
 			src.material.Bishop: f"bishop{asymmetric}.png",
-			src.material.Queen : f"queen.png",
-			src.material.King  : f"king.png",
+			src.material.Queen : "queen.png",
+			src.material.King  : "king.png",
 		}
 		details = {
 			src.material.Pawn  : (( 0, -4),  2),
@@ -166,28 +204,60 @@ def _wood_piece_styles() -> Mapping[PieceKey, PieceStyle]:
 	return MappingProxyType(styles)
 
 
-WOOD = ThemeSpec(
+WOOD_BOARD = BoardThemeSpec(
 	name = "wood",
-	layout = LayoutSpec(),
-	palette = Palette(),
+	palette = BoardPalette(),
 	background = Path("graphics/board/oak-wood.jpg"),
 	square = Path("graphics/bevel/square.png"),
-	pieces = _wood_piece_styles(),
 )
 
-DEFAULT_THEME = WOOD.name
-THEMES: Mapping[str, ThemeSpec] = MappingProxyType({
-	WOOD.name: WOOD,
+DEFAULT_PIECES = PieceThemeSpec(
+	name = "default",
+	effects = PieceEffects(),
+	styles = _default_piece_styles(),
+)
+
+DEFAULT_BOARD_THEME = WOOD_BOARD.name
+DEFAULT_PIECE_THEME = DEFAULT_PIECES.name
+
+BOARD_THEMES: Mapping[str, BoardThemeSpec] = MappingProxyType({
+	WOOD_BOARD.name: WOOD_BOARD,
+})
+PIECE_THEMES: Mapping[str, PieceThemeSpec] = MappingProxyType({
+	DEFAULT_PIECES.name: DEFAULT_PIECES,
 })
 
 
-def theme_spec(name: str = DEFAULT_THEME) -> ThemeSpec:
+def board_theme_spec(name: str = DEFAULT_BOARD_THEME) -> BoardThemeSpec:
 	try:
-		return THEMES[name]
+		return BOARD_THEMES[name]
 	except KeyError as error:
-		available = ", ".join(sorted(THEMES))
-		raise ValueError(f"Unknown theme {name!r}; available themes: {available}") from error
+		available = ", ".join(sorted(BOARD_THEMES))
+		raise ValueError(f"Unknown board theme {name!r}; available board themes: {available}") from error
 
 
-def load_theme(name: str = DEFAULT_THEME) -> Theme:
-	return Theme.load(theme_spec(name))
+def piece_theme_spec(name: str = DEFAULT_PIECE_THEME) -> PieceThemeSpec:
+	try:
+		return PIECE_THEMES[name]
+	except KeyError as error:
+		available = ", ".join(sorted(PIECE_THEMES))
+		raise ValueError(f"Unknown piece theme {name!r}; available piece themes: {available}") from error
+
+
+def load_board_theme(name: str, layout: LayoutSpec) -> BoardTheme:
+	return BoardTheme.load(board_theme_spec(name), layout)
+
+
+def load_piece_theme(name: str, layout: LayoutSpec) -> PieceTheme:
+	return PieceTheme.load(piece_theme_spec(name), layout)
+
+
+def load_appearance(
+	layout: LayoutSpec,
+	board: str = DEFAULT_BOARD_THEME,
+	pieces: str = DEFAULT_PIECE_THEME,
+) -> Appearance:
+	return Appearance(
+		board = load_board_theme(board, layout),
+		pieces = load_piece_theme(pieces, layout),
+	)

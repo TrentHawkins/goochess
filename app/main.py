@@ -6,22 +6,22 @@ import pygame
 import src.engine
 
 from app.controller import GameController, InteractionState
-from app.layout import BoardLayout
-from app.theme import DEFAULT_THEME, load_theme, theme_spec
+from app.layout import BoardLayout, LayoutSpec
+from app.theme import load_appearance
 from app.views import GameView
 
 
 def main() -> None:
 	pygame.init()
 
-	spec = theme_spec(DEFAULT_THEME)
-	screen = pygame.display.set_mode(spec.layout.window)
-	theme = load_theme(spec.name)
-	layout = BoardLayout(spec.layout)
+	layout_spec = LayoutSpec()
+	screen = pygame.display.set_mode(layout_spec.window)
+	appearance = load_appearance(layout_spec)
+	layout = BoardLayout(layout_spec)
 	game = src.engine.Game.from_forsyth_edwards()
 	state = InteractionState()
 	controller = GameController(game, layout, state)
-	view = GameView(layout, theme)
+	view = GameView(layout, appearance)
 
 	running = True
 	while running:
@@ -34,8 +34,8 @@ def main() -> None:
 
 			controller.handle(event)
 
-		screen.fill(theme.palette.dark)
-		screen.fill(theme.palette.flash,
+		screen.fill(appearance.board.palette.background)
+		screen.fill(appearance.board.palette.flash,
 			special_flags = pygame.BLEND_RGBA_MULT,
 		)
 		view.draw(screen, game, state)

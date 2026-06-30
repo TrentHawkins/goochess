@@ -73,7 +73,7 @@ Always run the frontend from the repository root because theme specifications us
 | `app/controller.py` | Pygame event translation plus selection and pending-promotion state. |
 | `app/views.py` | Composed board, square, move, and piece views; rendering is read-only over core state. |
 | `app/layout.py` | Display geometry, square rectangles, and hit-testing. |
-| `app/theme.py` | Typed theme specifications, registry, validated asset loading, and surface cache. |
+| `app/theme.py` | Independent board/piece theme specifications and registries, validated loaders, and composed appearance. |
 | `app/main.py` | Composition root and event/render loop; F12 overwrites `game/screenshot.png`. |
 | `graphics/` | Runtime piece/bevel images plus board sources (`.jpg`, `.png`, `.xcf`, `.drawio`, `.svg`). |
 | `game/` | Checked-in reference screenshot. |
@@ -100,7 +100,7 @@ Turn is derived solely from `len(game.history)`: even is White, odd is Black. `H
 
 Move objects subclass square behavior, so a highlighted destination also carries execution and notation state. `rules.specialize()` dynamically composes modifiers onto an existing move. Castling moves the rook inside `King.__call__`; pawn rush creates a `Ghost`, and en passant removes the pawn behind that ghost.
 
-`GameView` reads `Game` and `InteractionState`, then composes `BoardView`, `MoveView`, and `PieceView`. Rendering never mutates core objects. `ThemeSpec` defines layout, palette, explicit type/color piece styles, and asset paths; `Theme` validates and loads surfaces after Pygame initialization. `THEMES` currently registers only `wood`.
+`GameView` reads `Game` and `InteractionState`, then composes `BoardView`, `MoveView`, and `PieceView`. Rendering never mutates core objects. Layout is independent from appearance. `BoardThemeSpec` defines board assets and board/highlight colors; `PieceThemeSpec` defines explicit type/color styles and piece effects. Their separate registries currently provide the `wood` board and `default` pieces, which `Appearance` composes after Pygame initialization.
 
 ## Known Limitations and Risk Areas
 

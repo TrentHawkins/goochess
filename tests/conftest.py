@@ -14,9 +14,9 @@ os.environ.setdefault("SDL_AUDIODRIVER", "dummy")
 def pygame_screen():
 	import pygame
 
-	from app.theme import theme_spec
+	from app.layout import LayoutSpec
 
 	pygame.init()
-	screen = pygame.display.set_mode(theme_spec().layout.window)
+	screen = pygame.display.set_mode(LayoutSpec().window)
 	yield screen
 	pygame.quit()

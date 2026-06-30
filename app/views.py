@@ -12,7 +12,7 @@ import src.rules
 
 from app.controller import InteractionState
 from app.layout import BoardLayout
-from app.theme import RGB, Theme
+from app.theme import Appearance, BoardTheme, PieceTheme, RGB
 
 
 @dataclass(frozen = True, slots = True)
@@ -20,7 +20,7 @@ class SquareView:
 
 	square: src.algebra.Square
 	layout: BoardLayout
-	theme: Theme
+	theme: BoardTheme
 
 
 	@property
@@ -56,24 +56,24 @@ class MoveView:
 
 	move: src.rules.Move
 	layout: BoardLayout
-	theme: Theme
+	appearance: Appearance
 
 
 	def draw(self, screen: pygame.Surface) -> None:
 		if isinstance(self.move, src.rules.Spec):
-			color = self.theme.palette.blue
+			color = self.appearance.board.palette.special
 		elif isinstance(self.move, src.rules.Capt):
-			color = self.theme.palette.red
+			color = self.appearance.board.palette.capture
 		else:
-			color = self.theme.palette.green
+			color = self.appearance.board.palette.move
 
 		width = 1
 		thick = 0
 		if isinstance(self.move, src.rules.Capt) and self.move.other is not None:
-			width = self.theme.piece_style(self.move.other).capture_width
+			width = self.appearance.pieces.style(self.move.other).capture_width
 			thick = 8
 
-		SquareView(self.move.target, self.layout, self.theme).highlight(
+		SquareView(self.move.target, self.layout, self.appearance.board).highlight(
 			screen,
 			color,
 			width = width,
@@ -86,16 +86,16 @@ class PieceView:
 
 	piece: src.material.Piece
 	layout: BoardLayout
-	theme: Theme
+	theme: PieceTheme
 
 
 	@property
 	def rect(self) -> pygame.Rect:
-		style = self.theme.piece_style(self.piece)
-		base_x, base_y = self.theme.layout.piece_offset
+		style = self.theme.style(self.piece)
+		base_x, base_y = self.layout.spec.piece_offset
 		offset_x, offset_y = style.offset
 
-		return self.theme.piece_surface(self.piece).get_rect(
+		return self.theme.surface(self.piece).get_rect(
 			center = self.layout.square_rect(self.piece.square).center,
 		).move(base_x + offset_x, base_y + offset_y)
 
@@ -103,17 +103,17 @@ class PieceView:
 		selected: bool = False,
 		ghost_visible: bool = False,
 	) -> None:
-		surface = self.theme.piece_surface(self.piece)
+		surface = self.theme.surface(self.piece)
 
 		if isinstance(self.piece, src.material.Ghost):
 			surface = surface.copy()
-			alpha = 170 if ghost_visible else 0
-			surface.fill((*self.theme.palette.high, alpha),
+			alpha = self.theme.effects.ghost_alpha if ghost_visible else self.theme.effects.hidden_alpha
+			surface.fill((*self.theme.effects.high, alpha),
 				special_flags = pygame.BLEND_RGBA_MULT,
 			)
 		elif selected:
 			surface = surface.copy()
-			surface.fill(self.theme.palette.bright,
+			surface.fill(self.theme.effects.selected,
 				special_flags = pygame.BLEND_RGB_ADD,
 			)
 
@@ -131,7 +131,7 @@ class BoardView:
 
 	board: src.engine.Board
 	layout: BoardLayout
-	theme: Theme
+	theme: BoardTheme
 
 
 	def label(self, screen: pygame.Surface, item: src.algebra.File | src.algebra.Rank, rect: pygame.Rect) -> None:
@@ -140,13 +140,13 @@ class BoardView:
 			(text.get_width(), text.get_height() * 8 // 9),
 		)
 		text_rect = text.get_rect(
-			center = rect.center - pygame.Vector2(0, self.theme.layout.square_size[1] // 126),
+			center = rect.center - pygame.Vector2(0, self.layout.spec.square_size[1] // 126),
 		)
 		screen.blit(text, text_rect)
 
 	def draw(self, screen: pygame.Surface) -> None:
-		board_w, board_h = self.theme.layout.board_size
-		corner_w, corner_h = self.theme.layout.corner_size
+		board_w, board_h = self.layout.spec.board_size
+		corner_w, corner_h = self.layout.spec.corner_size
 
 		for file in src.algebra.File:
 			rect = self.layout.file_rect(file)
@@ -170,7 +170,7 @@ class BoardView:
 class GameView:
 
 	layout: BoardLayout
-	theme: Theme
+	appearance: Appearance
 
 
 	def draw(self,
@@ -178,7 +178,7 @@ class GameView:
 		game: src.engine.Game,
 		state: InteractionState,
 	) -> None:
-		BoardView(game, self.layout, self.theme).draw(screen)
+		BoardView(game, self.layout, self.appearance.board).draw(screen)
 
 		moves: tuple[src.rules.Move, ...] = ()
 		if state.selected is not None:
@@ -188,7 +188,7 @@ class GameView:
 				moves = tuple(state.selected.squares)
 
 			for move in moves:
-				MoveView(move, self.layout, self.theme).draw(screen)
+				MoveView(move, self.layout, self.appearance).draw(screen)
 
 		visible_ghosts = {
 			move.other
@@ -200,7 +200,7 @@ class GameView:
 			if piece is None:
 				continue
 
-			view = PieceView(piece, self.layout, self.theme)
+			view = PieceView(piece, self.layout, self.appearance.pieces)
 			if piece is state.selected and state.promotion is not None:
 				view.draw_promotion(screen, state.promotion.officer)
 			else:

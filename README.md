@@ -13,10 +13,11 @@ state through composed views.
 
 ## Themes
 
-Themes are typed Python specifications registered in `app/theme.py`. A theme
-declares its palette, layout, graphical assets, and piece styles; assets remain
-under `graphics/`. The bundled `wood` theme is currently the default and only
-registered theme.
+Board themes and piece themes are independent typed Python specifications
+registered in `app/theme.py`. Board themes define board assets, colors, labels,
+and move highlights; piece themes define sprites, placement, capture sizing, and
+piece effects. Layout is configured separately. Assets remain under `graphics/`.
+The bundled defaults are the `wood` board and `default` pieces.
 
 ## How to play
 
