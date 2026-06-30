@@ -18,16 +18,16 @@ while running:
 
 		if event.type == pygame.KEYDOWN:
 			if event.key == pygame.K_F12:
-				pygame.image.save(src.theme.screen, "game/screenshot.png")
+				pygame.image.save(src.theme.SCREEN, "game/screenshot.png")
 
 		game.clicked(event)
 
-	src.theme.screen.fill(src.theme.DARK)
-	src.theme.screen.fill(src.theme.FLASH,
+	src.theme.SCREEN.fill(src.theme.DARK)
+	src.theme.SCREEN.fill(src.theme.FLASH,
 		special_flags = pygame.BLEND_RGBA_MULT,
 	)
 
-	game.draw(src.theme.screen)
+	game.draw(src.theme.SCREEN)
 
 	pygame.display.flip()
 

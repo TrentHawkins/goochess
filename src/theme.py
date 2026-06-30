@@ -127,7 +127,7 @@ FONT = pygame.font.SysFont(None, SQUARE_H // 4,
 )
 
 
-screen = pygame.display.set_mode(WINDOW)
+SCREEN = pygame.display.set_mode(WINDOW)
 
 
 def root(qualname) -> Path:
@@ -141,38 +141,38 @@ class Main(Enum):
 
 	BEVEL  = pygame.transform.smoothscale(pygame.transform.rotate(GAME, 180.0), BOARD.get_size() + ())
 
-	FILE   = pygame.transform.smoothscale(pygame.image.load(f"graphics/bevel/file.png"  ).convert(), FILE  )
-	RANK   = pygame.transform.smoothscale(pygame.image.load(f"graphics/bevel/rank.png"  ).convert(), RANK  )
+	FILE   = pygame.transform.smoothscale(pygame.image.load("graphics/bevel/file.png"  ).convert(), FILE  )
+	RANK   = pygame.transform.smoothscale(pygame.image.load("graphics/bevel/rank.png"  ).convert(), RANK  )
 
-	SQUARE = pygame.transform.smoothscale(pygame.image.load(f"graphics/bevel/square.png").convert(), SQUARE)
+	SQUARE = pygame.transform.smoothscale(pygame.image.load("graphics/bevel/square.png").convert(), SQUARE)
 
 	BPIECE = pygame.Surface(PIECE,
 		flags = pygame.SRCALPHA,
 	)
 
-	BPAWN    = pygame.transform.smoothscale(pygame.image.load(f"graphics/piece/black/pawn.png"   ).convert_alpha(), PIECE)
-	BGHOST   = pygame.transform.smoothscale(pygame.image.load(f"graphics/piece/black/pawn.png"   ).convert_alpha(), PIECE)
-	BROOK    = pygame.transform.smoothscale(pygame.image.load(f"graphics/piece/black/rook.png"   ).convert_alpha(), PIECE)
-	BKNIGHT  = pygame.transform.smoothscale(pygame.image.load(f"graphics/piece/black/knight.png" ).convert_alpha(), PIECE)
-	BKNIGHTR = pygame.transform.smoothscale(pygame.image.load(f"graphics/piece/black/knightr.png").convert_alpha(), PIECE)
-	BBISHOP  = pygame.transform.smoothscale(pygame.image.load(f"graphics/piece/black/bishop.png" ).convert_alpha(), PIECE)
-	BBISHOPR = pygame.transform.smoothscale(pygame.image.load(f"graphics/piece/black/bishopr.png").convert_alpha(), PIECE)
-	BQUEEN   = pygame.transform.smoothscale(pygame.image.load(f"graphics/piece/black/queen.png"  ).convert_alpha(), PIECE)
-	BKING    = pygame.transform.smoothscale(pygame.image.load(f"graphics/piece/black/king.png"   ).convert_alpha(), PIECE)
+	BPAWN    = pygame.transform.smoothscale(pygame.image.load("graphics/piece/black/pawn.png"   ).convert_alpha(), PIECE)
+	BGHOST   = pygame.transform.smoothscale(pygame.image.load("graphics/piece/black/pawn.png"   ).convert_alpha(), PIECE)
+	BROOK    = pygame.transform.smoothscale(pygame.image.load("graphics/piece/black/rook.png"   ).convert_alpha(), PIECE)
+	BKNIGHT  = pygame.transform.smoothscale(pygame.image.load("graphics/piece/black/knight.png" ).convert_alpha(), PIECE)
+	BKNIGHTR = pygame.transform.smoothscale(pygame.image.load("graphics/piece/black/knightr.png").convert_alpha(), PIECE)
+	BBISHOP  = pygame.transform.smoothscale(pygame.image.load("graphics/piece/black/bishop.png" ).convert_alpha(), PIECE)
+	BBISHOPR = pygame.transform.smoothscale(pygame.image.load("graphics/piece/black/bishopr.png").convert_alpha(), PIECE)
+	BQUEEN   = pygame.transform.smoothscale(pygame.image.load("graphics/piece/black/queen.png"  ).convert_alpha(), PIECE)
+	BKING    = pygame.transform.smoothscale(pygame.image.load("graphics/piece/black/king.png"   ).convert_alpha(), PIECE)
 
 	WPIECE = pygame.Surface(PIECE,
 		flags = pygame.SRCALPHA,
 	)
 
-	WPAWN    = pygame.transform.smoothscale(pygame.image.load(f"graphics/piece/white/pawn.png"   ).convert_alpha(), PIECE)
-	WGHOST   = pygame.transform.smoothscale(pygame.image.load(f"graphics/piece/white/pawn.png"   ).convert_alpha(), PIECE)
-	WROOK    = pygame.transform.smoothscale(pygame.image.load(f"graphics/piece/white/rook.png"   ).convert_alpha(), PIECE)
-	WKNIGHT  = pygame.transform.smoothscale(pygame.image.load(f"graphics/piece/white/knight.png" ).convert_alpha(), PIECE)
-	WKNIGHTR = pygame.transform.smoothscale(pygame.image.load(f"graphics/piece/white/knightr.png").convert_alpha(), PIECE)
-	WBISHOP  = pygame.transform.smoothscale(pygame.image.load(f"graphics/piece/white/bishop.png" ).convert_alpha(), PIECE)
-	WBISHOPR = pygame.transform.smoothscale(pygame.image.load(f"graphics/piece/white/bishopr.png").convert_alpha(), PIECE)
-	WQUEEN   = pygame.transform.smoothscale(pygame.image.load(f"graphics/piece/white/queen.png"  ).convert_alpha(), PIECE)
-	WKING    = pygame.transform.smoothscale(pygame.image.load(f"graphics/piece/white/king.png"   ).convert_alpha(), PIECE)
+	WPAWN    = pygame.transform.smoothscale(pygame.image.load("graphics/piece/white/pawn.png"   ).convert_alpha(), PIECE)
+	WGHOST   = pygame.transform.smoothscale(pygame.image.load("graphics/piece/white/pawn.png"   ).convert_alpha(), PIECE)
+	WROOK    = pygame.transform.smoothscale(pygame.image.load("graphics/piece/white/rook.png"   ).convert_alpha(), PIECE)
+	WKNIGHT  = pygame.transform.smoothscale(pygame.image.load("graphics/piece/white/knight.png" ).convert_alpha(), PIECE)
+	WKNIGHTR = pygame.transform.smoothscale(pygame.image.load("graphics/piece/white/knightr.png").convert_alpha(), PIECE)
+	WBISHOP  = pygame.transform.smoothscale(pygame.image.load("graphics/piece/white/bishop.png" ).convert_alpha(), PIECE)
+	WBISHOPR = pygame.transform.smoothscale(pygame.image.load("graphics/piece/white/bishopr.png").convert_alpha(), PIECE)
+	WQUEEN   = pygame.transform.smoothscale(pygame.image.load("graphics/piece/white/queen.png"  ).convert_alpha(), PIECE)
+	WKING    = pygame.transform.smoothscale(pygame.image.load("graphics/piece/white/king.png"   ).convert_alpha(), PIECE)
 
 
 class Drawable(pygame.sprite.Sprite):

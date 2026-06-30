@@ -113,13 +113,13 @@ class Spec(Move):
 
 class Mod(Move):
 
-    def __new__(cls, move: Move):
-        modded_cls = type(cls.__name__, (cls, move.__class__), {})
+	def __new__(cls, move: Move):
+		modded_cls = type(cls.__name__, (cls, move.__class__), {})
 
-        return super().__new__(cast(type[Self], modded_cls), move.target, move.piece)
+		return super().__new__(cast(type[Self], modded_cls), move.target, move.piece)
 
-    def __init__(self, move: Move):
-        super().__init__(move.target, move.piece)
+	def __init__(self, move: Move):
+		super().__init__(move.target, move.piece)
 
 
 class Rush(Spec):
