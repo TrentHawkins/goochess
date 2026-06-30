@@ -7,3 +7,26 @@ requires-python = ">=3.14"
 dependencies = [
     "pygame",
 ]
+
+[dependency-groups]
+dev = [
+    "pylint",
+    "pyright",
+    "pytest",
+]
+
+[tool.pylint.main]
+ignored-modules = [
+    "pygame",
+]
+
+[tool.pylint.format]
+indent-string = "\t"
+max-line-length = 132
+
+[tool.pylint.messages_control]
+disable = [
+    "C",
+    "R",
+    "W",
+]

@@ -139,11 +139,10 @@ class Main(Enum):
 	BOARD  = pygame.transform.smoothscale(pygame.image.load("graphics/board/oak-wood.jpg").convert(), WINDOW)
 	GAME   = pygame.transform.smoothscale(pygame.image.load("graphics/board/oak-wood.jpg").convert(), WINDOW)
 
-	BEVEL  = pygame.transform.smoothscale(pygame.transform.rotate(GAME, 180.0), BOARD.get_size() + ())
+	BEVEL  = pygame.transform.smoothscale(pygame.transform.rotate(GAME, 180.0), BOARD.get_size() + ())  # pylint: disable=no-member
 
 	FILE   = pygame.transform.smoothscale(pygame.image.load("graphics/bevel/file.png"  ).convert(), FILE  )
 	RANK   = pygame.transform.smoothscale(pygame.image.load("graphics/bevel/rank.png"  ).convert(), RANK  )
-
 	SQUARE = pygame.transform.smoothscale(pygame.image.load("graphics/bevel/square.png").convert(), SQUARE)
 
 	BPIECE = pygame.Surface(PIECE,
