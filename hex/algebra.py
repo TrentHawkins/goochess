@@ -45,7 +45,7 @@ class Vector(vector, Enum):
 				yield unit.value + grid
 
 	@classmethod
-	def print(cls, size: int) -> None:
+	def print(cls, size: int):
 		for vector in sorted(set(cls.generate(size))):
 			print("".join(f"{component:>+3}" for component in vector))
 

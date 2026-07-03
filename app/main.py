@@ -11,7 +11,7 @@ from app.theme import load_appearance
 from app.views import GameView
 
 
-def main() -> None:
+def main():
 	pygame.init()
 
 	layout_spec = LayoutSpec()
@@ -24,13 +24,11 @@ def main() -> None:
 	view = GameView(layout, appearance)
 
 	running = True
+
 	while running:
 		for event in pygame.event.get():
-			if event.type == pygame.QUIT:
-				running = False
-
-			if event.type == pygame.KEYDOWN and event.key == pygame.K_F12:
-				pygame.image.save(screen, "game/screenshot.png")
+			if event.type == pygame.QUIT: running = False
+			if event.type == pygame.KEYDOWN and event.key == pygame.K_F12: pygame.image.save(screen, "game/screenshot.png")
 
 			controller.handle(event)
 
@@ -39,6 +37,7 @@ def main() -> None:
 			special_flags = pygame.BLEND_RGBA_MULT,
 		)
 		view.draw(screen, game, state)
+
 		pygame.display.flip()
 
 	pygame.quit()

@@ -31,6 +31,7 @@ class GameController:
 		self.layout = layout
 		self.state = state if state is not None else InteractionState()
 
+
 	def handle(self, event: pygame.event.Event) -> bool:
 		if event.type != pygame.MOUSEBUTTONDOWN or event.button != 1:
 			return False
@@ -62,6 +63,7 @@ class GameController:
 			if rule is not None:
 				if isinstance(rule, src.rules.Promotion):
 					self.state.promotion = rule
+
 				else:
 					self.game += rule
 					self.state.selected = None
@@ -71,6 +73,7 @@ class GameController:
 			return True
 
 		piece = self.game[square]
+
 		if piece is not None and piece.side:
 			self.state.selected = piece
 

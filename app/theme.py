@@ -21,20 +21,21 @@ type RGB = tuple[int, int, int]
 class BoardPalette:
 
 	background: RGB = (0x44, 0x33, 0x22)
-	flash: RGB = (0xCC, 0xCC, 0xCC)
-	label: RGB = (0xCC, 0xCC, 0xCC)
-	move: RGB = (0x22, 0x33, 0x11)
-	capture: RGB = (0x66, 0x00, 0x00)
-	special: RGB = (0x11, 0x22, 0x33)
-	white: RGB = (0xAA, 0x99, 0x88)
-	black: RGB = (0x77, 0x66, 0x55)
+	flash     : RGB = (0xCC, 0xCC, 0xCC)
+	label     : RGB = (0xCC, 0xCC, 0xCC)
+	move      : RGB = (0x22, 0x33, 0x11)
+	capture   : RGB = (0x66, 0x00, 0x00)
+	special   : RGB = (0x11, 0x22, 0x33)
+	white     : RGB = (0xAA, 0x99, 0x88)
+	black     : RGB = (0x77, 0x66, 0x55)
 
 
 @dataclass(frozen = True, slots = True)
 class PieceEffects:
 
-	high: RGB = (0xFF, 0xFF, 0xFF)
+	high    : RGB = (0xFF, 0xFF, 0xFF)
 	selected: RGB = (0x33, 0x33, 0x33)
+
 	hidden_alpha: int = 0
 	ghost_alpha: int = 170
 	promotion_alpha: int = 170
@@ -114,25 +115,19 @@ class BoardTheme:
 			bold = True,
 		)
 		frame = None
+
 		if spec.frame is not None:
 			square_w, square_h = layout.square_size
 			corner_size = (
 				square_w // spec.frame.depth_divisor,
 				square_h // spec.frame.depth_divisor,
 			)
+
 			frame = BoardFrame(
-				corner = pygame.transform.smoothscale(
-					_image("Board", spec.name, spec.frame.corner, "frame corner"),
-					corner_size,
-				),
-				file = pygame.transform.smoothscale(
-					_image("Board", spec.name, spec.frame.file, "frame file"),
-					(square_w, corner_size[1]),
-				),
-				rank = pygame.transform.smoothscale(
-					_image("Board", spec.name, spec.frame.rank, "frame rank"),
-					(corner_size[0], square_h),
-				),
+				corner = pygame.transform.smoothscale(_image("Board", spec.name, spec.frame.corner, "frame corner"), corner_size),
+
+				file   = pygame.transform.smoothscale(_image("Board", spec.name, spec.frame.file  , "frame file"), (square_w, corner_size[1])),
+				rank   = pygame.transform.smoothscale(_image("Board", spec.name, spec.frame.rank  , "frame rank"), (corner_size[0], square_h)),
 			)
 
 		return cls(spec, background, square, font, frame)
@@ -146,6 +141,7 @@ class BoardTheme:
 class BoardFrame:
 
 	corner: pygame.Surface
+
 	file: pygame.Surface
 	rank: pygame.Surface
 
@@ -288,16 +284,20 @@ PIECE_THEMES: Mapping[str, PieceThemeSpec] = MappingProxyType({
 def board_theme_spec(name: str = DEFAULT_BOARD_THEME) -> BoardThemeSpec:
 	try:
 		return BOARD_THEMES[name]
+
 	except KeyError as error:
 		available = ", ".join(sorted(BOARD_THEMES))
+
 		raise ValueError(f"Unknown board theme {name!r}; available board themes: {available}") from error
 
 
 def piece_theme_spec(name: str = DEFAULT_PIECE_THEME) -> PieceThemeSpec:
 	try:
 		return PIECE_THEMES[name]
+
 	except KeyError as error:
 		available = ", ".join(sorted(PIECE_THEMES))
+
 		raise ValueError(f"Unknown piece theme {name!r}; available piece themes: {available}") from error
 
 
@@ -315,6 +315,6 @@ def load_appearance(
 	pieces: str = DEFAULT_PIECE_THEME,
 ) -> Appearance:
 	return Appearance(
-		board = load_board_theme(board, layout),
+		board  = load_board_theme(board , layout),
 		pieces = load_piece_theme(pieces, layout),
 	)

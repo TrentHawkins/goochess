@@ -72,6 +72,7 @@ class BoardLayout:
 	def board_rect(self) -> pygame.Rect:
 		return pygame.Rect(self.spec.board_offset, self.spec.board_size)
 
+
 	def square_rect(self, square: src.algebra.Square) -> pygame.Rect:
 		square_w, square_h = self.spec.square_size
 		offset_x, offset_y = self.spec.board_offset
