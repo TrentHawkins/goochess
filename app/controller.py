@@ -13,6 +13,10 @@ import src.rules
 from app.layout import BoardLayout
 
 
+_ARROW_CURSOR = pygame.cursors.Cursor(pygame.SYSTEM_CURSOR_ARROW)
+_HAND_CURSOR = pygame.cursors.Cursor(pygame.SYSTEM_CURSOR_HAND)
+
+
 @dataclass(slots = True)
 class InteractionState:
 
@@ -30,14 +34,34 @@ class GameController:
 		self.game = game
 		self.layout = layout
 		self.state = state if state is not None else InteractionState()
+		self._cursor: pygame.cursors.Cursor | None = None
 
 
 	def handle(self, event: pygame.event.Event) -> bool:
+		if event.type == pygame.MOUSEMOTION:
+			self.hover(event.pos)
+			return True
+
 		if event.type != pygame.MOUSEBUTTONDOWN or event.button != 1:
 			return False
 
 		square = self.layout.square_at(event.pos)
-		return False if square is None else self.click(square)
+		handled = False if square is None else self.click(square)
+		self.hover(event.pos)
+
+		return handled
+
+	def hover(self, position: tuple[int, int]) -> bool:
+		square = self.layout.square_at(position)
+		piece = None if square is None else self.game[square]
+		playable = piece is not None and bool(piece.side)
+		cursor = _HAND_CURSOR if playable else _ARROW_CURSOR
+
+		if cursor != self._cursor:
+			pygame.mouse.set_cursor(cursor)
+			self._cursor = cursor
+
+		return playable
 
 	def click(self, square: src.algebra.Square) -> bool:
 		if self.state.promotion is not None:
@@ -47,14 +71,16 @@ class GameController:
 				officers = tuple(src.material.Officer)
 				index = officers.index(promotion.officer)
 				promotion.officer = officers[(index + 1) % len(officers)]
+				return True
+
+			if square == promotion.target:
+				self.game += promotion
+				self.state.selected = None
 
 			else:
-				if square == promotion.target:
-					self.game += promotion
+				self.reselect(square)
 
-				self.state.selected = None
-				self.state.promotion = None
-
+			self.state.promotion = None
 			return True
 
 		if self.state.selected is not None:
@@ -68,7 +94,7 @@ class GameController:
 					self.game += rule
 					self.state.selected = None
 			else:
-				self.state.selected = None
+				self.reselect(square)
 
 			return True
 
@@ -78,3 +104,7 @@ class GameController:
 			self.state.selected = piece
 
 		return True
+
+	def reselect(self, square: src.algebra.Square) -> None:
+		piece = self.game[square]
+		self.state.selected = piece if piece is not None and piece is not self.state.selected and piece.side else None

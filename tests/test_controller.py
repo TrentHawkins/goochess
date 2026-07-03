@@ -9,6 +9,8 @@ import src.material
 
 pytest.importorskip("pygame")
 
+import pygame
+
 from app.controller import GameController
 from app.layout import BoardLayout, LayoutSpec
 
@@ -27,6 +29,13 @@ def test_selection_deselection_and_move():
 	control.click(src.algebra.Square.E2)
 	assert control.state.selected is game[src.algebra.Square.E2]
 
+	control.click(src.algebra.Square.D2)
+	assert control.state.selected is game[src.algebra.Square.D2]
+
+	control.click(src.algebra.Square.D2)
+	assert control.state.selected is None
+
+	control.click(src.algebra.Square.E2)
 	control.click(src.algebra.Square.E5)
 	assert control.state.selected is None
 
@@ -36,6 +45,42 @@ def test_selection_deselection_and_move():
 	assert control.state.selected is None
 	assert isinstance(game[src.algebra.Square.E4], src.material.Pawn)
 	assert game.current is game.black
+
+
+def test_cursor_tracks_playable_piece_hover(monkeypatch):
+	game = src.engine.Game.from_forsyth_edwards()
+	control = controller(game)
+	cursors: list[pygame.cursors.Cursor] = []
+	monkeypatch.setattr(pygame.mouse, "set_cursor", cursors.append)
+
+	position = control.layout.square_rect(src.algebra.Square.E2).center
+	assert control.handle(pygame.event.Event(pygame.MOUSEMOTION, pos = position))
+	assert cursors == [pygame.cursors.Cursor(pygame.SYSTEM_CURSOR_HAND)]
+
+	assert control.hover(control.layout.square_rect(src.algebra.Square.D2).center)
+	assert len(cursors) == 1
+
+	assert not control.hover(control.layout.square_rect(src.algebra.Square.E7).center)
+	assert cursors[-1] == pygame.cursors.Cursor(pygame.SYSTEM_CURSOR_ARROW)
+
+	assert not control.hover((0, 0))
+	assert len(cursors) == 2
+
+
+def test_cursor_follows_turn_after_move(monkeypatch):
+	game = src.engine.Game.from_forsyth_edwards()
+	control = controller(game)
+	cursors: list[pygame.cursors.Cursor] = []
+	monkeypatch.setattr(pygame.mouse, "set_cursor", cursors.append)
+
+	control.click(src.algebra.Square.E2)
+	control.click(src.algebra.Square.E4)
+
+	assert not control.hover(control.layout.square_rect(src.algebra.Square.E4).center)
+	assert cursors[-1] == pygame.cursors.Cursor(pygame.SYSTEM_CURSOR_ARROW)
+
+	assert control.hover(control.layout.square_rect(src.algebra.Square.E7).center)
+	assert cursors[-1] == pygame.cursors.Cursor(pygame.SYSTEM_CURSOR_HAND)
 
 
 def test_promotion_cycle_commit_and_cancel():
@@ -55,6 +100,16 @@ def test_promotion_cycle_commit_and_cancel():
 	assert control.state.promotion is None
 	assert control.state.selected is None
 	assert isinstance(game[src.algebra.Square.A8], src.material.Rook)
+
+	game = src.engine.Game.from_forsyth_edwards(notation)
+	control = controller(game)
+	control.click(src.algebra.Square.A7)
+	control.click(src.algebra.Square.A8)
+	control.click(src.algebra.Square.E1)
+
+	assert control.state.promotion is None
+	assert control.state.selected is game[src.algebra.Square.E1]
+	assert isinstance(game[src.algebra.Square.A7], src.material.Pawn)
 
 	game = src.engine.Game.from_forsyth_edwards(notation)
 	control = controller(game)
