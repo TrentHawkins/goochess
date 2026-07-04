@@ -32,7 +32,6 @@ class Piece:
 
 		self._moved: bool = False
 
-
 	def __repr__(self) -> str:
 		return self.forsyth_edwards
 
