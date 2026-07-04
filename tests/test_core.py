@@ -60,15 +60,19 @@ def test_castling_targets_and_execution():
 		"4♚3/8/8/8/8/8/8/♖3♔2♖ w KQ - 0 1"
 	)
 	king = game[src.algebra.Square.E1]
+	rook = game[src.algebra.Square.H1]
 	assert isinstance(king, src.material.King)
+	assert isinstance(rook, src.material.Rook)
 
 	assert isinstance(king.squares.get(src.algebra.Square.C1), src.rules.CastWest)
 	assert isinstance(king.squares.get(src.algebra.Square.G1), src.rules.CastEast)
 
 	move(game, src.algebra.Square.E1, src.algebra.Square.G1)
 
-	assert isinstance(game[src.algebra.Square.G1], src.material.King)
-	assert isinstance(game[src.algebra.Square.F1], src.material.Rook)
+	assert game[src.algebra.Square.G1] is king
+	assert game[src.algebra.Square.F1] is rook
+	assert game[src.algebra.Square.E1] is None
+	assert game[src.algebra.Square.H1] is None
 
 
 def test_en_passant_expires_after_one_reply():

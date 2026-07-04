@@ -95,6 +95,7 @@ def _image(theme_kind: str, theme_name: str, path: Path, label: str, *, alpha: b
 class BoardTheme:
 
 	spec: BoardThemeSpec
+	backdrop: pygame.Surface
 	background: pygame.Surface
 	square: pygame.Surface
 	font: pygame.font.Font
@@ -103,6 +104,11 @@ class BoardTheme:
 
 	@classmethod
 	def load(cls, spec: BoardThemeSpec, layout: LayoutSpec) -> BoardTheme:
+		backdrop = pygame.Surface(layout.window).convert()
+		backdrop.fill(spec.palette.background)
+		backdrop.fill(spec.palette.flash,
+			special_flags = pygame.BLEND_RGBA_MULT,
+		)
 		background = pygame.transform.smoothscale(
 			_image("Board", spec.name, spec.background, "background"),
 			layout.window,
@@ -130,7 +136,7 @@ class BoardTheme:
 				rank   = pygame.transform.smoothscale(_image("Board", spec.name, spec.frame.rank  , "frame rank"), (corner_size[0], square_h)),
 			)
 
-		return cls(spec, background, square, font, frame)
+		return cls(spec, backdrop, background, square, font, frame)
 
 	@property
 	def palette(self) -> BoardPalette:

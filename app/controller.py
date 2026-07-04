@@ -10,6 +10,7 @@ import src.engine
 import src.material
 import src.rules
 
+from app.animation import MoveAnimator
 from app.layout import BoardLayout
 
 
@@ -30,10 +31,12 @@ class GameController:
 		game: src.engine.Game,
 		layout: BoardLayout,
 		state: InteractionState | None = None,
+		animator: MoveAnimator | None = None,
 	):
 		self.game = game
 		self.layout = layout
 		self.state = state if state is not None else InteractionState()
+		self.animator = animator if animator is not None else MoveAnimator()
 		self._cursor: pygame.cursors.Cursor | None = None
 
 
@@ -54,7 +57,7 @@ class GameController:
 	def hover(self, position: tuple[int, int]) -> bool:
 		square = self.layout.square_at(position)
 		piece = None if square is None else self.game[square]
-		playable = piece is not None and bool(piece.side)
+		playable = not self.animator.active and piece is not None and bool(piece.side)
 		cursor = _HAND_CURSOR if playable else _ARROW_CURSOR
 
 		if cursor != self._cursor:
@@ -64,6 +67,9 @@ class GameController:
 		return playable
 
 	def click(self, square: src.algebra.Square) -> bool:
+		if self.animator.active:
+			return False
+
 		if self.state.promotion is not None:
 			promotion = self.state.promotion
 
@@ -74,7 +80,7 @@ class GameController:
 				return True
 
 			if square == promotion.target:
-				self.game += promotion
+				self.animator.start(promotion)
 				self.state.selected = None
 
 			else:
@@ -91,7 +97,7 @@ class GameController:
 					self.state.promotion = rule
 
 				else:
-					self.game += rule
+					self.animator.start(rule)
 					self.state.selected = None
 			else:
 				self.reselect(square)
@@ -108,3 +114,12 @@ class GameController:
 	def reselect(self, square: src.algebra.Square) -> None:
 		piece = self.game[square]
 		self.state.selected = piece if piece is not None and piece is not self.state.selected and piece.side else None
+
+	def update(self, seconds: float) -> bool:
+		rule = self.animator.advance(seconds)
+
+		if rule is None:
+			return False
+
+		self.game += rule
+		return True

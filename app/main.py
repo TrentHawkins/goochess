@@ -5,6 +5,7 @@ import pygame
 
 import src.engine
 
+from app.animation import MoveAnimator
 from app.controller import GameController, InteractionState
 from app.layout import BoardLayout, LayoutSpec
 from app.theme import load_appearance
@@ -20,22 +21,22 @@ def main():
 	layout = BoardLayout(layout_spec)
 	game = src.engine.Game.from_forsyth_edwards()
 	state = InteractionState()
-	controller = GameController(game, layout, state)
-	view = GameView(layout, appearance)
+	animator = MoveAnimator()
+	controller = GameController(game, layout, state, animator)
+	view = GameView(layout, appearance, animator)
+	clock = pygame.time.Clock()
 
 	running = True
 
 	while running:
+		controller.update(clock.tick(60) / 1000)
+
 		for event in pygame.event.get():
 			if event.type == pygame.QUIT: running = False
 			if event.type == pygame.KEYDOWN and event.key == pygame.K_F12: pygame.image.save(screen, "game/screenshot.png")
 
 			controller.handle(event)
 
-		screen.fill(appearance.board.palette.background)
-		screen.fill(appearance.board.palette.flash,
-			special_flags = pygame.BLEND_RGBA_MULT,
-		)
 		view.draw(screen, game, state)
 
 		pygame.display.flip()

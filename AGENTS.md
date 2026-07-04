@@ -2,7 +2,7 @@
 
 ## Project Structure & Module Organization
 
-The Pygame-free chess core lives in `src/`: `engine.py` owns game state, `rules.py` executable moves, `material.py` pieces, and `algebra.py` coordinates. The optional frontend lives in `app/`; its controller translates input, views render state, layout maps squares to pixels, and independent board/piece theme specifications load assets. The dependency direction is strictly `app → src`; never import `app` or Pygame from `src`. Experimental hex logic is isolated in `hex/`. Runtime artwork belongs in `graphics/`.
+The Pygame-free chess core lives in `src/`: `engine.py` owns game state, `rules.py` executable moves, `material.py` pieces, and `algebra.py` coordinates. The optional frontend lives in `app/`; its controller translates input, animation stages deferred moves, views render state, layout maps squares to pixels, and independent board/piece theme specifications load assets. The dependency direction is strictly `app → src`; never import `app` or Pygame from `src`. Experimental hex logic is isolated in `hex/`. Runtime artwork belongs in `graphics/`.
 
 Read [`.agents/PROJECT_CONTEXT.md`](.agents/PROJECT_CONTEXT.md) before structural work; it records the runtime flow, invariants, and current limitations.
 

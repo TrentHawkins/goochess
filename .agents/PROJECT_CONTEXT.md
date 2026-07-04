@@ -70,6 +70,7 @@ Always run the frontend from the repository root because theme specifications us
 | `src/engine.py` | `Board`, per-color `Side` indexes, `History`, FEN-like loading, and game state. |
 | `src/material.py` | Piece hierarchy, movement generation, material values, and promotion choices. |
 | `src/rules.py` | Executable move objects and specializations for capture, rush, en passant, promotion, and castling. |
+| `app/animation.py` | Time-based move transitions that defer core rule execution until animated pieces arrive. |
 | `app/controller.py` | Pygame event translation plus selection and pending-promotion state. |
 | `app/views.py` | Composed board, square, move, and piece views; rendering is read-only over core state. |
 | `app/layout.py` | Display geometry, square rectangles, and hit-testing. |
@@ -95,12 +96,12 @@ Turn is derived solely from `len(game.history)`: even is White, odd is Black. `H
 1. `GameController` maps a Pygame click through `BoardLayout.square_at()`.
 2. `InteractionState` owns the selected piece and any pending promotion; `Game` contains chess state only.
 3. `Piece.targets` creates pseudo-legal `Move`/`Capt` objects; `Piece.squares` temporarily executes each move as a context manager and removes moves that expose its king.
-4. The controller calls `game += rule`; this executes the rule, appends it to history, advances the turn, and expires the previous en-passant ghost.
+4. The controller stages the rule in `MoveAnimator`; after its presentation-only transition finishes, the controller calls `game += rule`, which executes the rule, appends it to history, advances the turn, and expires the previous en-passant ghost.
 5. The controller stages promotion, cycles `Officer`, and commits the explicitly configured core `Promotion`.
 
 Move objects subclass square behavior, so a highlighted destination also carries execution and notation state. `rules.specialize()` dynamically composes modifiers onto an existing move. Castling moves the rook inside `King.__call__`; pawn rush creates a `Ghost`, and en passant removes the pawn behind that ghost.
 
-`GameView` reads `Game` and `InteractionState`, then composes `BoardView`, `MoveView`, and `PieceView`. Rendering never mutates core objects. Layout is independent from appearance. `BoardThemeSpec` defines board assets, optional bevel-frame assets, and board/highlight colors; `PieceThemeSpec` defines explicit type/color styles and piece effects. Their separate registries provide `bevel` (the default historical framed board), unframed `wood`, and `default` pieces, which `Appearance` composes after Pygame initialization.
+`GameView` reads `Game`, `InteractionState`, and `MoveAnimator`, then composes `BoardView`, `MoveView`, `PieceView`, and `AnimationView`. Rendering never mutates core objects. A move animation uses a fixed-duration sinusoidal ease-in-out, draws movers above stationary pieces, and leaves captures and promotion mutation pending until arrival. Castling contributes simultaneous king and rook motions. Layout is independent from appearance. `BoardThemeSpec` defines board assets, optional bevel-frame assets, and board/highlight colors; its runtime theme pre-blends the static backdrop once rather than repeating a full-window blend each frame. `PieceThemeSpec` defines explicit type/color styles and piece effects. Their separate registries provide `bevel` (the default historical framed board), unframed `wood`, and `default` pieces, which `Appearance` composes after Pygame initialization.
 
 ## Known Limitations and Risk Areas
 

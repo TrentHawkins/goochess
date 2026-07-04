@@ -8,10 +8,12 @@ import pytest
 
 import src.algebra
 import src.engine
+import src.material
 import src.rules
 
 pytest.importorskip("pygame")
 
+from app.animation import MoveAnimator
 from app.controller import InteractionState
 from app.layout import BoardLayout, LayoutSpec
 from app.theme import (
@@ -25,7 +27,7 @@ from app.theme import (
 	load_appearance,
 	piece_theme_spec,
 )
-from app.views import GameView
+from app.views import GameView, PieceView
 
 
 def test_independent_theme_registries_and_assets(pygame_screen):
@@ -37,6 +39,7 @@ def test_independent_theme_registries_and_assets(pygame_screen):
 	assert appearance.board.spec.name == "bevel"
 	assert appearance.pieces.spec.name == "default"
 	assert len(appearance.pieces.surfaces) == 14
+	assert appearance.board.backdrop.get_size() == layout.window
 	assert appearance.board.background.get_size() == layout.window
 	assert appearance.board.square.get_size() == layout.square_size
 	assert appearance.board.frame is not None
@@ -77,7 +80,7 @@ def test_rendering_does_not_mutate_core_state(pygame_screen):
 	state = InteractionState(selected = game[src.algebra.Square.E2])
 	layout = LayoutSpec()
 	appearance = load_appearance(layout)
-	view = GameView(BoardLayout(layout), appearance)
+	view = GameView(BoardLayout(layout), appearance, MoveAnimator())
 	before = [
 		None if piece is None else (id(piece), piece.square, piece.color)
 		for piece in game
@@ -106,7 +109,7 @@ def test_rendering_pending_promotion(pygame_screen):
 
 	layout = LayoutSpec()
 	appearance = load_appearance(layout)
-	view = GameView(BoardLayout(layout), appearance)
+	view = GameView(BoardLayout(layout), appearance, MoveAnimator())
 	view.draw(
 		pygame_screen,
 		game,
@@ -115,3 +118,46 @@ def test_rendering_pending_promotion(pygame_screen):
 
 	assert game[src.algebra.Square.A7] is pawn
 	assert game[src.algebra.Square.A8] is None
+
+
+def test_animation_draws_mover_above_captured_piece(pygame_screen, monkeypatch):
+	game = src.engine.Game.from_forsyth_edwards(
+		"8/8/8/3♟4/4♙3/8/8/4♔3 w - - 0 1"
+	)
+	pawn = game[src.algebra.Square.E4]
+	captured = game[src.algebra.Square.D5]
+	assert pawn is not None
+	assert captured is not None
+
+	rule = pawn.squares.get(src.algebra.Square.D5)
+	assert rule is not None
+
+	animator = MoveAnimator()
+	animator.start(rule)
+	animator.advance(animator.spec.duration / 2)
+	drawn: list[tuple[src.material.Piece, tuple[int, int] | None]] = []
+
+	def draw(
+		view: PieceView,
+		_screen,
+		*,
+		selected: bool = False,
+		ghost_visible: bool = False,
+		center: tuple[int, int] | None = None,
+	):
+		drawn.append((view.piece, center))
+
+	monkeypatch.setattr(PieceView, "draw", draw)
+
+	layout = LayoutSpec()
+	GameView(
+		BoardLayout(layout),
+		load_appearance(layout),
+		animator,
+	).draw(pygame_screen, game, InteractionState())
+
+	assert drawn.index((captured, None)) < next(
+		index for index, (piece, _) in enumerate(drawn) if piece is pawn
+	)
+	assert drawn[-1][0] is pawn
+	assert drawn[-1][1] is not None

@@ -10,6 +10,7 @@ import src.engine
 import src.material
 import src.rules
 
+from app.animation import MoveAnimation, MoveAnimator
 from app.controller import InteractionState
 from app.layout import BoardLayout
 from app.theme import Appearance, BoardTheme, PieceTheme, RGB
@@ -90,11 +91,14 @@ class PieceView:
 
 	@property
 	def rect(self) -> pygame.Rect:
+		return self.rect_at(self.layout.square_rect(self.piece.square).center)
+
+	def rect_at(self, center: tuple[int, int]) -> pygame.Rect:
 		style = self.theme.style(self.piece)
 		base_x, base_y = self.layout.spec.piece_offset
 		offset_x, offset_y = style.offset
 
-		return self.theme.surface(self.piece).get_rect(center = self.layout.square_rect(self.piece.square).center).move(
+		return self.theme.surface(self.piece).get_rect(center = center).move(
 			base_x + offset_x,
 			base_y + offset_y,
 		)
@@ -102,6 +106,7 @@ class PieceView:
 	def draw(self, screen: pygame.Surface, *,
 		selected: bool = False,
 		ghost_visible: bool = False,
+		center: tuple[int, int] | None = None,
 	):
 		surface = self.theme.surface(self.piece)
 
@@ -118,7 +123,7 @@ class PieceView:
 				special_flags = pygame.BLEND_RGB_ADD,
 			)
 
-		screen.blit(surface, self.rect)
+		screen.blit(surface, self.rect if center is None else self.rect_at(center))
 
 	def draw_promotion(self, screen: pygame.Surface, officer: src.material.Officer):
 		screen.blit(
@@ -145,6 +150,8 @@ class BoardView:
 		screen.blit(text, text_rect)
 
 	def draw(self, screen: pygame.Surface):
+		screen.blit(self.theme.backdrop, (0, 0))
+
 		board_w, board_h = self.layout.spec.board_size
 		board_rect = self.layout.board_rect
 		square_w, square_h = self.layout.spec.square_size
@@ -199,10 +206,30 @@ class BoardView:
 
 
 @dataclass(frozen = True, slots = True)
+class AnimationView:
+
+	animation: MoveAnimation
+	layout: BoardLayout
+	theme: PieceTheme
+
+
+	def draw(self, screen: pygame.Surface):
+		for motion in self.animation.motions:
+			source = pygame.Vector2(self.layout.square_rect(motion.source).center)
+			target = pygame.Vector2(self.layout.square_rect(motion.target).center)
+			position = source.lerp(target, self.animation.progress)
+
+			PieceView(motion.piece, self.layout, self.theme).draw(screen,
+				center = (round(position.x), round(position.y)),
+			)
+
+
+@dataclass(frozen = True, slots = True)
 class GameView:
 
 	layout: BoardLayout
 	appearance: Appearance
+	animator: MoveAnimator
 
 
 	def draw(self,
@@ -222,9 +249,11 @@ class GameView:
 				MoveView(move, self.layout, self.appearance).draw(screen)
 
 		visible_ghosts = {move.other for move in moves if isinstance(move, src.rules.EnPassant) and move.other is not None}
+		animation = self.animator.current
+		moving = set() if animation is None else {motion.piece for motion in animation.motions}
 
 		for piece in game:
-			if piece is None:
+			if piece is None or piece in moving:
 				continue
 
 			view = PieceView(piece, self.layout, self.appearance.pieces)
@@ -237,3 +266,6 @@ class GameView:
 					selected = piece is state.selected,
 					ghost_visible = piece in visible_ghosts,
 				)
+
+		if animation is not None:
+			AnimationView(animation, self.layout, self.appearance.pieces).draw(screen)

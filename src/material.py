@@ -248,10 +248,10 @@ class King(Melee, Star):
 		assert (source := self.square) is not None
 
 		if not self.moved:
-			if self.side.arook is not None and target == source + src.algebra.Vector.E2:
-				self.side.arook(target + src.algebra.Vector.W, kept)
-			if self.side.hrook is not None and target == source + src.algebra.Vector.W2:
-				self.side.hrook(target + src.algebra.Vector.E, kept)
+			if self.side.hrook is not None and target == source + src.algebra.Vector.E2:
+				self.side.hrook(target + src.algebra.Vector.W, kept)
+			if self.side.arook is not None and target == source + src.algebra.Vector.W2:
+				self.side.arook(target + src.algebra.Vector.E, kept)
 
 		return super().__call__(target, kept)
 
