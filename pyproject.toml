@@ -23,6 +23,9 @@ dev = [
 ignored-modules = [
     "pygame",
 ]
+source-roots = [
+    ".",
+]
 
 [tool.pylint.format]
 indent-string = "\t"
