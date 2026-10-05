@@ -15,6 +15,9 @@ dev = [
     "pytest",
 ]
 
+[tool.pyright]
+typeCheckingMode = "basic"
+
 [tool.pylint.main]
 ignored-modules = [
     "pygame",
