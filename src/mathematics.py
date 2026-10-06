@@ -1,13 +1,44 @@
 from __future__ import annotations
 
 
-from typing import ClassVar, Self, SupportsIndex, overload
+import math
+import operator
+
+from typing import Callable, Self, SupportsIndex, overload
 
 
-array = tuple[int, ...]
+def exp(x: float, /) -> float:
+	try:
+		return math.exp(x)
+
+	except OverflowError:
+		return math.inf
 
 
-class vector(array):
+def log(x: float, /) -> float:
+	try:
+		return math.log(x)
+
+	except ValueError:
+		if x:
+			return math.nan
+
+		return -math.inf
+
+
+def inv(x: float, /) -> float:
+	try:
+		return 1 / x
+
+	except ZeroDivisionError:
+		return math.copysign(math.inf, x)
+
+
+type number = int | float
+type array = tuple[int, ...]
+
+
+class vector(tuple[int, ...]):
 
 	def __getnewargs__(self) -> array:
 		return tuple(self)
@@ -114,3 +145,59 @@ class index(int):
 			components.append(component)
 
 		return vector(*components)
+
+
+class average(float):
+
+	encode: Callable[[float], float] = staticmethod(float)
+	decode: Callable[[float], float] = staticmethod(float)
+
+
+	def __new__(cls, x: float, _: int | None = None, /) -> Self:
+		return super().__new__(cls, x)
+
+	def __init__(self, x: float, count: int | None = None, /) -> None:
+		super().__init__()
+
+		if count is None:
+			count = x.count if isinstance(x, average) else 1
+
+		if count < 0:
+			raise ValueError
+
+		self.count = count
+
+	def __add__(self, other: float | average, /) -> Self: return self.operator(other, operator = operator.add)
+	def __sub__(self, other: float | average, /) -> Self: return self.operator(other, operator = operator.sub)
+
+	def __radd__(self, other: float | average, /) -> float | Self:
+		if not isinstance(other, average) and other == 0:
+			return self
+
+		return super().__radd__(other)
+
+
+	def operator(self, other: float | average, /, *,
+		operator: Callable[[number, number], number],
+	) -> Self:
+		cls = type(self)
+
+		other = cls(other)
+		count = int(operator(self.count, other.count))
+
+		left  = self. count * cls.encode(self ) if self .count else 0
+		right = other.count * cls.encode(other) if other.count else 0
+
+		return cls(cls.decode(operator(left, right) / count if count else 0), count)
+
+
+class geometric(average):
+
+	encode = staticmethod(log)
+	decode = staticmethod(exp)
+
+
+class harmonic(average):
+
+	encode = staticmethod(inv)
+	decode = staticmethod(inv)
