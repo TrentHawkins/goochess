@@ -78,8 +78,8 @@ class vector(tuple[int, ...]):
 		return sum(self * other)
 
 	def __radd__(self, other: int | array, /) -> Self: return  self + other
-	def __rmul__(self, other: int | array, /) -> Self: return  self * other
 	def __rsub__(self, other: int | array, /) -> Self: return -self + other
+	def __rmul__(self, other: int | array, /) -> Self: return  self * other
 
 	def __rmatmul__(self, other: int | array, /) -> int:
 		return self @ other
@@ -98,12 +98,15 @@ class vector(tuple[int, ...]):
 		cls = type(self)
 
 		if isinstance(other, int):
+			if isinstance(other, index):
+				return NotImplemented
+
 			if other == identity:
 				return self
 
 			other = (other,) * len(self)
 
-		return cls(*(operator(left, right) for left, right in zip(self, other, strict = True)))
+		return cls(*(operator(left, right) for left, right in zip(self, other)))
 
 
 class index(int):
@@ -111,15 +114,46 @@ class index(int):
 	base: int
 
 
+	def __new__(cls, x: int | array) -> Self:
+		if isinstance(x, int):
+			if x < 0:
+				raise ValueError
+
+			return super().__new__(cls, x)
+
+		if any(not 0 <= component < cls.base for component in x):
+			raise ValueError
+
+		return cls(sum(component * cls.base ** power for power, component in enumerate(x)))
+
 	def __init_subclass__(cls, *, base: int, **kwargs) -> None:
 		super().__init_subclass__(**kwargs)
 
 		cls.base = base
 
+	def __add__(self, other: array, /) -> Self:
+		cls = type(self)
 
-	@classmethod
-	def from_vector(cls, vector: vector) -> Self:
-		return cls(sum(component * cls.base ** power for power, component in enumerate(vector)))
+		return cls(self.vector + other)
+
+	def __radd__(self, other: array, /) -> Self:
+		return self + other
+
+	@overload
+	def __sub__(self, other: int, /) -> vector:
+		...
+
+	@overload
+	def __sub__(self, other: array, /) -> Self:
+		...
+
+	def __sub__(self, other: int | array, /) -> vector | Self:
+		cls = type(self)
+
+		if isinstance(other, int):
+			return self.vector - cls(other).vector
+
+		return cls(self.vector - other)
 
 	@property
 	def vector(self) -> vector:
