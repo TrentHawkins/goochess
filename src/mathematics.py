@@ -37,6 +37,9 @@ def inv(x: float, /) -> float:
 type number = int | float
 type array = tuple[int, ...]
 
+type function[T] = Callable[[T], T]
+type operation[T] = Callable[[T, T], T]
+
 
 class vector(tuple[int, ...]):
 
@@ -92,7 +95,7 @@ class vector(tuple[int, ...]):
 
 
 	def operator(self, other: int | array, /, *,
-		operator: Callable[[int, int], int],
+		operator: operation[int],
 		identity: int,
 	) -> Self:
 		cls = type(self)
@@ -169,8 +172,8 @@ class index(int):
 
 class average(float):
 
-	encode: Callable[[float], float] = staticmethod(float)
-	decode: Callable[[float], float] = staticmethod(float)
+	encode: function[float] = staticmethod(float)
+	decode: function[float] = staticmethod(float)
 
 
 	def __new__(cls, x: float, _: int | None = None, /) -> Self:
@@ -198,15 +201,15 @@ class average(float):
 
 
 	def operator(self, other: float | average, /, *,
-		operator: Callable[[number, number], number],
+		operator: operation[float],
 	) -> Self:
 		cls = type(self)
 
 		other = cls(other)
 		count = int(operator(self.count, other.count))
 
-		left  = self. count * cls.encode(self ) if self .count else 0
-		right = other.count * cls.encode(other) if other.count else 0
+		left  = self. count * cls.encode(self ) if self .count else 0.
+		right = other.count * cls.encode(other) if other.count else 0.
 
 		return cls(cls.decode(operator(left, right) / count if count else 0), count)
 
