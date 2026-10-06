@@ -7,7 +7,7 @@ from typing import ClassVar, Self, SupportsIndex, overload
 array = tuple[int, ...]
 
 
-class Vector(array):
+class vector(array):
 
 	def __getnewargs__(self) -> array:
 		return tuple(self)
@@ -48,7 +48,7 @@ class Vector(array):
 
 			other = (other,) * len(self)
 
-		return cls(*(left + right for left, right in zip(self, other)))
+		return cls(*(left + right for left, right in zip(self, other, strict = True)))
 
 	def __sub__(self, other: int | array, /) -> Self:
 		return -(-self + other)
@@ -62,13 +62,13 @@ class Vector(array):
 
 			other = (other,) * len(self)
 
-		return cls(*(left * right for left, right in zip(self, other)))
+		return cls(*(left * right for left, right in zip(self, other, strict = True)))
 
 	def __matmul__(self, other: int | array, /) -> int:
 		if isinstance(other, int):
 			other = (other,) * len(self)
 
-		return sum(left * right for left, right in zip(self, other))
+		return sum(left * right for left, right in zip(self, other, strict = True))
 
 	def __radd__(self, other: int | array, /) -> Self: return  self + other
 	def __rmul__(self, other: int | array, /) -> Self: return  self * other
@@ -89,21 +89,23 @@ class Vector(array):
 		return self @ self
 
 
-class Index(int):
+class index(int):
 
-	base: ClassVar[int]
+	base: int
+
 
 	def __init_subclass__(cls, *, base: int, **kwargs) -> None:
 		super().__init_subclass__(**kwargs)
 
 		cls.base = base
 
+
 	@classmethod
-	def from_vector(cls, vector: Vector) -> Self:
+	def from_vector(cls, vector: vector) -> Self:
 		return cls(sum(component * cls.base ** power for power, component in enumerate(vector)))
 
-	def to_vector(self) -> Vector:
-		"""Decode a nonnegative index in base >= 2 to its shortest nonempty vector."""
+	@property
+	def vector(self) -> vector:
 		components = []
 		remaining = int(self)
 
@@ -111,4 +113,4 @@ class Index(int):
 			remaining, component = divmod(remaining, self.base)
 			components.append(component)
 
-		return Vector(*components)
+		return vector(*components)
