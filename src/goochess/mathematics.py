@@ -16,16 +16,8 @@ type mutation[*T] = typing.Callable[[str, *T], None]
 
 class vector(tuple[int, ...]):
 
-	def __getnewargs__(self) -> array[int]:
-		return tuple(self)
-
-	def __new__(cls, *components: int) -> typing.Self:
+	def __new__(cls, components: typing.Iterable[int] = (), /) -> typing.Self:
 		return super().__new__(cls, components)
-
-	def __repr__(self) -> str:
-		cls = type(self)
-
-		return cls.__name__ + super().__repr__()
 
 	def __bool__(self) -> bool:
 		return any(self)
@@ -42,7 +34,7 @@ class vector(tuple[int, ...]):
 		cls = type(self)
 
 		if isinstance(key, slice):
-			return cls(*super().__getitem__(key))
+			return cls(super().__getitem__(key))
 
 		return super().__getitem__(key)
 
@@ -82,46 +74,40 @@ class vector(tuple[int, ...]):
 
 			other = (other,) * len(self)
 
-		return cls(*(operator(left, right) for left, right in zip(self, other)))
+		return cls(operator(left, right) for left, right in zip(self, other, strict = True))
 
 
 class index(int):
 
+	dim : int
 	base: int
 
 
 	def __new__(cls, x: int | array[int]) -> typing.Self:
 		if isinstance(x, int):
-			if x < 0:
+			if not 0 <= x < cls.base ** cls.dim:
 				raise ValueError
 
 			return super().__new__(cls, x)
 
-		if any(not 0 <= component < cls.base for component in x):
-			raise ValueError
+		return cls.from_vector(x)
 
-		return cls(sum(component * cls.base ** power for power, component in enumerate(x)))
+	def __init_subclass__(cls, *args,
+		dim : int | None = None,
+		base: int | None = None,
+	**kwargs) -> None:
+		super().__init_subclass__(*args, **kwargs)
 
-	def __init_subclass__(cls, *, base: int, **kwargs) -> None:
-		super().__init_subclass__(**kwargs)
-
-		cls.base = base
+		if dim  is not None: cls.dim  = dim
+		if base is not None: cls.base = base
 
 	def __add__(self, other: array[int], /) -> typing.Self:
 		cls = type(self)
 
-		return cls(self.vector + other)
+		return cls.from_vector(self.vector + other)
 
 	def __radd__(self, other: array[int], /) -> typing.Self:
 		return self + other
-
-	@typing.overload
-	def __sub__(self, other: int, /) -> vector:
-		...
-
-	@typing.overload
-	def __sub__(self, other: array[int], /) -> typing.Self:
-		...
 
 	def __sub__(self, other: int | array[int], /) -> vector | typing.Self:
 		cls = type(self)
@@ -129,18 +115,28 @@ class index(int):
 		if isinstance(other, int):
 			return self.vector - cls(other).vector
 
-		return cls(self.vector - other)
+		return cls.from_vector(self.vector - other)
+
+
+	@classmethod
+	def from_vector(cls, components: array[int], /) -> typing.Self:
+
+		if len(components) != cls.dim or any(not 0 <= component < cls.base for component in components):
+			raise ValueError
+
+		return cls(sum(component * cls.base ** power for power, component in enumerate(components)))
+
 
 	@property
 	def vector(self) -> vector:
 		components = []
 		remaining = int(self)
 
-		while remaining:
+		for _ in range(self.dim):
 			remaining, component = divmod(remaining, self.base)
 			components.append(component)
 
-		return vector(*components)
+		return vector(components)
 
 
 class fraction(numbers.Number):
@@ -169,7 +165,6 @@ class fraction(numbers.Number):
 		self.denominator = denominator // common if common else denominator
 
 	def __getstate__(self) -> object:
-		# Legacy pickle protocols require an explicit hook for slotted objects.
 		return super().__getstate__()
 
 	def __repr__(self) -> str:
