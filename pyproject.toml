@@ -22,12 +22,12 @@ venv = ".venv"
 
 [tool.pytest.ini_options]
 pythonpath = [
-    "src",
+    ".",
 ]
 
 [tool.pylint.main]
 source-roots = [
-    "src",
+    ".",
 ]
 ignored-modules = [
     "pygame",
