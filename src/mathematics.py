@@ -2,51 +2,24 @@ from __future__ import annotations
 
 
 import math
+import numbers
 import operator
-
-from typing import Callable, Self, SupportsIndex, overload
-
-
-def exp(x: float, /) -> float:
-	try:
-		return math.exp(x)
-
-	except OverflowError:
-		return math.inf
+import sys
+import typing
 
 
-def log(x: float, /) -> float:
-	try:
-		return math.log(x)
-
-	except ValueError:
-		if x:
-			return math.nan
-
-		return -math.inf
-
-
-def inv(x: float, /) -> float:
-	try:
-		return 1 / x
-
-	except ZeroDivisionError:
-		return math.copysign(math.inf, x)
-
-
-type number = int | float
-type array = tuple[int, ...]
-
-type function[T] = Callable[[T], T]
-type operation[T] = Callable[[T, T], T]
+type pair[T] = tuple[T, T]
+type array[T] = tuple[T, ...]
+type operation[T] = typing.Callable[[T, T], T]
+type comparison[T] = typing.Callable[[T, T], bool]
 
 
 class vector(tuple[int, ...]):
 
-	def __getnewargs__(self) -> array:
+	def __getnewargs__(self) -> array[int]:
 		return tuple(self)
 
-	def __new__(cls, *components: int) -> Self:
+	def __new__(cls, *components: int) -> typing.Self:
 		return super().__new__(cls, components)
 
 	def __repr__(self) -> str:
@@ -57,15 +30,15 @@ class vector(tuple[int, ...]):
 	def __bool__(self) -> bool:
 		return any(self)
 
-	@overload
-	def __getitem__(self, key: SupportsIndex, /) -> int:
+	@typing.overload
+	def __getitem__(self, key: typing.SupportsIndex, /) -> int:
 		...
 
-	@overload
-	def __getitem__(self, key: slice, /) -> Self:
+	@typing.overload
+	def __getitem__(self, key: slice, /) -> typing.Self:
 		...
 
-	def __getitem__(self, key: SupportsIndex | slice, /) -> int | Self:
+	def __getitem__(self, key: typing.SupportsIndex | slice, /) -> int | typing.Self:
 		cls = type(self)
 
 		if isinstance(key, slice):
@@ -73,31 +46,31 @@ class vector(tuple[int, ...]):
 
 		return super().__getitem__(key)
 
-	def __add__(self, other: int | array, /) -> Self: return self.operator(other, operator = operator.add, identity = 0)
-	def __sub__(self, other: int | array, /) -> Self: return self.operator(other, operator = operator.sub, identity = 0)
-	def __mul__(self, other: int | array, /) -> Self: return self.operator(other, operator = operator.mul, identity = 1)
+	def __add__(self, other: int | array[int], /) -> typing.Self: return self.operate(other, operator = operator.add, identity = 0)
+	def __sub__(self, other: int | array[int], /) -> typing.Self: return self.operate(other, operator = operator.sub, identity = 0)
+	def __mul__(self, other: int | array[int], /) -> typing.Self: return self.operate(other, operator = operator.mul, identity = 1)
 
-	def __matmul__(self, other: int | array, /) -> int:
+	def __matmul__(self, other: int | array[int], /) -> int:
 		return sum(self * other)
 
-	def __radd__(self, other: int | array, /) -> Self: return  self + other
-	def __rsub__(self, other: int | array, /) -> Self: return -self + other
-	def __rmul__(self, other: int | array, /) -> Self: return  self * other
+	def __radd__(self, other: int | array[int], /) -> typing.Self: return  self + other
+	def __rsub__(self, other: int | array[int], /) -> typing.Self: return -self + other
+	def __rmul__(self, other: int | array[int], /) -> typing.Self: return  self * other
 
-	def __rmatmul__(self, other: int | array, /) -> int:
+	def __rmatmul__(self, other: int | array[int], /) -> int:
 		return self @ other
 
-	def __pos__(self) -> Self: return self
-	def __neg__(self) -> Self: return self * -1
+	def __pos__(self) -> typing.Self: return self
+	def __neg__(self) -> typing.Self: return self * -1
 
 	def __abs__(self) -> int:
 		return self @ self
 
 
-	def operator(self, other: int | array, /, *,
+	def operate(self, other: int | array[int], /, *,
 		operator: operation[int],
 		identity: int,
-	) -> Self:
+	) -> typing.Self:
 		cls = type(self)
 
 		if isinstance(other, int):
@@ -117,7 +90,7 @@ class index(int):
 	base: int
 
 
-	def __new__(cls, x: int | array) -> Self:
+	def __new__(cls, x: int | array[int]) -> typing.Self:
 		if isinstance(x, int):
 			if x < 0:
 				raise ValueError
@@ -134,23 +107,23 @@ class index(int):
 
 		cls.base = base
 
-	def __add__(self, other: array, /) -> Self:
+	def __add__(self, other: array[int], /) -> typing.Self:
 		cls = type(self)
 
 		return cls(self.vector + other)
 
-	def __radd__(self, other: array, /) -> Self:
+	def __radd__(self, other: array[int], /) -> typing.Self:
 		return self + other
 
-	@overload
+	@typing.overload
 	def __sub__(self, other: int, /) -> vector:
 		...
 
-	@overload
-	def __sub__(self, other: array, /) -> Self:
+	@typing.overload
+	def __sub__(self, other: array[int], /) -> typing.Self:
 		...
 
-	def __sub__(self, other: int | array, /) -> vector | Self:
+	def __sub__(self, other: int | array[int], /) -> vector | typing.Self:
 		cls = type(self)
 
 		if isinstance(other, int):
@@ -170,57 +143,132 @@ class index(int):
 		return vector(*components)
 
 
-class average(float):
+class fraction(numbers.Number):
 
-	encode: function[float] = staticmethod(float)
-	decode: function[float] = staticmethod(float)
+	def __init__(self, numerator: int | fraction = 0, denominator: int = 1, /):
+		if isinstance(numerator, fraction):
+			self.numerator   = numerator.numerator
+			self.denominator = numerator.denominator
 
+			return
 
-	def __new__(cls, x: float, _: int | None = None, /) -> Self:
-		return super().__new__(cls, x)
+		self.numerator   = numerator
+		self.denominator = denominator
 
-	def __init__(self, x: float, count: int | None = None, /) -> None:
-		super().__init__()
+		common = math.gcd(self.numerator, self.denominator)
 
-		if count is None:
-			count = x.count if isinstance(x, average) else 1
+		if self.denominator < 0:
+			common = -common
 
-		if count < 0:
-			raise ValueError
+		if common:
+			self.numerator   //= common
+			self.denominator //= common
 
-		self.count = count
+	def __repr__(self) -> str:
+		return f"{self.numerator:+}/{self.denominator}"
 
-	def __add__(self, other: float | average, /) -> Self: return self.operator(other, operator = operator.add)
-	def __sub__(self, other: float | average, /) -> Self: return self.operator(other, operator = operator.sub)
+	def __hash__(self) -> int:
+		if self.denominator == 0:
+			if self.numerator == 0:
+				return hash(math.nan)
 
-	def __radd__(self, other: float | average, /) -> float | Self:
-		if not isinstance(other, average) and other == 0:
-			return self
+			return hash(math.copysign(math.inf, self.numerator))
 
-		return super().__radd__(other)
+		if self.denominator == 1:
+			return hash(self.numerator)
 
+		return hash((self.numerator, self.denominator))
 
-	def operator(self, other: float | average, /, *,
-		operator: operation[float],
-	) -> Self:
+	def __bool__(self) -> bool:
+		return self.numerator != 0 or self.denominator == 0
+
+	def __add__(self, other: int | fraction, /) -> typing.Self: return self.operate(other, operator=operator.add)
+	def __sub__(self, other: int | fraction, /) -> typing.Self: return self.operate(other, operator=operator.sub)
+	def __mul__(self, other: int | fraction, /) -> typing.Self:
+		cls = type(self)
+		other = cls(other)
+
+		return cls(self.numerator * other.numerator, self.denominator * other.denominator)
+
+	def __truediv__(self, other: int | fraction, /) -> typing.Self:
 		cls = type(self)
 
+		return self * cls(other).inverse
+
+	def __radd__(self, other: int | fraction, /) -> typing.Self: return  self + other
+	def __rsub__(self, other: int | fraction, /) -> typing.Self: return -self + other
+	def __rmul__(self, other: int | fraction, /) -> typing.Self: return  self * other
+
+	def __rtruediv__(self, other: int | fraction, /) -> typing.Self:
+		return self.inverse * other
+
+	def __pow__(self, value: int, /) -> typing.Self:
+		numerator, denominator = self.numerator, self.denominator
+
+		if value < 0:
+			numerator, denominator = denominator, numerator
+			value = -value
+
+		cls = type(self)
+
+		return cls(numerator ** value, denominator ** value)
+
+	def __pos__(self, /) -> typing.Self: cls = type(self); return cls(    self                             )
+	def __neg__(self, /) -> typing.Self: cls = type(self); return cls(   -self.numerator , self.denominator)
+	def __abs__(self, /) -> typing.Self: cls = type(self); return cls(abs(self.numerator), self.denominator)
+
+	def __eq__(self, other: object, /) -> bool: return self.compare(other, comparator = operator.eq)
+	def __ne__(self, other: object, /) -> bool: return self.compare(other, comparator = operator.ne)
+	def __lt__(self, other: object, /) -> bool: return self.compare(other, comparator = operator.lt)
+	def __le__(self, other: object, /) -> bool: return self.compare(other, comparator = operator.le)
+	def __gt__(self, other: object, /) -> bool: return self.compare(other, comparator = operator.gt)
+	def __ge__(self, other: object, /) -> bool: return self.compare(other, comparator = operator.ge)
+
+
+	@property
+	def inverse(self, /) -> typing.Self:
+		cls = type(self)
+
+		return cls(self.denominator, self.numerator)
+
+	@property
+	def as_integer_ratio(self, /) -> pair[int]:
+		return self.numerator, self.denominator
+
+
+	def operate(self, other: int | fraction, /, *,
+		operator: operation[int],
+	) -> typing.Self:
+		cls = type(self)
 		other = cls(other)
-		count = int(operator(self.count, other.count))
 
-		left  = self. count * cls.encode(self ) if self .count else 0.
-		right = other.count * cls.encode(other) if other.count else 0.
+		if self.denominator == other.denominator == 0 and self.numerator and other.numerator:
+			return cls(operator(self.numerator, other.numerator), 0)
 
-		return cls(cls.decode(operator(left, right) / count if count else 0), count)
+		return cls(
+			operator(
+				self.numerator * other.denominator,
+				self.denominator * other.numerator,
+			),
+			self.denominator * other.denominator,
+		)
 
+	def compare(self, other: object, /, *,
+		comparator: comparison[int],
+	) -> bool:
+		if not isinstance(other, int | fraction):
+			return NotImplemented
 
-class geometric(average):
+		cls = type(self)
+		other = cls(other)
 
-	encode = staticmethod(log)
-	decode = staticmethod(exp)
+		if self.as_integer_ratio == (0, 0) or other.as_integer_ratio == (0, 0):
+			return comparator is operator.ne
 
+		if self.denominator == other.denominator == 0:
+			return comparator(self.numerator, other.numerator)
 
-class harmonic(average):
-
-	encode = staticmethod(inv)
-	decode = staticmethod(inv)
+		return comparator(
+			self.numerator * other.denominator,
+			self.denominator * other.numerator,
+		)
