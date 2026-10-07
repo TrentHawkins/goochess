@@ -4,7 +4,6 @@ from __future__ import annotations
 import math
 import numbers
 import operator
-import sys
 import typing
 
 
@@ -12,6 +11,7 @@ type pair[T] = tuple[T, T]
 type array[T] = tuple[T, ...]
 type operation[T] = typing.Callable[[T, T], T]
 type comparison[T] = typing.Callable[[T, T], bool]
+type mutation[*T] = typing.Callable[[str, *T], None]
 
 
 class vector(tuple[int, ...]):
@@ -145,24 +145,32 @@ class index(int):
 
 class fraction(numbers.Number):
 
-	def __init__(self, numerator: int | fraction = 0, denominator: int = 1, /):
+	__slots__ = (
+		"numerator",
+		"denominator",
+	)
+
+	def __setattr__(self, name: str, value: object, /) -> None: self.mutate(name, value, mutator = super().__setattr__)
+	def __delattr__(self, name: str,                /) -> None: self.mutate(name,        mutator = super().__delattr__)
+
+	def __init__(self, numerator: int | fraction = 0, denominator: int = 1, /) -> None:
 		if isinstance(numerator, fraction):
 			self.numerator   = numerator.numerator
 			self.denominator = numerator.denominator
 
 			return
 
-		self.numerator   = numerator
-		self.denominator = denominator
+		common = math.gcd(numerator, denominator)
 
-		common = math.gcd(self.numerator, self.denominator)
-
-		if self.denominator < 0:
+		if denominator < 0:
 			common = -common
 
-		if common:
-			self.numerator   //= common
-			self.denominator //= common
+		self.numerator   = numerator   // common if common else numerator
+		self.denominator = denominator // common if common else denominator
+
+	def __getstate__(self) -> object:
+		# Legacy pickle protocols require an explicit hook for slotted objects.
+		return super().__getstate__()
 
 	def __repr__(self) -> str:
 		return f"{self.numerator:+}/{self.denominator}"
@@ -182,8 +190,8 @@ class fraction(numbers.Number):
 	def __bool__(self) -> bool:
 		return self.numerator != 0 or self.denominator == 0
 
-	def __add__(self, other: int | fraction, /) -> typing.Self: return self.operate(other, operator=operator.add)
-	def __sub__(self, other: int | fraction, /) -> typing.Self: return self.operate(other, operator=operator.sub)
+	def __add__(self, other: int | fraction, /) -> typing.Self: return self.operate(other, operator = operator.add)
+	def __sub__(self, other: int | fraction, /) -> typing.Self: return self.operate(other, operator = operator.sub)
 	def __mul__(self, other: int | fraction, /) -> typing.Self:
 		cls = type(self)
 		other = cls(other)
@@ -272,3 +280,11 @@ class fraction(numbers.Number):
 			self.numerator * other.denominator,
 			self.denominator * other.numerator,
 		)
+
+	def mutate[*T](self, name: str, *args: *T,
+		mutator: mutation[*T],
+	) -> None:
+		if name in fraction.__slots__ and hasattr(self, name):
+			raise AttributeError(f"'{fraction.__name__}' object attribute '{name}' is read-only")
+
+		mutator(name, *args)

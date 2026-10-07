@@ -142,20 +142,20 @@ class TestVector:
 
 	@pytest.mark.parametrize("protocol", pickle_protocols)
 	def test_pickle(self, protocol):
-		result = pickle.loads(pickle.dumps(self.derived, protocol=protocol))
+		result = pickle.loads(pickle.dumps(self.derived, protocol = protocol))
 		assert result == self.derived
 		assert type(result) is self.Derived
 
 
 class TestIndex:
 
-	class Binary(index, base=2):
+	class Binary(index, base = 2):
 		pass
 
-	class Square(index, base=8):
+	class Square(index, base = 8):
 		pass
 
-	class Decimal(index, base=10):
+	class Decimal(index, base = 10):
 		pass
 
 	position = Square((2, 3))
@@ -267,6 +267,12 @@ class TestFraction:
 	class Derived(fraction):
 		pass
 
+	class Slotted(fraction):
+		__slots__ = ()
+
+	class WithSlot(fraction):
+		__slots__ = ("notes",)
+
 	class Reflected:
 		def __radd__(self, other): return "add"
 		def __rsub__(self, other): return "sub"
@@ -291,7 +297,7 @@ class TestFraction:
 		(0, 0, (0, 0)),
 	)
 	truth_values = ((fraction(0), False), (value, True), (positive_infinity, True), (negative_infinity, True), (nan, True))
-	finite_operands = ((2, 3), (-2, 5), (7, -3), (2**60 + 1, 7))
+	finite_operands = ((2, 3), (-2, 5), (7, -3), (2 ** 60 + 1, 7))
 	binary_operations = (operator.add, operator.sub, operator.mul, operator.truediv)
 	nonfinite_arithmetic = (
 		(operator.add, positive_infinity, positive_infinity, (1, 0)),
@@ -323,7 +329,7 @@ class TestFraction:
 		(0, 0),
 		(value, Fraction(2, 3)),
 		(fraction(4, 6), Fraction(2, 3)),
-		(fraction(2**60 + 1), Fraction(2**60 + 1)),
+		(fraction(2 ** 60 + 1), Fraction(2 ** 60 + 1)),
 		(positive_infinity, float("inf")),
 		(nan, float("nan")),
 	)
@@ -331,9 +337,23 @@ class TestFraction:
 	arithmetic_methods = ("__add__", "__sub__", "__mul__", "__truediv__", "__radd__", "__rsub__", "__rmul__", "__rtruediv__")
 	comparison_methods = ("__eq__", "__ne__", "__lt__", "__le__", "__gt__", "__ge__")
 	ordering_operations = (operator.lt, operator.le, operator.gt, operator.ge)
-	serialization_values = (value, derived, fraction(0), positive_infinity, negative_infinity, nan)
+	serialization_values = (value, derived, Slotted(2, 3), WithSlot(2, 3), fraction(0), positive_infinity, negative_infinity, nan)
 	copy_functions = (copy.copy, copy.deepcopy)
-	pickle_protocols = (0, 2, pickle.HIGHEST_PROTOCOL)
+	pickle_protocols = tuple(range(pickle.HIGHEST_PROTOCOL + 1))
+	immutability_types = (fraction, Derived, Slotted, WithSlot)
+	dictionary_free_types = (fraction, Slotted, WithSlot)
+	metadata_types = (Derived, WithSlot)
+	protected_attributes = ("numerator", "denominator", "as_integer_ratio", "inverse")
+	reinitialization_inputs = (9, fraction(9, 7))
+	repr_cases = ((value, "+2/3"), (negative_infinity, "-1/0"), (nan, "+0/0"))
+	inverse_cases = ((value, (3, 2)), (fraction(0), (1, 0)), (negative_infinity, (0, 1)), (nan, (0, 0)))
+	in_place_operations = (
+		(operator.iadd, 1, (5, 3)),
+		(operator.isub, 1, (-1, 3)),
+		(operator.imul, 2, (4, 3)),
+		(operator.itruediv, 2, (1, 3)),
+		(operator.ipow, -2, (9, 4)),
+	)
 	arithmetic_cases = (
 		(operator.add, (derived, 1), (5, 3)),
 		(operator.add, (1, derived), (5, 3)),
@@ -351,7 +371,7 @@ class TestFraction:
 		(operator.sub, (Derived(1, 0), Derived(-1, 0)), (1, 0)),
 		(operator.truediv, (-2, Derived(0)), (-1, 0)),
 	)
-	finite_bases = (Fraction(2, 3), Fraction(-2, 3), Fraction(3, -2), Fraction(2**60 + 1, 7))
+	finite_bases = (Fraction(2, 3), Fraction(-2, 3), Fraction(3, -2), Fraction(2 ** 60 + 1, 7))
 	exponents = (-3, -2, -1, 0, 1, 2, 3)
 	special_powers = (
 		(fraction(0), -2, (1, 0)),
@@ -373,15 +393,15 @@ class TestFraction:
 	hash_modulus = sys.hash_info.modulus
 	hash_cases = (
 		(0, 1), (1, 1), (-1, 1), (2, 3), (-2, 3), (2, -3),
-		(10**400 + 1, 7), (-10**400 - 1, 7), (7, 10**400 + 1),
+		(10 ** 400 + 1, 7), (-10 ** 400 - 1, 7), (7, 10 ** 400 + 1),
 		(hash_modulus, 1), (-hash_modulus, 1), (-hash_modulus - 1, 1),
 		(1, hash_modulus), (-1, hash_modulus), (1, 2 * hash_modulus),
-		(1, hash_modulus**2), (hash_modulus, 2 * hash_modulus),
+		(1, hash_modulus ** 2), (hash_modulus, 2 * hash_modulus),
 		(-hash_modulus - 2, 2),
 	)
 	hash_types = (fraction, Derived)
 	hash_scales = (2, -3)
-	integer_keys = (0, 1, -1, 10**400, -10**400, False, True)
+	integer_keys = (0, 1, -1, 10 ** 400, -10 ** 400, False, True)
 	equivalent_keys = (
 		(fraction(2, 3), fraction(4, 6)),
 		(value, derived),
@@ -396,6 +416,74 @@ class TestFraction:
 		(fraction(1, 2), Fraction(1, 2)),
 	)
 	nan_keys = (nan, fraction(0, 0))
+
+	def test_default_construction(self):
+		assert fraction().as_integer_ratio == (0, 1)
+
+	@pytest.mark.parametrize("value, expected", repr_cases)
+	def test_representation(self, value, expected):
+		assert repr(value) == expected
+
+	@pytest.mark.parametrize("value, expected", inverse_cases)
+	def test_inverse(self, value, expected):
+		assert value.inverse.as_integer_ratio == expected
+
+	@pytest.mark.parametrize("fraction_type", immutability_types)
+	@pytest.mark.parametrize("name", protected_attributes)
+	def test_assignment_and_deletion_preserve_value_and_hash(self, fraction_type, name):
+		value = fraction_type(2, 3)
+		original_hash = hash(value)
+		mapping = {value: "found"}
+		with pytest.raises(AttributeError):
+			setattr(value, name, 9)
+		with pytest.raises(AttributeError):
+			delattr(value, name)
+		assert value.as_integer_ratio == (2, 3)
+		assert hash(value) == original_hash
+		assert mapping[fraction(2, 3)] == "found"
+
+	@pytest.mark.parametrize("fraction_type", dictionary_free_types)
+	def test_slots_prevent_an_instance_dictionary_and_extra_attributes(self, fraction_type):
+		value = fraction_type(2, 3)
+		assert not hasattr(value, "__dict__")
+		with pytest.raises(AttributeError):
+			value.extra = 1
+		with pytest.raises(AttributeError):
+			del value.extra
+
+	@pytest.mark.parametrize("fraction_type", immutability_types)
+	@pytest.mark.parametrize("source", reinitialization_inputs)
+	def test_reinitialization_cannot_change_value(self, fraction_type, source):
+		value = fraction_type(2, 3)
+		with pytest.raises(AttributeError):
+			value.__init__(source)
+		assert value.as_integer_ratio == (2, 3)
+
+	@pytest.mark.parametrize("fraction_type", metadata_types)
+	def test_subclass_metadata_remains_writable(self, fraction_type):
+		value = fraction_type(2, 3)
+		original_hash = hash(value)
+		value.notes = "initial"
+		value.notes = "updated"
+		assert value.notes == "updated"
+		del value.notes
+		assert not hasattr(value, "notes")
+		assert value.as_integer_ratio == (2, 3)
+		assert hash(value) == original_hash
+
+	@pytest.mark.parametrize("fraction_type", immutability_types)
+	@pytest.mark.parametrize("operation, other, expected", in_place_operations)
+	def test_augmented_operations_create_new_values(self, fraction_type, operation, other, expected):
+		value = fraction_type(2, 3)
+		result = operation(value, other)
+		assert result is not value
+		assert type(result) is fraction_type
+		assert result.as_integer_ratio == expected
+		assert value.as_integer_ratio == (2, 3)
+
+	def test_sum(self):
+		result = sum((self.value, self.value, self.value))
+		assert result.as_integer_ratio == (2, 1)
 
 	@pytest.mark.parametrize("fraction_type", hash_types)
 	@pytest.mark.parametrize("scale", hash_scales)
@@ -522,13 +610,43 @@ class TestFraction:
 		assert result.as_integer_ratio == value.as_integer_ratio
 		assert type(result) is type(value)
 		assert result is not value
+		with pytest.raises(AttributeError):
+			result.numerator = 9
+		with pytest.raises(AttributeError):
+			del result.denominator
 
 	@pytest.mark.parametrize("protocol", pickle_protocols)
 	@pytest.mark.parametrize("value", serialization_values)
 	def test_pickle(self, protocol, value):
-		result = pickle.loads(pickle.dumps(value, protocol=protocol))
+		result = pickle.loads(pickle.dumps(value, protocol = protocol))
 		assert result.as_integer_ratio == value.as_integer_ratio
 		assert type(result) is type(value)
+		with pytest.raises(AttributeError):
+			result.numerator = 9
+		with pytest.raises(AttributeError):
+			del result.denominator
+
+	@pytest.mark.parametrize("fraction_type", metadata_types)
+	def test_copy_preserves_subclass_metadata(self, fraction_type):
+		value = fraction_type(2, 3)
+		value.notes = ["original"]
+		shallow = copy.copy(value)
+		deep = copy.deepcopy(value)
+		assert shallow.notes is value.notes
+		assert deep.notes == value.notes
+		assert deep.notes is not value.notes
+		assert shallow.as_integer_ratio == deep.as_integer_ratio == value.as_integer_ratio
+		assert type(shallow) is type(deep) is fraction_type
+
+	@pytest.mark.parametrize("fraction_type", metadata_types)
+	@pytest.mark.parametrize("protocol", pickle_protocols)
+	def test_pickle_preserves_subclass_metadata(self, fraction_type, protocol):
+		value = fraction_type(2, 3)
+		value.notes = ["original"]
+		result = pickle.loads(pickle.dumps(value, protocol = protocol))
+		assert result.as_integer_ratio == value.as_integer_ratio
+		assert type(result) is fraction_type
+		assert result.notes == value.notes
 
 	@pytest.mark.parametrize("base", finite_bases)
 	@pytest.mark.parametrize("exponent", exponents)
