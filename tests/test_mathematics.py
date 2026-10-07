@@ -10,7 +10,7 @@ from fractions import Fraction
 
 import pytest
 
-from src.mathematics import fraction, index, vector
+from goochess.mathematics import fraction, index, vector
 
 
 class TestVector:

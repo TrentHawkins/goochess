@@ -7,8 +7,8 @@ import pickle
 
 import pytest
 
-from src import geometry
-from src.mathematics import vector
+from goochess import geometry
+from goochess.mathematics import vector
 
 
 class TestIndex:
