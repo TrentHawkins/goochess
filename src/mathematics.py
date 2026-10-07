@@ -201,14 +201,14 @@ class fraction(numbers.Number):
 	def __truediv__(self, other: int | fraction, /) -> typing.Self:
 		cls = type(self)
 
-		return self * cls(other).inverse
+		return self * ~cls(other)
 
 	def __radd__(self, other: int | fraction, /) -> typing.Self: return  self + other
 	def __rsub__(self, other: int | fraction, /) -> typing.Self: return -self + other
 	def __rmul__(self, other: int | fraction, /) -> typing.Self: return  self * other
 
 	def __rtruediv__(self, other: int | fraction, /) -> typing.Self:
-		return self.inverse * other
+		return ~self * other
 
 	def __pow__(self, value: int, /) -> typing.Self:
 		numerator, denominator = self.numerator, self.denominator
@@ -225,19 +225,17 @@ class fraction(numbers.Number):
 	def __neg__(self, /) -> typing.Self: cls = type(self); return cls(   -self.numerator , self.denominator)
 	def __abs__(self, /) -> typing.Self: cls = type(self); return cls(abs(self.numerator), self.denominator)
 
+	def __invert__(self, /) -> typing.Self:
+		cls = type(self)
+
+		return cls(self.denominator, self.numerator)
+
 	def __eq__(self, other: object, /) -> bool: return self.compare(other, comparator = operator.eq)
 	def __ne__(self, other: object, /) -> bool: return self.compare(other, comparator = operator.ne)
 	def __lt__(self, other: object, /) -> bool: return self.compare(other, comparator = operator.lt)
 	def __le__(self, other: object, /) -> bool: return self.compare(other, comparator = operator.le)
 	def __gt__(self, other: object, /) -> bool: return self.compare(other, comparator = operator.gt)
 	def __ge__(self, other: object, /) -> bool: return self.compare(other, comparator = operator.ge)
-
-
-	@property
-	def inverse(self, /) -> typing.Self:
-		cls = type(self)
-
-		return cls(self.denominator, self.numerator)
 
 	@property
 	def as_integer_ratio(self, /) -> pair[int]:
