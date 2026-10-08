@@ -4,6 +4,13 @@ from enum import Enum
 from . import mathematics
 
 
+class vector(mathematics.vector,
+	dim = 2,
+):
+
+	...
+
+
 class index(mathematics.index,
 	dim = 2,
 	base = 8,
