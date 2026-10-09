@@ -132,6 +132,23 @@ class index(int):
 		if dim  is not None: cls.dim  = dim
 		if base is not None: cls.base = base
 
+	@typing.overload
+	def __getitem__(self, key: typing.SupportsIndex, /) -> int:
+		...
+
+	@typing.overload
+	def __getitem__(self, key: slice, /) -> typing.Self:
+		...
+
+	def __getitem__(self, key: typing.SupportsIndex | slice, /) -> int | index:
+		if isinstance(key, slice):
+			components = self.vector[key]
+			cls = index[len(components), self.base]
+
+			return cls(components)
+
+		return self.vector[key]
+
 	def __add__(self, other: array[int], /) -> typing.Self:
 		cls = type(self)
 
