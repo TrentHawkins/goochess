@@ -5,6 +5,7 @@ import copy
 import operator
 import pickle
 import sys
+import typing
 
 from fractions import Fraction
 
@@ -202,6 +203,9 @@ class TestIndex:
 	class Ternary(Binary, base = 3):
 		...
 
+	class NamedTemplate(index.__class_getitem__((2, 8))):
+		...
+
 	position = Square((2, 3))
 	other = Square((1, 1))
 	displacement = vector((1, -1))
@@ -246,6 +250,54 @@ class TestIndex:
 	pickle_protocols = tuple(range(pickle.HIGHEST_PROTOCOL + 1))
 	specialization_cases = ((Inherited, 2, 8), (Cube, 3, 8), (Ternary, 3, 3))
 	round_trip_types = (Binary, Square, Decimal)
+	template_cases = (
+		(index, (2, 8)),
+		(Square, (2, 8)),
+		(index.__class_getitem__((2, 8)), (3, 4)),
+	)
+	template_types = tuple(origin.__class_getitem__(item) for origin, item in template_cases) + (NamedTemplate,)
+
+	@staticmethod
+	def subscribe(origin: typing.Any, item: tuple[int, int]) -> type[index]:
+		return origin[item]
+
+	@pytest.mark.parametrize("origin, item", template_cases)
+	def test_template_subscription(self, origin, item) -> None:
+		result = self.subscribe(origin, item)
+		assert result is self.subscribe(origin, item)
+		assert issubclass(result, origin)
+		assert (result.dim, result.base) == item
+		assert len(result(0).vector) == result.dim
+
+	def test_template_cache_distinguishes_origins(self) -> None:
+		plain = self.subscribe(index, (2, 8))
+		custom = self.subscribe(self.Square, (2, 8))
+		assert plain is not custom
+		assert issubclass(custom, self.Square)
+
+	@pytest.mark.parametrize("position_type", template_types)
+	@pytest.mark.parametrize("protocol", pickle_protocols)
+	def test_template_pickle(self, position_type, protocol) -> None:
+		value = position_type(1)
+		value.notes = ["sample"]
+		result = pickle.loads(pickle.dumps(value, protocol = protocol))
+		assert type(result) is position_type
+		assert result == value
+		assert result.vector == value.vector
+		assert result.notes == value.notes
+
+	@pytest.mark.parametrize("position_type", template_types)
+	@pytest.mark.parametrize("copier", copy_functions)
+	def test_template_copy(self, position_type, copier) -> None:
+		value = position_type(1)
+		value.notes = ["sample"]
+		result = copier(value)
+		assert type(result) is position_type
+		assert result == value
+		assert result.notes == value.notes
+
+		if copier is copy.deepcopy:
+			assert result.notes is not value.notes
 
 	@pytest.mark.parametrize("position_type, dim, base", specialization_cases)
 	def test_inherited_configuration(self, position_type, dim, base) -> None:

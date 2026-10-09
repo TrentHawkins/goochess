@@ -8,40 +8,13 @@ import pickle
 import pytest
 
 from goochess import geometry
-from goochess.mathematics import vector
+from goochess.mathematics import index, vector
 
 
-class TestIndex:
+# Pylint cannot infer Square's dynamically specialized index base.
+class TestSquare: # pylint: disable = no-member
 
-	coordinates = ((0, 0), (7, 0), (0, 7), (7, 7), (2, 3))
-	invalid_coordinates = ((), (0,), (0, 0, 0), (-1, 0), (0, -1), (8, 0), (0, 8))
-	invalid_values = (-1, 64)
-
-	def test_board_configuration(self) -> None:
-		assert geometry.index.dim == 2
-		assert geometry.index.base == 8
-
-	@pytest.mark.parametrize("coordinates", coordinates)
-	def test_construction_and_factory_agree(self, coordinates) -> None:
-		value = geometry.index(coordinates)
-		result = geometry.index.from_vector(vector(coordinates))
-		assert type(value) is type(result) is geometry.index
-		assert value == result == coordinates[0] + 8 * coordinates[1]
-		assert value.vector == coordinates
-
-	@pytest.mark.parametrize("coordinates", invalid_coordinates)
-	def test_invalid_coordinates(self, coordinates) -> None:
-		with pytest.raises(ValueError):
-			geometry.index.from_vector(coordinates)
-
-	@pytest.mark.parametrize("value", invalid_values)
-	def test_encoded_bounds(self, value) -> None:
-		with pytest.raises(ValueError):
-			geometry.index(value)
-
-
-class TestSquare:
-
+	index_type = index.__class_getitem__((2, 8))
 	members = tuple(geometry.Square)
 	encoded_values = tuple(range(64))
 	displacement = vector((1, 1))
@@ -77,6 +50,10 @@ class TestSquare:
 	pickle_protocols = tuple(range(pickle.HIGHEST_PROTOCOL + 1))
 	serialization_values = (geometry.Square.A1, geometry.Square.B2, geometry.Square.H8)
 
+	def test_board_configuration(self) -> None:
+		assert geometry.Square.dim == 2
+		assert geometry.Square.base == 8
+
 	def test_members_cover_board_exactly_once(self) -> None:
 		assert len(self.members) == len(geometry.Square.__members__) == 64
 		assert tuple(int(member) for member in self.members) == self.encoded_values
@@ -86,9 +63,12 @@ class TestSquare:
 		file, rank = member.name
 		expected = (int(rank) - 1, ord(file) - ord("A"))
 		assert member.vector == expected
+		assert member.rank == expected[0]
+		assert member.file == expected[1]
+		assert bool(member) == bool(sum(expected) & 1)
 		assert type(member.vector) is vector
 		assert repr(member) == member.name.lower()
-		assert type(member.value) is geometry.index
+		assert type(member.value) is self.index_type
 		assert geometry.Square(int(member)) is member
 		assert geometry.Square[member.name] is member
 		assert geometry.Square.from_vector(expected) is member

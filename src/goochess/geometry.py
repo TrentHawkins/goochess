@@ -1,18 +1,11 @@
 from __future__ import annotations
 
 from enum import Enum
-from . import mathematics
+
+from .mathematics import index
 
 
-class index(mathematics.index,
-	dim = 2,
-	base = 8,
-):
-
-	...
-
-
-class Square(index, Enum):
+class Square(index[2, 8], Enum):
 
 #	 1       :  2       :  3       :  4       :  5       :  6       :  7       :  8
 	A1 = 0o00; A2 = 0o01; A3 = 0o02; A4 = 0o03; A5 = 0o04; A6 = 0o05; A7 = 0o06; A8 = 0o07  # A
@@ -27,3 +20,15 @@ class Square(index, Enum):
 
 	def __repr__(self) -> str:
 		return self.name.lower()
+
+	def __bool__(self) -> bool:
+		return bool((self.rank + self.file) & 1)
+
+
+	@property
+	def rank(self) -> int:
+		return self & 0o07
+
+	@property
+	def file(self) -> int:
+		return self >> 3
