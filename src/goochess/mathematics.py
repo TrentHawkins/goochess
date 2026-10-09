@@ -137,7 +137,7 @@ class index(int):
 		...
 
 	@typing.overload
-	def __getitem__(self, key: slice, /) -> typing.Self:
+	def __getitem__(self, key: slice, /) -> index:
 		...
 
 	def __getitem__(self, key: typing.SupportsIndex | slice, /) -> int | index:

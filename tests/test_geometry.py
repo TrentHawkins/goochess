@@ -49,6 +49,14 @@ class TestSquare: # pylint: disable = no-member
 	copy_functions = (copy.copy, copy.deepcopy)
 	pickle_protocols = tuple(range(pickle.HIGHEST_PROTOCOL + 1))
 	serialization_values = (geometry.Square.A1, geometry.Square.B2, geometry.Square.H8)
+	color_cases = (
+		(geometry.Square.A1, False),
+		(geometry.Square.A2, True),
+		(geometry.Square.B1, True),
+		(geometry.Square.B2, False),
+		(geometry.Square.H1, True),
+		(geometry.Square.H8, False),
+	)
 
 	def test_board_configuration(self) -> None:
 		assert geometry.Square.dim == 2
@@ -63,9 +71,13 @@ class TestSquare: # pylint: disable = no-member
 		file, rank = member.name
 		expected = (int(rank) - 1, ord(file) - ord("A"))
 		assert member.vector == expected
-		assert member.rank == expected[0]
-		assert member.file == expected[1]
-		assert bool(member) == bool(sum(expected) & 1)
+		assert member[0] == expected[0]
+		assert member[1] == expected[1]
+		assert member.rank == int(rank)
+		assert type(member.rank) is int
+		assert member.file == file.lower()
+		assert type(member.file) is str
+		assert bool(member) is (sum(expected) % 2 == 1)
 		assert type(member.vector) is vector
 		assert repr(member) == member.name.lower()
 		assert type(member.value) is self.index_type
@@ -73,6 +85,10 @@ class TestSquare: # pylint: disable = no-member
 		assert geometry.Square[member.name] is member
 		assert geometry.Square.from_vector(expected) is member
 		assert geometry.Square.from_vector(member.vector) is member
+
+	@pytest.mark.parametrize("member, expected", color_cases)
+	def test_truthiness_represents_square_color(self, member, expected) -> None:
+		assert bool(member) is expected
 
 	@pytest.mark.parametrize("operation, left, right, expected", arithmetic_cases)
 	def test_translation_returns_existing_member(self, operation, left, right, expected) -> None:

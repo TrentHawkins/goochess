@@ -22,13 +22,13 @@ class Square(index[2, 8], Enum):
 		return self.name.lower()
 
 	def __bool__(self) -> bool:
-		return bool((self.rank + self.file) & 1)
+		return bool(sum(self.vector) & 1)
 
 
 	@property
 	def rank(self) -> int:
-		return self & 0o07
+		return int(self.name[1])
 
 	@property
-	def file(self) -> int:
-		return self >> 3
+	def file(self) -> str:
+		return self.name[0].lower()
