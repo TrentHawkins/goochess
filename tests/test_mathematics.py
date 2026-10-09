@@ -5,6 +5,7 @@ import copy
 import operator
 import pickle
 import sys
+import typing
 
 from fractions import Fraction
 
@@ -202,6 +203,16 @@ class TestIndex:
 	class Ternary(Binary, base = 3):
 		...
 
+	class NamedTemplate(index.__class_getitem__((2, 8))):
+		...
+
+	class Key:
+		def __init__(self, value: int) -> None:
+			self.value = value
+
+		def __index__(self) -> int:
+			return self.value
+
 	position = Square((2, 3))
 	other = Square((1, 1))
 	displacement = vector((1, -1))
@@ -246,6 +257,65 @@ class TestIndex:
 	pickle_protocols = tuple(range(pickle.HIGHEST_PROTOCOL + 1))
 	specialization_cases = ((Inherited, 2, 8), (Cube, 3, 8), (Ternary, 3, 3))
 	round_trip_types = (Binary, Square, Decimal)
+	template_cases = (
+		(index, (2, 8)),
+		(Square, (2, 8)),
+		(index.__class_getitem__((2, 8)), (3, 4)),
+	)
+	template_types = tuple(origin.__class_getitem__(item) for origin, item in template_cases) + (NamedTemplate,)
+	coordinate_keys = ((0, 2), (1, 3), (-2, 2), (-1, 3), (False, 2), (True, 3), (Key(1), 3), (Key(-2), 2))
+	invalid_coordinate_keys = (-3, 2, -(10 ** 100), 10 ** 100, Key(-3), Key(2))
+	unsupported_coordinate_keys = (1.0, "0", None)
+	empty_coordinate_keys = (-1, 0, 1)
+	empty_position = index.__class_getitem__((0, 8))(0)
+	coordinate_slices = (
+		(slice(1, None), (3,)),
+		(slice(None, None, -1), (3, 2)),
+		(slice(None), (2, 3)),
+		(slice(0, 0), ()),
+	)
+
+	@staticmethod
+	def subscribe(origin: typing.Any, item: tuple[int, int]) -> type[index]:
+		return origin[item]
+
+	@pytest.mark.parametrize("origin, item", template_cases)
+	def test_template_subscription(self, origin, item) -> None:
+		result = self.subscribe(origin, item)
+		assert result is self.subscribe(origin, item)
+		assert issubclass(result, origin)
+		assert (result.dim, result.base) == item
+		assert len(result(0).vector) == result.dim
+
+	def test_template_cache_distinguishes_origins(self) -> None:
+		plain = self.subscribe(index, (2, 8))
+		custom = self.subscribe(self.Square, (2, 8))
+		assert plain is not custom
+		assert issubclass(custom, self.Square)
+
+	@pytest.mark.parametrize("position_type", template_types)
+	@pytest.mark.parametrize("protocol", pickle_protocols)
+	def test_template_pickle(self, position_type, protocol) -> None:
+		value = position_type(1)
+		value.notes = ["sample"]
+		result = pickle.loads(pickle.dumps(value, protocol = protocol))
+		assert type(result) is position_type
+		assert result == value
+		assert result.vector == value.vector
+		assert result.notes == value.notes
+
+	@pytest.mark.parametrize("position_type", template_types)
+	@pytest.mark.parametrize("copier", copy_functions)
+	def test_template_copy(self, position_type, copier) -> None:
+		value = position_type(1)
+		value.notes = ["sample"]
+		result = copier(value)
+		assert type(result) is position_type
+		assert result == value
+		assert result.notes == value.notes
+
+		if copier is copy.deepcopy:
+			assert result.notes is not value.notes
 
 	@pytest.mark.parametrize("position_type, dim, base", specialization_cases)
 	def test_inherited_configuration(self, position_type, dim, base) -> None:
@@ -279,6 +349,43 @@ class TestIndex:
 	@pytest.mark.parametrize("encoded, coordinates", padding_cases)
 	def test_decoding_pads_to_dimension(self, encoded, coordinates) -> None:
 		assert self.Square(encoded).vector == coordinates
+
+	@pytest.mark.parametrize("position_type, coordinates, encoded", encoding_cases)
+	def test_coordinate_access_across_bases(self, position_type, coordinates, encoded) -> None:
+		value = position_type(encoded)
+
+		for key, expected in enumerate(coordinates):
+			assert value[key] == expected
+			assert value[key - len(coordinates)] == expected
+
+	@pytest.mark.parametrize("key, expected", coordinate_keys)
+	def test_coordinate_access(self, key, expected) -> None:
+		result = self.position[key]
+		assert result == expected
+		assert type(result) is int
+
+	@pytest.mark.parametrize("key", invalid_coordinate_keys)
+	def test_coordinate_bounds(self, key) -> None:
+		with pytest.raises(IndexError):
+			self.position[key]
+
+	@pytest.mark.parametrize("key", unsupported_coordinate_keys)
+	def test_coordinate_key_requires_index_protocol(self, key) -> None:
+		with pytest.raises(TypeError):
+			self.position[key]
+
+	@pytest.mark.parametrize("key", empty_coordinate_keys)
+	def test_empty_point_has_no_coordinates(self, key) -> None:
+		with pytest.raises(IndexError):
+			self.empty_position[key]
+
+	@pytest.mark.parametrize("key, expected", coordinate_slices)
+	def test_coordinate_slices_preserve_base(self, key: slice, expected: tuple[int, ...]) -> None:
+		result = self.position[key]
+		assert result.vector == expected
+		assert result.dim == len(expected)
+		assert result.base == self.position.base
+		assert type(result) is self.subscribe(index, (len(expected), self.position.base))
 
 	@pytest.mark.parametrize("operation, left, right, expected", arithmetic_cases)
 	def test_position_arithmetic(self, operation, left, right, expected) -> None:

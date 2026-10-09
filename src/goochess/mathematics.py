@@ -79,6 +79,8 @@ class vector(tuple[int, ...]):
 
 class index(int):
 
+	registry: dict[tuple[type[index], pair[int]], type[index]] = {}
+
 	dim : int
 	base: int
 
@@ -92,6 +94,35 @@ class index(int):
 
 		return cls.from_vector(x)
 
+	def __class_getitem__(cls, item: pair[int], /) -> type[index]:
+		dim, base = item
+
+		if (key := (cls, item)) in cls.registry:
+			return cls.registry[key]
+
+		class concrete(cls, dim = dim, base = base): ...
+
+		qualifier = f"{dim}_{base}"
+
+		concrete.__name__ = f"{cls.__name__}_{qualifier}"
+		concrete.__qualname__ = f"{cls.__qualname__}_{qualifier}"
+		concrete.__module__ = cls.__module__
+
+		return cls.registry.setdefault(key, concrete)
+
+	def __reduce__(self) -> str | tuple:
+		cls: type[index] = type(self)
+		items: list[pair[int]] = []
+
+		while specialization := next((key for key, value in cls.registry.items() if value is cls), None):
+			cls, item = specialization
+			items.append(item)
+
+		if not items:
+			return super().__reduce__()
+
+		return cls.restore, (tuple(reversed(items)), int(self)), super().__getstate__()
+
 	def __init_subclass__(cls, *args,
 		dim : int | None = None,
 		base: int | None = None,
@@ -100,6 +131,23 @@ class index(int):
 
 		if dim  is not None: cls.dim  = dim
 		if base is not None: cls.base = base
+
+	@typing.overload
+	def __getitem__(self, key: typing.SupportsIndex, /) -> int:
+		...
+
+	@typing.overload
+	def __getitem__(self, key: slice, /) -> index:
+		...
+
+	def __getitem__(self, key: typing.SupportsIndex | slice, /) -> int | index:
+		if isinstance(key, slice):
+			components = self.vector[key]
+			cls = index[len(components), self.base]
+
+			return cls(components)
+
+		return self.vector[key]
 
 	def __add__(self, other: array[int], /) -> typing.Self:
 		cls = type(self)
@@ -117,6 +165,13 @@ class index(int):
 
 		return cls.from_vector(self.vector - other)
 
+
+	@classmethod
+	def restore(cls, items: array[pair[int]], value: int, /) -> typing.Self:
+		for item in items:
+			cls = cls[item]
+
+		return cls(value)
 
 	@classmethod
 	def from_vector(cls, components: array[int], /) -> typing.Self:
