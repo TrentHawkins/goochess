@@ -16,44 +16,44 @@ type mutation[*T] = typing.Callable[[str, *T], None]
 
 class vector(tuple[int, ...]):
 
-	dim: int | None = None
-
-
-	def __init_subclass__(cls, *args,
-		dim: int | None = None,
-	**kwargs) -> None:
-		if dim is not None:
-			cls.dim = dim
-
-		return super().__init_subclass__(*args, **kwargs)
-
 	def __new__(cls, components: typing.Iterable[int] = (), /) -> typing.Self:
-		self = super().__new__(cls, components)
-
-		if cls.dim is not None and len(self) != cls.dim:
-			raise ValueError
-
-		return self
+		return super().__new__(cls, components)
 
 	def __bool__(self) -> bool:
 		return any(self)
 
-	def __add__(self, other: int | array[int], /) -> vector: return self.operate(other, operator = operator.add, identity = 0)
-	def __sub__(self, other: int | array[int], /) -> vector: return self.operate(other, operator = operator.sub, identity = 0)
-	def __mul__(self, other: int | array[int], /) -> vector: return self.operate(other, operator = operator.mul, identity = 1)
+	@typing.overload
+	def __getitem__(self, key: typing.SupportsIndex, /) -> int:
+		...
+
+	@typing.overload
+	def __getitem__(self, key: slice, /) -> typing.Self:
+		...
+
+	def __getitem__(self, key: typing.SupportsIndex | slice, /) -> int | typing.Self:
+		cls = type(self)
+
+		if isinstance(key, slice):
+			return cls(super().__getitem__(key))
+
+		return super().__getitem__(key)
+
+	def __add__(self, other: int | array[int], /) -> typing.Self: return self.operate(other, operator = operator.add, identity = 0)
+	def __sub__(self, other: int | array[int], /) -> typing.Self: return self.operate(other, operator = operator.sub, identity = 0)
+	def __mul__(self, other: int | array[int], /) -> typing.Self: return self.operate(other, operator = operator.mul, identity = 1)
 
 	def __matmul__(self, other: int | array[int], /) -> int:
 		return sum(self * other)
 
-	def __radd__(self, other: int | array[int], /) -> vector: return  self + other
-	def __rsub__(self, other: int | array[int], /) -> vector: return -self + other
-	def __rmul__(self, other: int | array[int], /) -> vector: return  self * other
+	def __radd__(self, other: int | array[int], /) -> typing.Self: return  self + other
+	def __rsub__(self, other: int | array[int], /) -> typing.Self: return -self + other
+	def __rmul__(self, other: int | array[int], /) -> typing.Self: return  self * other
 
 	def __rmatmul__(self, other: int | array[int], /) -> int:
 		return self @ other
 
 	def __pos__(self) -> typing.Self: return self
-	def __neg__(self) -> vector: return self * -1
+	def __neg__(self) -> typing.Self: return self * -1
 
 	def __abs__(self) -> int:
 		return self @ self
@@ -62,7 +62,7 @@ class vector(tuple[int, ...]):
 	def operate(self, other: int | array[int], /, *,
 		operator: operation[int],
 		identity: int,
-	) -> vector:
+	) -> typing.Self:
 		cls = type(self)
 
 		if isinstance(other, int):
@@ -73,9 +73,6 @@ class vector(tuple[int, ...]):
 				return self
 
 			other = (other,) * len(self)
-
-		elif cls.dim is None and isinstance(other, vector) and type(other).dim is not None:
-			cls = type(other)
 
 		return cls(operator(left, right) for left, right in zip(self, other, strict = True))
 
