@@ -336,3 +336,28 @@ class fraction(numbers.Number):
 			raise AttributeError(f"'{fraction.__name__}' object attribute '{name}' is read-only")
 
 		mutator(name, *args)
+
+
+class collection[T: typing.Hashable](set[T]):
+
+	def __init__(self, *items: T) -> None:
+		super().__init__(items)
+
+	def  __or__(self, other: typing.Iterable[T], /) -> typing.Self: return self.               union(other)
+	def __and__(self, other: typing.Iterable[T], /) -> typing.Self: return self.        intersection(other)
+	def __sub__(self, other: typing.Iterable[T], /) -> typing.Self: return self.          difference(other)
+	def __xor__(self, other: typing.Iterable[T], /) -> typing.Self: return self.symmetric_difference(other)
+
+	def        union(self, *others: typing.Iterable[T]) -> typing.Self: cls = type(self); return cls(*super().       union(*others))
+	def intersection(self, *others: typing.Iterable[T]) -> typing.Self: cls = type(self); return cls(*super().intersection(*others))
+	def   difference(self, *others: typing.Iterable[T]) -> typing.Self: cls = type(self); return cls(*super().  difference(*others))
+
+	def symmetric_difference(self, other : typing.Iterable[T]) -> typing.Self:
+		cls = type(self)
+
+		return cls(*super().symmetric_difference(other))
+
+	def copy(self) -> typing.Self:
+		cls = type(self)
+
+		return cls(*self)

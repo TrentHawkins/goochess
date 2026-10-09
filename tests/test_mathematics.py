@@ -11,7 +11,7 @@ from fractions import Fraction
 
 import pytest
 
-from goochess.mathematics import fraction, index, vector
+from goochess.mathematics import collection, fraction, index, vector
 
 
 class TestVector:
@@ -888,3 +888,88 @@ class TestFraction:
 	def test_pow_accepts_none_modulus(self) -> None:
 		result = pow(self.value, -2, None)
 		assert (result.numerator, result.denominator) == (9, 4)
+
+
+class TestCollection:
+
+	class Derived(collection[int]):
+		...
+
+	collection_types = (collection, Derived)
+	items = (1, 2)
+	other_items = (2, 3)
+	operands = (collection(*other_items), Derived(*other_items), set(other_items), frozenset(other_items))
+	reflected_operands = (set(other_items), frozenset(other_items))
+	operations = (operator.or_, operator.and_, operator.sub, operator.xor)
+	in_place_operations = (operator.ior, operator.iand, operator.isub, operator.ixor)
+	method_cases = (
+		("union", (), {1, 2}),
+		("union", ([2, 3], (3, 4)), {1, 2, 3, 4}),
+		("intersection", (), {1, 2}),
+		("intersection", ([2, 3], (2, 4)), {2}),
+		("intersection", ([],), set()),
+		("difference", (), {1, 2}),
+		("difference", ([2, 3], (4,)), {1}),
+		("difference", ([1, 2],), set()),
+		("symmetric_difference", ([2, 3],), {1, 3}),
+	)
+
+	@pytest.mark.parametrize("collection_type", collection_types)
+	def test_variadic_construction(self, collection_type) -> None:
+		assert collection_type() == set()
+		assert collection_type(1, 2, 1) == {1, 2}
+
+	@pytest.mark.parametrize("collection_type", collection_types)
+	@pytest.mark.parametrize("operation", operations)
+	@pytest.mark.parametrize("other", operands)
+	def test_operations_preserve_type(self, collection_type, operation, other) -> None:
+		value = collection_type(*self.items)
+		result = operation(value, other)
+		assert result == operation(set(self.items), set(self.other_items))
+		assert type(result) is collection_type
+		assert result is not value
+		assert value == set(self.items)
+		assert other == set(self.other_items)
+
+	@pytest.mark.parametrize("collection_type", collection_types)
+	@pytest.mark.parametrize("operation", operations)
+	@pytest.mark.parametrize("other", reflected_operands)
+	def test_mixed_operations_from_left(self, collection_type, operation, other) -> None:
+		value = collection_type(*self.items)
+		result = operation(other, value)
+		expected_type = frozenset if isinstance(other, frozenset) else collection_type
+		assert result == operation(set(self.other_items), set(self.items))
+		assert type(result) is expected_type
+		assert value == set(self.items)
+		assert other == set(self.other_items)
+
+	@pytest.mark.parametrize("collection_type", collection_types)
+	@pytest.mark.parametrize("method, operands, expected", method_cases)
+	def test_named_operations_accept_iterables(self, collection_type, method, operands, expected) -> None:
+		value = collection_type(*self.items)
+		result = getattr(value, method)(*operands)
+		assert result == expected
+		assert type(result) is collection_type
+		assert result is not value
+		assert value == set(self.items)
+
+	@pytest.mark.parametrize("collection_type", collection_types)
+	@pytest.mark.parametrize("operation", in_place_operations)
+	@pytest.mark.parametrize("other", operands)
+	def test_inherited_in_place_operations_preserve_identity(self, collection_type, operation, other) -> None:
+		value = collection_type(*self.items)
+		result = operation(value, other)
+		assert result == operation(set(self.items), set(self.other_items))
+		assert result is value
+		assert type(result) is collection_type
+		assert other == set(self.other_items)
+
+	@pytest.mark.parametrize("collection_type", collection_types)
+	def test_copy_preserves_type_and_is_independent(self, collection_type) -> None:
+		value = collection_type(*self.items)
+		result = value.copy()
+		assert result == value
+		assert type(result) is collection_type
+		assert result is not value
+		result.add(3)
+		assert value == set(self.items)
