@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from enum import Enum
 
-from .mathematics import index
+from .mathematics import index, vector
 
 
 class Square(index[2, 8], Enum):

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 
+import collections.abc
 import math
 import numbers
 import operator
@@ -16,8 +17,11 @@ type mutation[*T] = typing.Callable[[str, *T], None]
 
 class vector(tuple[int, ...]):
 
-	def __new__(cls, components: typing.Iterable[int] = (), /) -> typing.Self:
+	def __new__(cls, *components: int) -> typing.Self:
 		return super().__new__(cls, components)
+
+	def __getnewargs__(self) -> array[int]:
+		return tuple(self)
 
 	def __bool__(self) -> bool:
 		return any(self)
@@ -33,10 +37,12 @@ class vector(tuple[int, ...]):
 	def __getitem__(self, key: typing.SupportsIndex | slice, /) -> int | typing.Self:
 		cls = type(self)
 
-		if isinstance(key, slice):
-			return cls(super().__getitem__(key))
+		match key:
+			case typing.SupportsIndex(): return      super().__getitem__(key)
+			case                slice(): return cls(*super().__getitem__(key))
+			case _                     :
+				return NotImplemented
 
-		return super().__getitem__(key)
 
 	def __add__(self, other: int | array[int], /) -> typing.Self: return self.operate(other, operator = operator.add, identity = 0)
 	def __sub__(self, other: int | array[int], /) -> typing.Self: return self.operate(other, operator = operator.sub, identity = 0)
@@ -74,7 +80,7 @@ class vector(tuple[int, ...]):
 
 			other = (other,) * len(self)
 
-		return cls(operator(left, right) for left, right in zip(self, other, strict = True))
+		return cls(*(operator(left, right) for left, right in zip(self, other, strict = True)))
 
 
 class index(int):
@@ -84,6 +90,13 @@ class index(int):
 	dim : int
 	base: int
 
+	@typing.overload
+	def __new__(cls, x: int) -> typing.Self:
+		...
+
+	@typing.overload
+	def __new__(cls, x: array[int]) -> typing.Self:
+		...
 
 	def __new__(cls, x: int | array[int]) -> typing.Self:
 		if isinstance(x, int):
@@ -141,13 +154,13 @@ class index(int):
 		...
 
 	def __getitem__(self, key: typing.SupportsIndex | slice, /) -> int | index:
-		if isinstance(key, slice):
-			components = self.vector[key]
-			cls = index[len(components), self.base]
+		components = self.vector[key]
 
-			return cls(components)
-
-		return self.vector[key]
+		match components:
+			case vector(): cls = index[len(components), self.base]; return cls(components)
+			case    int():                                          return     components
+			case _       :
+				return NotImplemented
 
 	def __add__(self, other: array[int], /) -> typing.Self:
 		cls = type(self)
@@ -191,7 +204,7 @@ class index(int):
 			remaining, component = divmod(remaining, self.base)
 			components.append(component)
 
-		return vector(components)
+		return vector(*components)
 
 
 class fraction(numbers.Number):
@@ -343,21 +356,46 @@ class collection[T: typing.Hashable](set[T]):
 	def __init__(self, *items: T) -> None:
 		super().__init__(items)
 
+	def __reduce__(self) -> tuple:
+		cls = type(self)
+
+		return cls, tuple(self), self.__getstate__()
+
 	def  __or__(self, other: typing.Iterable[T], /) -> typing.Self: return self.               union(other)
 	def __and__(self, other: typing.Iterable[T], /) -> typing.Self: return self.        intersection(other)
 	def __sub__(self, other: typing.Iterable[T], /) -> typing.Self: return self.          difference(other)
 	def __xor__(self, other: typing.Iterable[T], /) -> typing.Self: return self.symmetric_difference(other)
 
+	def  __ror__(self, other: typing.Iterable[T], /) -> typing.Self: return self | other
+	def __rand__(self, other: typing.Iterable[T], /) -> typing.Self: return self & other
+	def __rxor__(self, other: typing.Iterable[T], /) -> typing.Self: return self ^ other
+
 	def        union(self, *others: typing.Iterable[T]) -> typing.Self: cls = type(self); return cls(*super().       union(*others))
 	def intersection(self, *others: typing.Iterable[T]) -> typing.Self: cls = type(self); return cls(*super().intersection(*others))
 	def   difference(self, *others: typing.Iterable[T]) -> typing.Self: cls = type(self); return cls(*super().  difference(*others))
+
+	def copy(self) -> typing.Self:
+		cls = type(self)
+
+		return cls(*self)
 
 	def symmetric_difference(self, other : typing.Iterable[T]) -> typing.Self:
 		cls = type(self)
 
 		return cls(*super().symmetric_difference(other))
 
-	def copy(self) -> typing.Self:
+
+class vectors(collection[vector]):
+
+	def __add__(self, other: typing.Iterable[int | array[int]], /) -> typing.Self:
 		cls = type(self)
 
-		return cls(*self)
+		return cls(*(left + right for left in self for right in other))
+
+	def __mul__(self, other: int, /) -> typing.Self:
+		cls = type(self)
+
+		return cls(*(left * other for left in self))
+
+	def __radd__(self, other: typing.Iterable[int | array[int]], /) -> typing.Self: return self + other
+	def __rmul__(self, other:                 int              , /) -> typing.Self: return self * other
