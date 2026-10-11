@@ -394,14 +394,20 @@ class collection[T: typing.Hashable](set[T]):
 
 		return cls, tuple(self), self.__getstate__()
 
-	def  __or__(self, other: typing.Iterable[T], /) -> typing.Self: return self.               union(other)
+	def __or__ (self, other: typing.Iterable[T], /) -> typing.Self: return self.               union(other)
 	def __and__(self, other: typing.Iterable[T], /) -> typing.Self: return self.        intersection(other)
 	def __sub__(self, other: typing.Iterable[T], /) -> typing.Self: return self.          difference(other)
 	def __xor__(self, other: typing.Iterable[T], /) -> typing.Self: return self.symmetric_difference(other)
 
-	def  __ror__(self, other: typing.Iterable[T], /) -> typing.Self: return self | other
+	def __ror__ (self, other: typing.Iterable[T], /) -> typing.Self: return self | other
 	def __rand__(self, other: typing.Iterable[T], /) -> typing.Self: return self & other
 	def __rxor__(self, other: typing.Iterable[T], /) -> typing.Self: return self ^ other
+
+	def __ior__ (self, other: typing.Iterable[T], /) -> typing.Self: self.                     update(other); return self
+	def __iand__(self, other: typing.Iterable[T], /) -> typing.Self: self.        intersection_update(other); return self
+	def __isub__(self, other: typing.Iterable[T], /) -> typing.Self: self.          difference_update(other); return self
+	def __ixor__(self, other: typing.Iterable[T], /) -> typing.Self: self.symmetric_difference_update(other); return self
+
 
 	def        union(self, *others: typing.Iterable[T]) -> typing.Self: cls = type(self); return cls(*super().       union(*others))
 	def intersection(self, *others: typing.Iterable[T]) -> typing.Self: cls = type(self); return cls(*super().intersection(*others))
