@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 
-import collections.abc
+import itertools
 import math
 import numbers
 import operator
@@ -37,11 +37,10 @@ class vector(tuple[int, ...]):
 	def __getitem__(self, key: typing.SupportsIndex | slice, /) -> int | typing.Self:
 		cls = type(self)
 
-		match key:
-			case typing.SupportsIndex(): return      super().__getitem__(key)
-			case                slice(): return cls(*super().__getitem__(key))
-			case _                     :
-				return NotImplemented
+		if isinstance(key, slice):
+			return cls(*super().__getitem__(key))
+
+		return super().__getitem__(key)
 
 
 	def __add__(self, other: int | array[int], /) -> typing.Self: return self.operate(other, operator = operator.add, identity = 0)
@@ -57,6 +56,10 @@ class vector(tuple[int, ...]):
 
 	def __rmatmul__(self, other: int | array[int], /) -> int:
 		return self @ other
+
+	def __iadd__(self, other: int | array[int], /) -> typing.Self: return self + other
+	def __isub__(self, other: int | array[int], /) -> typing.Self: return self - other
+	def __imul__(self, other: int | array[int], /) -> typing.Self: return self * other
 
 	def __pos__(self) -> typing.Self: return self
 	def __neg__(self) -> typing.Self: return self * -1
@@ -90,13 +93,6 @@ class index(int):
 	dim : int
 	base: int
 
-	@typing.overload
-	def __new__(cls, x: int) -> typing.Self:
-		...
-
-	@typing.overload
-	def __new__(cls, x: array[int]) -> typing.Self:
-		...
 
 	def __new__(cls, x: int | array[int]) -> typing.Self:
 		if isinstance(x, int):
@@ -156,19 +152,28 @@ class index(int):
 	def __getitem__(self, key: typing.SupportsIndex | slice, /) -> int | index:
 		components = self.vector[key]
 
-		match components:
-			case vector(): cls = index[len(components), self.base]; return cls(components)
-			case    int():                                          return     components
-			case _       :
-				return NotImplemented
+		if isinstance(components, vector):
+			cls = index[len(components), self.base]
+
+			return cls(components)
+
+		return components
 
 	def __add__(self, other: array[int], /) -> typing.Self:
 		cls = type(self)
 
 		return cls.from_vector(self.vector + other)
 
-	def __radd__(self, other: array[int], /) -> typing.Self:
-		return self + other
+	def __radd__(self, other: array[int], /) -> typing.Self: return self + other
+	def __iadd__(self, other: array[int], /) -> typing.Self: return self + other
+
+	@typing.overload
+	def __sub__(self, other: int, /) -> vector:
+		...
+
+	@typing.overload
+	def __sub__(self, other: array[int], /) -> typing.Self:
+		...
 
 	def __sub__(self, other: int | array[int], /) -> vector | typing.Self:
 		cls = type(self)
@@ -178,6 +183,15 @@ class index(int):
 
 		return cls.from_vector(self.vector - other)
 
+	@typing.overload
+	def __isub__(self, other: int, /) -> vector:
+		...
+
+	@typing.overload
+	def __isub__(self, other: array[int], /) -> typing.Self:
+		...
+
+	def __isub__(self, other: int | array[int], /) -> vector | typing.Self: return self.__sub__(other)
 
 	@classmethod
 	def restore(cls, items: array[pair[int]], value: int, /) -> typing.Self:
@@ -205,6 +219,16 @@ class index(int):
 			components.append(component)
 
 		return vector(*components)
+
+
+	def range(self, step: vector, stop: bool = False, /) -> typing.Generator[typing.Self]:
+		if len(step) != self.dim or not step:
+			raise ValueError
+
+		while not stop:
+			try: self += step
+			except ValueError: break
+			yield self
 
 
 class fraction(numbers.Number):
@@ -273,6 +297,13 @@ class fraction(numbers.Number):
 	def __rtruediv__(self, other: int | fraction, /) -> typing.Self:
 		return ~self * other
 
+	def __iadd__(self, other: int | fraction, /) -> typing.Self: return self + other
+	def __isub__(self, other: int | fraction, /) -> typing.Self: return self - other
+	def __imul__(self, other: int | fraction, /) -> typing.Self: return self * other
+
+	def __itruediv__(self, other: int | fraction, /) -> typing.Self:
+		return self / other
+
 	def __pow__(self, value: int, /) -> typing.Self:
 		numerator, denominator = self.numerator, self.denominator
 
@@ -283,6 +314,8 @@ class fraction(numbers.Number):
 		cls = type(self)
 
 		return cls(numerator ** value, denominator ** value)
+
+	def __ipow__(self, value: int, /) -> typing.Self: return self ** value
 
 	def __pos__(self, /) -> typing.Self: cls = type(self); return cls(    self                             )
 	def __neg__(self, /) -> typing.Self: cls = type(self); return cls(   -self.numerator , self.denominator)
@@ -374,28 +407,42 @@ class collection[T: typing.Hashable](set[T]):
 	def intersection(self, *others: typing.Iterable[T]) -> typing.Self: cls = type(self); return cls(*super().intersection(*others))
 	def   difference(self, *others: typing.Iterable[T]) -> typing.Self: cls = type(self); return cls(*super().  difference(*others))
 
-	def copy(self) -> typing.Self:
-		cls = type(self)
-
-		return cls(*self)
-
 	def symmetric_difference(self, other : typing.Iterable[T]) -> typing.Self:
 		cls = type(self)
 
 		return cls(*super().symmetric_difference(other))
 
+	def copy(self) -> typing.Self:
+		cls = type(self)
+
+		return cls(*self)
+
 
 class vectors(collection[vector]):
 
-	def __add__(self, other: typing.Iterable[int | array[int]], /) -> typing.Self:
+	def __add__(self, other: typing.Iterable[array[int]], /) -> typing.Self:
 		cls = type(self)
 
-		return cls(*(left + right for left in self for right in other))
+		return cls(*(left + right for left, right in itertools.product(self, other)))
+
+	def __radd__(self, other: typing.Iterable[array[int]], /) -> typing.Self: return self + other
+	def __iadd__(self, other: typing.Iterable[array[int]], /) -> typing.Self: return self + other
 
 	def __mul__(self, other: int, /) -> typing.Self:
 		cls = type(self)
 
 		return cls(*(left * other for left in self))
 
-	def __radd__(self, other: typing.Iterable[int | array[int]], /) -> typing.Self: return self + other
-	def __rmul__(self, other:                 int              , /) -> typing.Self: return self * other
+	def __rmul__(self, other: int, /) -> typing.Self: return self * other
+	def __imul__(self, other: int, /) -> typing.Self: return self * other
+
+
+class indices(collection[index]):
+
+	def __add__(self, other: typing.Iterable[array[int]], /) -> typing.Self:
+		cls = type(self)
+
+		return cls(*(left + right for left, right in itertools.product(self, other)))
+
+	def __radd__(self, other: typing.Iterable[array[int]], /) -> typing.Self: return self + other
+	def __iadd__(self, other: typing.Iterable[array[int]], /) -> typing.Self: return self + other

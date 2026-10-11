@@ -10,13 +10,18 @@ from fractions import Fraction
 
 import pytest
 
-from goochess.mathematics import collection, fraction, index, vector, vectors
+from goochess.mathematics import collection, fraction, index, indices, vector, vectors
 
 
 class TestVector:
 
 	class Derived(vector):
 		...
+
+	class Key:
+
+		def __index__(self) -> int:
+			return 1
 
 	vector_types = (vector, Derived)
 	components = ((), (2,), (2, -3, 4))
@@ -38,6 +43,8 @@ class TestVector:
 	)
 	slices = ((slice(1, None), (-3, 4)), (slice(None, None, -1), (4, -3, 2)), (slice(0, 0), ()))
 	strict_operations = (operator.add, operator.sub, operator.mul, operator.matmul)
+	in_place = ((operator.iadd, (7, -2, 2)), (operator.isub, (-3, -4, 6)), (operator.imul, (10, -3, -8)))
+	invalid_keys = (None, "x", 1.5)
 	copy_functions = (copy.copy, copy.deepcopy)
 	pickle_protocols = tuple(range(pickle.HIGHEST_PROTOCOL + 1))
 
@@ -84,9 +91,24 @@ class TestVector:
 		value = vector_type(*self.value)
 		assert value[0] == 2
 		assert value[-1] == 4
+		assert value[self.Key()] == -3
 		result = value[key]
 		assert result == expected
 		assert type(result) is vector_type
+
+	@pytest.mark.parametrize("key", invalid_keys)
+	def test_invalid_subscription(self, key) -> None:
+		with pytest.raises(TypeError):
+			_ = self.value[key]
+
+	@pytest.mark.parametrize("vector_type", vector_types)
+	@pytest.mark.parametrize("operation, expected", in_place)
+	def test_augmented_arithmetic(self, vector_type, operation, expected) -> None:
+		value = vector_type(*self.value)
+		result = operation(value, self.other)
+		assert result == expected
+		assert type(result) is vector_type
+		assert value == self.value
 
 	@pytest.mark.parametrize("operation", strict_operations)
 	def test_dimension_mismatch(self, operation) -> None:
@@ -133,6 +155,20 @@ class TestIndex:
 	invalid_coordinates = ((), (1,), (1, 2, 3), (-1, 2), (8, 1))
 	invalid_values = (-1, 64)
 	translations = (operator.add, operator.sub)
+	rays = (
+		(Board((5, 0)), vector(1, 0), ((6, 0), (7, 0))),
+		(Board((1, 2)), vector(-1, 0), ((0, 2),)),
+		(Binary((0, 0, 0)), vector(1, 1, 1), ((1, 1, 1),)),
+		(Board((0, 0)), vector(8, 0), ()),
+	)
+	invalid_steps = (vector(0, 0), vector(1), vector(1, 1, 1))
+	arithmetic = (
+		(operator.add, position, displacement, Board(19)),
+		(operator.add, displacement, position, Board(19)),
+		(operator.sub, position, displacement, Board(33)),
+		(operator.sub, position, other, vector(1, 2)),
+	)
+	invalid_keys = TestVector.invalid_keys
 	copy_functions = (copy.copy, copy.deepcopy)
 	pickle_protocols = tuple(range(pickle.HIGHEST_PROTOCOL + 1))
 
@@ -163,20 +199,51 @@ class TestIndex:
 	def test_coordinates(self) -> None:
 		assert self.position[0] == self.position[-2] == 2
 		assert self.position[1] == self.position[-1] == 3
+		assert self.position[TestVector.Key()] == 3
 
 		with pytest.raises(IndexError):
 			_ = self.position[2]
 
-	def test_translation_and_difference(self) -> None:
+	@pytest.mark.parametrize("key", invalid_keys)
+	def test_invalid_subscription(self, key) -> None:
+		with pytest.raises(TypeError):
+			_ = self.position[key]
+
+	@pytest.mark.parametrize("operation, left, right, expected", arithmetic)
+	def test_arithmetic(self, operation, left, right, expected) -> None:
+		result = operation(left, right)
+		assert result == expected
+		assert type(result) is type(expected)
+
+	def test_translation_laws(self) -> None:
 		difference = self.position - self.other
-		assert isinstance(difference, vector)
-		assert self.position + self.displacement == self.displacement + self.position == self.Board(19)
-		assert self.position - self.displacement == self.Board(33)
-		assert difference == vector(1, 2)
 		assert self.other + difference == self.position
+		assert difference + self.other == self.position
 		assert (self.position + self.displacement) - self.displacement == self.position
-		assert type(self.position + self.displacement) is self.Board
+		assert (self.position - self.displacement) + self.displacement == self.position
+
+	def test_augmented_translation_and_difference(self) -> None:
+		position = self.position
+		position += self.displacement
+		assert type(position) is self.Board
+		assert position == self.Board(19)
+		position -= self.displacement
+		assert position == self.position
+		difference = operator.isub(position, self.other)
 		assert type(difference) is vector
+		assert difference == vector(1, 2)
+
+	@pytest.mark.parametrize("position, step, expected", rays)
+	def test_range(self, position, step, expected) -> None:
+		result = tuple(position.range(step))
+		assert tuple(item.vector for item in result) == expected
+		assert all(type(item) is type(position) for item in result)
+		assert tuple(position.range(step, True)) == ()
+
+	@pytest.mark.parametrize("step", invalid_steps)
+	def test_invalid_range_direction(self, step) -> None:
+		with pytest.raises(ValueError):
+			tuple(self.position.range(step))
 
 	@pytest.mark.parametrize("components", invalid_coordinates)
 	def test_coordinate_bounds(self, components) -> None:
@@ -443,7 +510,6 @@ class TestVectors:
 	additions = (
 		(right, {vector(0, 1), vector(1, 1), vector(2, 1)}),
 		(((0, 1), (1, 1)), {vector(0, 1), vector(1, 1), vector(2, 1)}),
-		((1, -1), {vector(1, 1), vector(2, 1), vector(-1, -1), vector(0, -1)}),
 	)
 	scalars = ((2, {vector(0, 0), vector(2, 0)}), (-1, {vector(0, 0), vector(-1, 0)}), (0, {vector(0, 0)}))
 	set_operations = (operator.or_, operator.and_, operator.sub, operator.xor)
@@ -455,6 +521,7 @@ class TestVectors:
 	def test_pairwise_addition(self, collection_type, other, expected) -> None:
 		value = collection_type(*self.left)
 		assert value + other == other + value == expected
+		assert value + iter(other) == iter(other) + value == expected
 		assert type(value + other) is collection_type
 
 	@pytest.mark.parametrize("collection_type", collection_types)
@@ -497,3 +564,71 @@ class TestVectors:
 			result = pickle.loads(pickle.dumps(value, protocol = protocol))
 			assert result == value
 			assert type(result) is collection_type
+
+
+class TestIndices:
+
+	class Board(index, dim = 2, base = 8):
+		...
+
+	class Derived(indices):
+		...
+
+	collection_types = (indices, Derived)
+	left = indices(Board((1, 1)), Board((2, 1)))
+	steps = (vector(0, 1), vector(1, 1))
+	expected = {Board((1, 2)), Board((2, 2)), Board((3, 2))}
+	invalid_steps = (vector(1), vector(-2, 0))
+	set_operations = TestVectors.set_operations
+	copy_functions = TestCollection.copy_functions
+	pickle_protocols = TestCollection.pickle_protocols
+
+	@pytest.mark.parametrize("collection_type", collection_types)
+	def test_pairwise_translation(self, collection_type) -> None:
+		value = collection_type(*self.left)
+
+		for other in (self.steps, iter(self.steps)):
+			result = value + other
+			assert result == self.expected
+			assert type(result) is collection_type
+			assert all(type(item) is self.Board for item in result)
+
+		assert iter(self.steps) + value == self.expected
+		assert value + () == collection_type() + self.steps == collection_type()
+
+	@pytest.mark.parametrize("collection_type", collection_types)
+	def test_augmented_translation(self, collection_type) -> None:
+		value = collection_type(*self.left)
+		value += self.steps
+		assert value == self.expected
+		assert type(value) is collection_type
+		assert self.left == {self.Board((1, 1)), self.Board((2, 1))}
+
+	@pytest.mark.parametrize("step", invalid_steps)
+	def test_translation_bounds_and_dimension(self, step) -> None:
+		with pytest.raises(ValueError):
+			_ = self.left + (step,)
+
+	@pytest.mark.parametrize("collection_type", collection_types)
+	@pytest.mark.parametrize("operation", set_operations)
+	def test_inherited_set_operations(self, collection_type, operation) -> None:
+		value = collection_type(*self.left)
+		result = operation(value, self.expected)
+		assert result == operation(set(self.left), self.expected)
+		assert type(result) is collection_type
+
+	@pytest.mark.parametrize("collection_type", collection_types)
+	def test_serialization(self, collection_type) -> None:
+		value = collection_type(*self.left)
+
+		for copier in self.copy_functions:
+			result = copier(value)
+			assert result == value
+			assert type(result) is collection_type
+			assert all(type(item) is self.Board for item in result)
+
+		for protocol in self.pickle_protocols:
+			result = pickle.loads(pickle.dumps(value, protocol = protocol))
+			assert result == value
+			assert type(result) is collection_type
+			assert all(type(item) is self.Board for item in result)

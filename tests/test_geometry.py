@@ -23,6 +23,7 @@ class TestSquare: # pylint: disable = no-member
 	)
 	differences = ((Square.B2, Square.A1, (1, 1)), (Square.A1, Square.H8, (-7, -7)), (Square.A1, Square.A1, (0, 0)))
 	invalid_translations = ((Square.H1, vector(0, 1)), (Square.A8, vector(1, 0)), (Square.A1, vector(-1, 0)))
+	rays = ((Square.A6, vector(1, 0), (Square.A7, Square.A8)), (Square.H8, vector(1, 1), ()))
 	serialization_values = (Square.A1, Square.B2, Square.H8)
 	copy_functions = (copy.copy, copy.deepcopy)
 	pickle_protocols = tuple(range(pickle.HIGHEST_PROTOCOL + 1))
@@ -59,6 +60,12 @@ class TestSquare: # pylint: disable = no-member
 	def test_translation_bounds(self, square, displacement) -> None:
 		with pytest.raises(ValueError):
 			_ = square + displacement
+
+	@pytest.mark.parametrize("square, step, expected", rays)
+	def test_range(self, square, step, expected) -> None:
+		result = tuple(square.range(step))
+		assert result == expected
+		assert all(actual is member for actual, member in zip(result, expected, strict = True))
 
 	@pytest.mark.parametrize("value", serialization_values)
 	def test_serialization(self, value) -> None:
