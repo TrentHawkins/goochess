@@ -17,6 +17,7 @@ class TestSquare: # pylint: disable = no-member
 	translations = (
 		(operator.add, Square.A1, vector(1, 1), Square.B2),
 		(operator.add, vector(1, 1), Square.A1, Square.B2),
+		(operator.add, vector(1, 0), Square.B2, Square.B3),
 		(operator.add, Square.A1, vector(1, 0), Square.A2),
 		(operator.add, Square.A1, vector(0, 1), Square.B1),
 		(operator.sub, Square.B2, vector(1, 1), Square.A1),

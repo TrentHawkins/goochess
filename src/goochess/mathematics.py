@@ -74,6 +74,9 @@ class vector(tuple[int, ...]):
 	) -> typing.Self:
 		cls = type(self)
 
+		if other == ():
+			other = 0
+
 		if isinstance(other, int):
 			if isinstance(other, index):
 				return NotImplemented
@@ -82,6 +85,9 @@ class vector(tuple[int, ...]):
 				return self
 
 			other = (other,) * len(self)
+
+		if not len(self):
+			self = (0,) * len(other)
 
 		return cls(*(operator(left, right) for left, right in zip(self, other, strict = True)))
 
@@ -93,10 +99,13 @@ class index(int):
 	dim : int
 	base: int
 
+	lower: int = 0
+	upper: int
+
 
 	def __new__(cls, x: int | array[int]) -> typing.Self:
 		if isinstance(x, int):
-			if not 0 <= x < cls.base ** cls.dim:
+			if not cls.lower <= x < cls.upper:
 				raise ValueError
 
 			return super().__new__(cls, x)
@@ -140,6 +149,8 @@ class index(int):
 
 		if dim  is not None: cls.dim  = dim
 		if base is not None: cls.base = base
+
+		cls.upper = cls.base ** cls.dim
 
 	@typing.overload
 	def __getitem__(self, key: typing.SupportsIndex, /) -> int:
@@ -426,29 +437,39 @@ class collection[T: typing.Hashable](set[T]):
 
 class vectors(collection[vector]):
 
-	def __add__(self, other: typing.Iterable[array[int]], /) -> typing.Self:
+	def __mul__(self, other: int | typing.Iterable[int] | typing.Iterable[array[int]], /) -> typing.Self:
 		cls = type(self)
+
+		if isinstance(other, int):
+			if other <  0: raise NotImplementedError
+			if other == 0: return cls()
+			if other == 1: return cls(*self)
+
+			return cls(*(left * other for left in self))
 
 		return cls(*(left + right for left, right in itertools.product(self, other)))
 
-	def __radd__(self, other: typing.Iterable[array[int]], /) -> typing.Self: return self + other
-	def __iadd__(self, other: typing.Iterable[array[int]], /) -> typing.Self: return self + other
+	def __rmul__(self, other: int | typing.Iterable[int] | typing.Iterable[array[int]], /) -> typing.Self: return self * other
+	def __imul__(self, other: int | typing.Iterable[int] | typing.Iterable[array[int]], /) -> typing.Self: return self * other
 
-	def __mul__(self, other: int, /) -> typing.Self:
+	def __pow__(self, other: int, /) -> typing.Self:
 		cls = type(self)
 
-		return cls(*(left * other for left in self))
+		if other <= 0: raise NotImplementedError
+		if other == 1: return cls(*self)
+		if other == 2: return self * self
 
-	def __rmul__(self, other: int, /) -> typing.Self: return self * other
-	def __imul__(self, other: int, /) -> typing.Self: return self * other
+		return cls(*(sum(terms, vector()) for terms in itertools.product(self, repeat = other)))
+
+	def __ipow__(self, other: int, /) -> typing.Self: return self ** other
 
 
 class indices(collection[index]):
 
-	def __add__(self, other: typing.Iterable[array[int]], /) -> typing.Self:
+	def __mul__(self, other: typing.Iterable[array[int]], /) -> typing.Self:
 		cls = type(self)
 
 		return cls(*(left + right for left, right in itertools.product(self, other)))
 
-	def __radd__(self, other: typing.Iterable[array[int]], /) -> typing.Self: return self + other
-	def __iadd__(self, other: typing.Iterable[array[int]], /) -> typing.Self: return self + other
+	def __rmul__(self, other: typing.Iterable[array[int]], /) -> typing.Self: return self * other
+	def __imul__(self, other: typing.Iterable[array[int]], /) -> typing.Self: return self * other

@@ -27,6 +27,13 @@ class TestVector:
 	components = ((), (2,), (2, -3, 4))
 	value = vector(2, -3, 4)
 	other = vector(5, 1, -2)
+	empty = vector()
+	zeros = vector(0, 0, 0)
+	empty_arithmetic = (
+		(operator.add, value, value),
+		(operator.sub, value, -value),
+		(operator.mul, zeros, zeros),
+	)
 	arithmetic = (
 		(operator.add, other, (7, -2, 2)),
 		(operator.sub, other, (-3, -4, 6)),
@@ -43,6 +50,7 @@ class TestVector:
 	)
 	slices = ((slice(1, None), (-3, 4)), (slice(None, None, -1), (4, -3, 2)), (slice(0, 0), ()))
 	strict_operations = (operator.add, operator.sub, operator.mul, operator.matmul)
+	mismatched_zeros = (vector(0), vector(0, 0), vector(0, 0, 0, 0))
 	in_place = ((operator.iadd, (7, -2, 2)), (operator.isub, (-3, -4, 6)), (operator.imul, (10, -3, -8)))
 	invalid_keys = (None, "x", 1.5)
 	copy_functions = (copy.copy, copy.deepcopy)
@@ -77,11 +85,25 @@ class TestVector:
 		assert self.value + 0 == self.value * 1 == +self.value
 		assert -self.value == (-2, 3, -4)
 		assert sum((self.value, self.other)) == (7, -2, 2)
+		assert sum((self.value, self.other), self.empty) == (7, -2, 2)
 		assert vector() + vector() == vector()
+
+	@pytest.mark.parametrize("vector_type", vector_types)
+	@pytest.mark.parametrize("operation, expected, reflected", empty_arithmetic)
+	def test_empty_vector_arithmetic(self, vector_type, operation, expected, reflected) -> None:
+		value = vector_type(*self.value)
+		empty = vector_type()
+		result = operation(value, empty)
+		reversed_result = operation(empty, value)
+		assert result == expected
+		assert reversed_result == reflected
+		assert type(result) is vector_type
+		assert type(reversed_result) is vector_type
 
 	def test_dot_product_and_squared_norm(self) -> None:
 		assert self.value @ self.other == self.other @ self.value == -1
 		assert self.value @ 2 == 2 @ self.value == 6
+		assert self.value @ self.empty == self.empty @ self.value == 0
 		assert abs(self.value) == self.value @ self.value == 29
 		assert abs(vector()) == 0
 
@@ -114,6 +136,15 @@ class TestVector:
 	def test_dimension_mismatch(self, operation) -> None:
 		with pytest.raises(ValueError):
 			operation(self.value, vector(1, 2))
+
+	@pytest.mark.parametrize("operation", strict_operations)
+	@pytest.mark.parametrize("other", mismatched_zeros)
+	def test_zero_vectors_keep_dimension(self, operation, other) -> None:
+		with pytest.raises(ValueError):
+			operation(self.value, other)
+
+		with pytest.raises(ValueError):
+			operation(other, self.value)
 
 	@pytest.mark.parametrize("vector_type", vector_types)
 	@pytest.mark.parametrize("components", components)
@@ -150,10 +181,10 @@ class TestIndex:
 	position = Board((2, 3))
 	other = Board((1, 1))
 	displacement = vector(1, -1)
+	empty_displacement = vector()
 	padding = ((0, (0, 0)), (1, (1, 0)), (7, (7, 0)), (8, (0, 1)))
 	slices = ((slice(1, None), (3,)), (slice(None, None, -1), (3, 2)), (slice(0, 0), ()))
 	invalid_coordinates = ((), (1,), (1, 2, 3), (-1, 2), (8, 1))
-	invalid_values = (-1, 64)
 	translations = (operator.add, operator.sub)
 	rays = (
 		(Board((5, 0)), vector(1, 0), ((6, 0), (7, 0))),
@@ -167,6 +198,7 @@ class TestIndex:
 		(operator.add, displacement, position, Board(19)),
 		(operator.sub, position, displacement, Board(33)),
 		(operator.sub, position, other, vector(1, 2)),
+		(operator.add, vector(1, 1), Board(0), Board(9)),
 	)
 	invalid_keys = TestVector.invalid_keys
 	copy_functions = (copy.copy, copy.deepcopy)
@@ -180,7 +212,10 @@ class TestIndex:
 
 	@pytest.mark.parametrize("index_type", index_types)
 	def test_round_trip(self, index_type) -> None:
-		for encoded in range(index_type.base ** index_type.dim):
+		assert index_type.lower == 0
+		assert index_type.upper == index_type.base ** index_type.dim
+
+		for encoded in range(index_type.lower, index_type.upper):
 			value = index_type(encoded)
 			assert len(value.vector) == index_type.dim
 			assert index_type.from_vector(value.vector) == value
@@ -222,6 +257,18 @@ class TestIndex:
 		assert (self.position + self.displacement) - self.displacement == self.position
 		assert (self.position - self.displacement) + self.displacement == self.position
 
+	@pytest.mark.parametrize("index_type", index_types)
+	def test_empty_displacement(self, index_type) -> None:
+		position = index_type(0)
+
+		for result in (
+			position + self.empty_displacement,
+			self.empty_displacement + position,
+			position - self.empty_displacement,
+		):
+			assert result == position
+			assert type(result) is index_type
+
 	def test_augmented_translation_and_difference(self) -> None:
 		position = self.position
 		position += self.displacement
@@ -250,10 +297,12 @@ class TestIndex:
 		with pytest.raises(ValueError):
 			self.Board.from_vector(components)
 
-	@pytest.mark.parametrize("encoded", invalid_values)
-	def test_encoded_bounds(self, encoded) -> None:
-		with pytest.raises(ValueError):
-			self.Board(encoded)
+	@pytest.mark.parametrize("index_type", index_types)
+	def test_encoded_bounds(self, index_type) -> None:
+		for encoded in (index_type.lower - 1, index_type.upper):
+
+			with pytest.raises(ValueError):
+				index_type(encoded)
 
 	@pytest.mark.parametrize("operation", translations)
 	def test_translation_bounds_and_dimension(self, operation) -> None:
@@ -427,6 +476,7 @@ class TestCollection:
 	)
 	commutative = (operator.or_, operator.and_, operator.xor)
 	in_place = ((operator.ior, {1, 2, 3}), (operator.iand, {2}), (operator.isub, {1}), (operator.ixor, {1, 3}))
+	operand_types = (set, tuple, iter)
 	copy_functions = (copy.copy, copy.deepcopy)
 	pickle_protocols = tuple(range(pickle.HIGHEST_PROTOCOL + 1))
 
@@ -469,9 +519,10 @@ class TestCollection:
 
 	@pytest.mark.parametrize("collection_type", collection_types)
 	@pytest.mark.parametrize("operation, expected", in_place)
-	def test_in_place_operations(self, collection_type, operation, expected) -> None:
+	@pytest.mark.parametrize("operand_type", operand_types)
+	def test_in_place_operations(self, collection_type, operation, expected, operand_type) -> None:
 		value = collection_type(*self.items)
-		result = operation(value, set(self.other))
+		result = operation(value, operand_type(self.other))
 		assert result == expected
 		assert result is value
 
@@ -507,22 +558,46 @@ class TestVectors:
 	left = vectors(vector(0, 0), vector(1, 0))
 	right = vectors(vector(0, 1), vector(1, 1))
 	third = vectors(vector(0, -1), vector(-1, 0))
-	additions = (
+	unit = vectors(vector())
+	products = (
 		(right, {vector(0, 1), vector(1, 1), vector(2, 1)}),
 		(((0, 1), (1, 1)), {vector(0, 1), vector(1, 1), vector(2, 1)}),
+		((1, -1), {vector(1, 1), vector(2, 1), vector(-1, -1), vector(0, -1)}),
 	)
-	scalars = ((2, {vector(0, 0), vector(2, 0)}), (-1, {vector(0, 0), vector(-1, 0)}), (0, {vector(0, 0)}))
+	scalars = (
+		(2, {vector(0, 0), vector(2, 0)}),
+		(0, set()),
+		(1, set(left)),
+	)
+	powers = (
+		(1, set(left)),
+		(2, {vector(0, 0), vector(1, 0), vector(2, 0)}),
+		(3, {vector(0, 0), vector(1, 0), vector(2, 0), vector(3, 0)}),
+		(True, set(left)),
+	)
+	power_pairs = ((1, 1), (1, 2), (2, 3))
+	unsupported_powers = (0, -1, False)
 	set_operations = (operator.or_, operator.and_, operator.sub, operator.xor)
 	copy_functions = (copy.copy, copy.deepcopy)
 	pickle_protocols = tuple(range(pickle.HIGHEST_PROTOCOL + 1))
 
 	@pytest.mark.parametrize("collection_type", collection_types)
-	@pytest.mark.parametrize("other, expected", additions)
-	def test_pairwise_addition(self, collection_type, other, expected) -> None:
+	@pytest.mark.parametrize("other, expected", products)
+	def test_pairwise_product(self, collection_type, other, expected) -> None:
 		value = collection_type(*self.left)
-		assert value + other == other + value == expected
-		assert value + iter(other) == iter(other) + value == expected
-		assert type(value + other) is collection_type
+		assert value * other == other * value == expected
+		assert value * iter(other) == iter(other) * value == expected
+		assert type(value * other) is collection_type
+
+	@pytest.mark.parametrize("collection_type", collection_types)
+	@pytest.mark.parametrize("other, expected", products)
+	def test_augmented_product(self, collection_type, other, expected) -> None:
+		value = collection_type(*self.left)
+		alias = value
+		value *= iter(other)
+		assert value == expected
+		assert type(value) is collection_type
+		assert alias == self.left
 
 	@pytest.mark.parametrize("collection_type", collection_types)
 	@pytest.mark.parametrize("scalar, expected", scalars)
@@ -532,12 +607,54 @@ class TestVectors:
 		assert type(value * scalar) is collection_type
 
 	def test_vector_set_laws(self) -> None:
-		assert self.left + vectors(vector(0, 0)) == self.left
-		assert (self.left + self.right) + self.third == self.left + (self.right + self.third)
-		assert self.left + (self.right | self.third) == (self.left + self.right) | (self.left + self.third)
-		assert (self.left + self.right) * 2 == self.left * 2 + self.right * 2
-		assert self.left + vectors() == vectors() + self.left == vectors()
+		assert self.left * vectors(vector(0, 0)) == self.left
+		assert self.left * self.unit == self.unit * self.left == self.left
+		assert (self.left * self.right) * self.third == self.left * (self.right * self.third)
+		assert self.left * (self.right | self.third) == (self.left * self.right) | (self.left * self.third)
+		assert (self.left * self.right) * 2 == (self.left * 2) * (self.right * 2)
+		assert self.left * vectors() == vectors() * self.left == vectors()
 		assert vectors() * 2 == vectors()
+
+	@pytest.mark.parametrize("collection_type", collection_types)
+	@pytest.mark.parametrize("exponent, expected", powers)
+	def test_powers(self, collection_type, exponent, expected) -> None:
+		value = collection_type(*self.left)
+		result = value ** exponent
+		assert result == expected
+		assert type(result) is collection_type
+		assert value == self.left
+
+	@pytest.mark.parametrize("left, right", power_pairs)
+	def test_power_laws(self, left, right) -> None:
+		assert (self.left ** left) * (self.left ** right) == self.left ** (left + right)
+
+	def test_empty_and_zero_dimensional_powers(self) -> None:
+		assert vectors() ** 1 == vectors() ** 3 == vectors()
+		assert self.unit ** 1 == self.unit ** 3 == self.unit
+
+	@pytest.mark.parametrize("exponent", unsupported_powers)
+	def test_unsupported_power(self, exponent) -> None:
+		with pytest.raises(NotImplementedError):
+			_ = self.left ** exponent
+
+	def test_negative_scalar(self) -> None:
+		with pytest.raises(NotImplementedError):
+			_ = self.left * -1
+
+		with pytest.raises(NotImplementedError):
+			_ = -1 * self.left
+
+	@pytest.mark.parametrize("collection_type", collection_types)
+	def test_augmented_power(self, collection_type) -> None:
+		value = collection_type(*self.left)
+		alias = value
+		value **= 3
+		assert value == {vector(0, 0), vector(1, 0), vector(2, 0), vector(3, 0)}
+		assert type(value) is collection_type
+		assert alias == self.left
+		value **= 1
+		assert value == alias * alias * alias
+		assert type(value) is collection_type
 
 	@pytest.mark.parametrize("collection_type", collection_types)
 	@pytest.mark.parametrize("operation", set_operations)
@@ -549,7 +666,7 @@ class TestVectors:
 
 	def test_dimension_mismatch(self) -> None:
 		with pytest.raises(ValueError):
-			_ = self.left + vectors(vector(1))
+			_ = self.left * vectors(vector(1))
 
 	@pytest.mark.parametrize("collection_type", collection_types)
 	def test_serialization(self, collection_type) -> None:
@@ -577,6 +694,7 @@ class TestIndices:
 	collection_types = (indices, Derived)
 	left = indices(Board((1, 1)), Board((2, 1)))
 	steps = (vector(0, 1), vector(1, 1))
+	unit = vectors(vector())
 	expected = {Board((1, 2)), Board((2, 2)), Board((3, 2))}
 	invalid_steps = (vector(1), vector(-2, 0))
 	set_operations = TestVectors.set_operations
@@ -588,18 +706,19 @@ class TestIndices:
 		value = collection_type(*self.left)
 
 		for other in (self.steps, iter(self.steps)):
-			result = value + other
+			result = value * other
 			assert result == self.expected
 			assert type(result) is collection_type
 			assert all(type(item) is self.Board for item in result)
 
-		assert iter(self.steps) + value == self.expected
-		assert value + () == collection_type() + self.steps == collection_type()
+		assert iter(self.steps) * value == self.expected
+		assert value * () == collection_type() * self.steps == collection_type()
+		assert value * self.unit == value
 
 	@pytest.mark.parametrize("collection_type", collection_types)
 	def test_augmented_translation(self, collection_type) -> None:
 		value = collection_type(*self.left)
-		value += self.steps
+		value *= self.steps
 		assert value == self.expected
 		assert type(value) is collection_type
 		assert self.left == {self.Board((1, 1)), self.Board((2, 1))}
@@ -607,7 +726,7 @@ class TestIndices:
 	@pytest.mark.parametrize("step", invalid_steps)
 	def test_translation_bounds_and_dimension(self, step) -> None:
 		with pytest.raises(ValueError):
-			_ = self.left + (step,)
+			_ = self.left * (step,)
 
 	@pytest.mark.parametrize("collection_type", collection_types)
 	@pytest.mark.parametrize("operation", set_operations)
