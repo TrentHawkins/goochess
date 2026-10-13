@@ -4,7 +4,7 @@ import enum
 import re
 import typing
 
-from .mathematics import index, array, sequence
+from .mathematics import index, array, arrays
 
 
 class Square(index[2, 8], enum.Enum):
@@ -36,55 +36,21 @@ class Square(index[2, 8], enum.Enum):
 		return self.name[0].lower()
 
 
-class Vector(array, enum.Enum):
+class Vector:
 
-	N = array( 0, -1)  # king queen rook pawn (white)
-	E = array(+1,  0)  # king queen rook
-	S = array( 0, +1)  # king queen rook pawn (black)
-	W = array(-1,  0)  # king queen rook
-
-	N2 = N * 2  # pawn (white leap)
-	S2 = S * 2  # pawn (black leap)
-	E2 = E * 2  # king (castle short/kingside)
-	W2 = W * 2  # king (castle long/queenside)
-
-	NE = N + E  # queen bishop pawn (white capture)
-	SE = S + E  # queen bishop pawn (black capture)
-	SW = S + W  # queen bishop pawn (black capture)
-	NW = N + W  # queen bishop pawn (white capture)
-
-	NNE = N + NE  # knight
-	NEE = NE + E  # knight
-	SEE = SE + E  # knight
-	SSE = S + SE  # knight
-	SSW = S + SW  # knight
-	SWW = SW + W  # knight
-	NWW = NW + W  # knight
-	NNW = N + NW  # knight
+	north = array( 0, -1)
+	east  = array(+1,  0)
+	south = array( 0, +1)
+	west  = array(-1,  0)
 
 
-	def __repr__(self) -> str:
-		symbols = {
-			self.N.name: "▲",  # king queen rook pawn (white)
-			self.E.name: "▶",  # king queen rook
-			self.S.name: "▼",  # king queen rook pawn (black)
-			self.W.name: "◀",  # king queen rook
-		}
+class Vectors:
 
-		parts = re.compile(rf"([{''.join(symbols)}])(\d*)").findall(self.name)  # Extract movement letters and optional numbers
-
-		representation = ""
-
-		for direction, count in parts:
-			representation += symbols[direction] * (int(count) if count else 1)
-
-		return representation
-
-
-	@classmethod
-	def _missing_(cls, value: int | sequence[int]) -> typing.Self:
-		member = array.__new__(cls, value)
-		member._name_ = ""
-		member._value_ = array(value)
-
-		return member
+	along_ranks = arrays(
+		Vector.north,
+		Vector.south,
+	)
+	along_files = arrays(
+		Vector.east,
+		Vector.west,
+	)

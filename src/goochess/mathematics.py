@@ -17,11 +17,11 @@ type mutation[*T] = typing.Callable[[str, *T], None]
 
 class array(tuple[int, ...]):
 
-	def __new__(cls, components: int | sequence[int] = (), /, *rest: int) -> typing.Self:
-		if isinstance(components, int):
-			components = (components, *rest)
-
+	def __new__(cls, *components: int) -> typing.Self:
 		return super().__new__(cls, components)
+
+	def __getnewargs__(self) -> sequence[int]:
+		return tuple(self)
 
 	def __bool__(self) -> bool:
 		return any(self)

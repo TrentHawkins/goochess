@@ -25,10 +25,10 @@ class TestArray:
 
 	array_types = (array, Derived)
 	components = ((), (2,), (0, 0), (2, -3, 4))
-	value = array((2, -3, 4))
-	other = array((5, 1, -2))
+	value = array(2, -3, 4)
+	other = array(5, 1, -2)
 	empty = array()
-	zeros = array((0, 0, 0))
+	zeros = array(0, 0, 0)
 	empty_arithmetic = (
 		(operator.add, value, value),
 		(operator.sub, value, -value),
@@ -50,7 +50,7 @@ class TestArray:
 	)
 	slices = ((slice(1, None), (-3, 4)), (slice(None, None, -1), (4, -3, 2)), (slice(0, 0), ()))
 	strict_operations = (operator.add, operator.sub, operator.mul, operator.matmul)
-	mismatched_zeros = (array((0,)), array((0, 0)), array((0, 0, 0, 0)))
+	mismatched_zeros = (array(0), array(0, 0), array(0, 0, 0, 0))
 	in_place = ((operator.iadd, (7, -2, 2)), (operator.isub, (-3, -4, 6)), (operator.imul, (10, -3, -8)))
 	invalid_keys = (None, "x", 1.5)
 	copy_functions = (copy.copy, copy.deepcopy)
@@ -59,17 +59,17 @@ class TestArray:
 	@pytest.mark.parametrize("array_type", array_types)
 	@pytest.mark.parametrize("components", components)
 	def test_construction(self, array_type, components) -> None:
-		for value in (array_type(components), array_type(*components)):
-			assert type(value) is array_type
-			assert value == components
-			assert len(value) == len(components)
-			assert bool(value) is any(components)
-			assert hash(value) == hash(components)
+		value = array_type(*components)
+		assert type(value) is array_type
+		assert value == components
+		assert len(value) == len(components)
+		assert bool(value) is any(components)
+		assert hash(value) == hash(components)
 
 	@pytest.mark.parametrize("array_type", array_types)
 	@pytest.mark.parametrize("operation, other, expected", arithmetic)
 	def test_arithmetic(self, array_type, operation, other, expected) -> None:
-		value = array_type(self.value)
+		value = array_type(*self.value)
 		result = operation(value, other)
 		assert result == expected
 		assert type(result) is array_type
@@ -92,7 +92,7 @@ class TestArray:
 	@pytest.mark.parametrize("array_type", array_types)
 	@pytest.mark.parametrize("operation, expected, reflected", empty_arithmetic)
 	def test_empty_array_arithmetic(self, array_type, operation, expected, reflected) -> None:
-		value = array_type(self.value)
+		value = array_type(*self.value)
 		empty = array_type()
 		result = operation(value, empty)
 		reversed_result = operation(empty, value)
@@ -111,7 +111,7 @@ class TestArray:
 	@pytest.mark.parametrize("array_type", array_types)
 	@pytest.mark.parametrize("key, expected", slices)
 	def test_coordinates_and_slices(self, array_type, key, expected) -> None:
-		value = array_type(self.value)
+		value = array_type(*self.value)
 		assert value[0] == 2
 		assert value[-1] == 4
 		assert value[self.Key()] == -3
@@ -127,7 +127,7 @@ class TestArray:
 	@pytest.mark.parametrize("array_type", array_types)
 	@pytest.mark.parametrize("operation, expected", in_place)
 	def test_augmented_arithmetic(self, array_type, operation, expected) -> None:
-		value = array_type(self.value)
+		value = array_type(*self.value)
 		result = operation(value, self.other)
 		assert result == expected
 		assert type(result) is array_type
@@ -136,7 +136,7 @@ class TestArray:
 	@pytest.mark.parametrize("operation", strict_operations)
 	def test_dimension_mismatch(self, operation) -> None:
 		with pytest.raises(ValueError):
-			operation(self.value, array((1, 2)))
+			operation(self.value, array(1, 2))
 
 	@pytest.mark.parametrize("operation", strict_operations)
 	@pytest.mark.parametrize("other", mismatched_zeros)
@@ -150,7 +150,7 @@ class TestArray:
 	@pytest.mark.parametrize("array_type", array_types)
 	@pytest.mark.parametrize("components", components)
 	def test_serialization(self, array_type, components) -> None:
-		value = array_type(components)
+		value = array_type(*components)
 
 		for copier in self.copy_functions:
 			result = copier(value)
@@ -181,25 +181,25 @@ class TestIndex:
 	encoding = ((Binary, (1, 0, 1), 5), (Board, (2, 3), 26), (Decimal, (3, 2, 1), 123))
 	position = Board((2, 3))
 	other = Board((1, 1))
-	displacement = array((1, -1))
+	displacement = array(1, -1)
 	empty_displacement = array()
 	padding = ((0, (0, 0)), (1, (1, 0)), (7, (7, 0)), (8, (0, 1)))
 	slices = ((slice(1, None), (3,)), (slice(None, None, -1), (3, 2)), (slice(0, 0), ()))
 	invalid_coordinates = ((), (1,), (1, 2, 3), (-1, 2), (8, 1))
 	translations = (operator.add, operator.sub)
 	rays = (
-		(Board((5, 0)), array((1, 0)), ((6, 0), (7, 0))),
-		(Board((1, 2)), array((-1, 0)), ((0, 2),)),
-		(Binary((0, 0, 0)), array((1, 1, 1)), ((1, 1, 1),)),
-		(Board((0, 0)), array((8, 0)), ()),
+		(Board((5, 0)), array(1, 0), ((6, 0), (7, 0))),
+		(Board((1, 2)), array(-1, 0), ((0, 2),)),
+		(Binary((0, 0, 0)), array(1, 1, 1), ((1, 1, 1),)),
+		(Board((0, 0)), array(8, 0), ()),
 	)
-	invalid_steps = (array((0, 0)), array((1,)), array((1, 1, 1)))
+	invalid_steps = (array(0, 0), array(1), array(1, 1, 1))
 	arithmetic = (
 		(operator.add, position, displacement, Board(19)),
 		(operator.add, displacement, position, Board(19)),
 		(operator.sub, position, displacement, Board(33)),
-		(operator.sub, position, other, array((1, 2))),
-		(operator.add, array((1, 1)), Board(0), Board(9)),
+		(operator.sub, position, other, array(1, 2)),
+		(operator.add, array(1, 1), Board(0), Board(9)),
 	)
 	invalid_keys = TestArray.invalid_keys
 	copy_functions = (copy.copy, copy.deepcopy)
@@ -208,7 +208,7 @@ class TestIndex:
 	@pytest.mark.parametrize("index_type, components, encoded", encoding)
 	def test_encoding(self, index_type, components, encoded) -> None:
 		assert index_type(components) == index_type(encoded) == encoded
-		assert index_type.from_sequence(array(components)) == encoded
+		assert index_type.from_sequence(array(*components)) == encoded
 		assert index_type(encoded).array == components
 
 	@pytest.mark.parametrize("index_type", index_types)
@@ -287,7 +287,7 @@ class TestIndex:
 		assert position == self.position
 		difference = operator.isub(position, self.other)
 		assert type(difference) is array
-		assert difference == array((1, 2))
+		assert difference == array(1, 2)
 
 	@pytest.mark.parametrize("position, step, expected", rays)
 	def test_range(self, position, step, expected) -> None:
@@ -316,10 +316,10 @@ class TestIndex:
 	@pytest.mark.parametrize("operation", translations)
 	def test_translation_bounds_and_dimension(self, operation) -> None:
 		with pytest.raises(ValueError):
-			operation(self.position, array((1,)))
+			operation(self.position, array(1))
 
 		with pytest.raises(ValueError):
-			operation(self.Board(0), array((-1, 8)))
+			operation(self.Board(0), array(-1, 8))
 
 	@pytest.mark.parametrize("index_type", index_types)
 	def test_serialization(self, index_type) -> None:
@@ -564,27 +564,33 @@ class TestArrays:
 		...
 
 	collection_types = (arrays, Derived)
-	left = arrays(array((0, 0)), array((1, 0)))
-	right = arrays(array((0, 1)), array((1, 1)))
-	third = arrays(array((0, -1)), array((-1, 0)))
+	left = arrays(array(0, 0), array(1, 0))
+	right = arrays(array(0, 1), array(1, 1))
+	third = arrays(array(0, -1), array(-1, 0))
 	unit = arrays(array())
-	forward = arrays(array((1, 0)))
-	backward = arrays(array((-1, 0)))
+	forward = arrays(array(1, 0))
+	backward = arrays(array(-1, 0))
 	directions = forward | backward
+	zero_vectors = arrays(array(), array(0), array(0, 0))
+	zero_removals = (
+		(array(), {(0,), (0, 0)}),
+		(array(0), {(), (0, 0)}),
+		(array(0, 0), {(), (0,)}),
+	)
 	products = (
-		(right, {array((0, 1)), array((1, 1)), array((2, 1))}),
-		(((0, 1), (1, 1)), {array((0, 1)), array((1, 1)), array((2, 1))}),
-		((1, -1), {array((1, 1)), array((2, 1)), array((-1, -1)), array((0, -1))}),
+		(right, {array(0, 1), array(1, 1), array(2, 1)}),
+		(((0, 1), (1, 1)), {array(0, 1), array(1, 1), array(2, 1)}),
+		((1, -1), {array(1, 1), array(2, 1), array(-1, -1), array(0, -1)}),
 	)
 	scalars = (
-		(2, {array((0, 0)), array((2, 0))}),
+		(2, {array(0, 0), array(2, 0)}),
 		(0, set()),
 		(1, set(left)),
 	)
 	powers = (
 		(1, set(left)),
-		(2, {array((0, 0)), array((1, 0)), array((2, 0))}),
-		(3, {array((0, 0)), array((1, 0)), array((2, 0)), array((3, 0))}),
+		(2, {array(0, 0), array(1, 0), array(2, 0)}),
+		(3, {array(0, 0), array(1, 0), array(2, 0), array(3, 0)}),
 		(True, set(left)),
 	)
 	power_pairs = ((1, 1), (1, 2), (2, 3))
@@ -619,7 +625,7 @@ class TestArrays:
 		assert type(value * scalar) is collection_type
 
 	def test_array_set_laws(self) -> None:
-		assert self.left * arrays(array((0, 0))) == self.left
+		assert self.left * arrays(array(0, 0)) == self.left
 		assert self.left * self.unit == self.unit * self.left == self.left
 		assert (self.left * self.right) * self.third == self.left * (self.right * self.third)
 		assert self.left * (self.right | self.third) == (self.left * self.right) | (self.left * self.third)
@@ -628,10 +634,16 @@ class TestArrays:
 		assert arrays() * 2 == arrays()
 
 	def test_cancellation(self) -> None:
-		assert self.forward * self.backward == arrays(array((0, 0)))
+		assert self.forward * self.backward == arrays(array(0, 0))
 		assert (self.forward * self.backward) * self.right == self.forward * (self.backward * self.right)
 		assert self.directions ** 2 == {(-2, 0), (0, 0), (2, 0)}
 		assert (self.directions ** 2) * self.directions == self.directions ** 3 == {(-3, 0), (-1, 0), (1, 0), (3, 0)}
+
+	@pytest.mark.parametrize("zero, expected", zero_removals)
+	def test_zero_vector_removal(self, zero, expected) -> None:
+		result = self.zero_vectors - {zero}
+		assert result == expected
+		assert type(result) is arrays
 
 	@pytest.mark.parametrize("collection_type", collection_types)
 	@pytest.mark.parametrize("exponent, expected", powers)
@@ -667,7 +679,7 @@ class TestArrays:
 		value = collection_type(*self.left)
 		alias = value
 		value **= 3
-		assert value == {array((0, 0)), array((1, 0)), array((2, 0)), array((3, 0))}
+		assert value == {array(0, 0), array(1, 0), array(2, 0), array(3, 0)}
 		assert type(value) is collection_type
 		assert alias == self.left
 		value **= 1
@@ -684,7 +696,7 @@ class TestArrays:
 
 	def test_dimension_mismatch(self) -> None:
 		with pytest.raises(ValueError):
-			_ = self.left * arrays(array((1,)))
+			_ = self.left * arrays(array(1))
 
 	@pytest.mark.parametrize("collection_type", collection_types)
 	def test_serialization(self, collection_type) -> None:
@@ -712,10 +724,10 @@ class TestIndices:
 	collection_types = (indices, Derived)
 	positions = (Board(0), Board((1, 1)), Board((2, 1)))
 	left = indices(*positions)
-	steps = (array((0, 1)), array((1, 1)))
+	steps = (array(0, 1), array(1, 1))
 	unit = arrays(array())
 	expected = {Board((0, 1)), Board((1, 1)), Board((1, 2)), Board((2, 2)), Board((3, 2))}
-	invalid_steps = (array((1,)), array((-2, 0)))
+	invalid_steps = (array(1), array(-2, 0))
 	set_operations = TestArrays.set_operations
 	copy_functions = TestCollection.copy_functions
 	pickle_protocols = TestCollection.pickle_protocols
