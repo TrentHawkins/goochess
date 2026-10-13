@@ -39,18 +39,18 @@ class Square(index[2, 8], enum.Enum):
 class Vector:
 
 	north = array( 0, -1)
-	east  = array(+1,  0)
-	south = array( 0, +1)
+	east  = array( 1,  0)
+	south = array( 0,  1)
 	west  = array(-1,  0)
 
 
 class Vectors:
 
-	along_ranks = arrays(
+	ranks = arrays(
 		Vector.north,
 		Vector.south,
 	)
-	along_files = arrays(
+	files = arrays(
 		Vector.east,
 		Vector.west,
 	)
