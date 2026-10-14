@@ -88,7 +88,7 @@
 \usepackage{scalefnt}
 \usepackage{dsfont}
 
-\newcommand{\InlineCodeScale}{0.9  }
+\newcommand{\InlineCodeScale}{1.0  }
 \newcommand{\InlineCodeRaise}{0.1em}
 
 \AtBeginDocument{%
@@ -275,7 +275,7 @@ Foundations
 \end_layout
 
 \begin_layout Subsection
-Vectors
+Arrays
 \end_layout
 
 \begin_layout Definition
@@ -750,7 +750,7 @@ int
 ,
 \begin_inset Formula 
 \[
-\mathbb{Z}_{n}=\{0,\ldots,n-1\}\subset\mathbb{Z}
+\mathbb{Z}_{n}=\{0,\ldots,n-1\}\subset\mathbb{N}
 \]
 
 \end_inset
@@ -791,44 +791,6 @@ is a finite commutative ring.
 
 ,
  it is the zero ring.
-\end_layout
-
-\begin_layout Standard
-The set 
-\begin_inset Formula $\mathbb{Z}_{n}$
-\end_inset
-
- gives the nonnegative positions of an indexable object of length 
-\begin_inset Formula $n$
-\end_inset
-
-.
- Modular arithmetic additionally supplies wraparound behaviour.
- The 
-\begin_inset listings
-lstparams "language=Python,fontfamily=tt,fontsize={\scriptsize},breaklines=true,tabsize=4"
-inline true
-status open
-
-\begin_layout Plain Layout
-index
-\end_layout
-
-\end_inset
-
- class in 
-\begin_inset listings
-lstparams "language=Python,fontfamily=tt,fontsize={\scriptsize},breaklines=true,tabsize=4"
-inline true
-status open
-
-\begin_layout Plain Layout
-goochess
-\end_layout
-
-\end_inset
-
- instead enforces bounds and rejects out-of-bounds coordinates.
 \end_layout
 
 \begin_layout Definition
@@ -1056,22 +1018,30 @@ finite free
  such that
 \begin_inset Formula 
 \[
-\boldsymbol{x}=\sum^{n}_{i=1}x_{i}\boldsymbol{e}_{i}\quad\longleftrightarrow\quad(x_{1},\ldots,x_{n})\in R^{n}.
+\boldsymbol{x}=\sum\nolimits^{n}_{i=1}x_{i}\boldsymbol{e}_{i}\quad\longleftrightarrow\quad(x_{1},\ldots,x_{n})\in R^{n},
 \]
 
 \end_inset
 
-This coordinate correspondence is a module isomorphism.
+where 
+\begin_inset Formula $R^{n}$
+\end_inset
+
+ is a module over 
+\begin_inset Formula $R$
+\end_inset
+
+,
+ therefore this coordinate correspondence is a module isomorphism.
  A general module need not have a basis.
 \end_layout
 
 \begin_layout Example
-For each fixed dimension 
-\begin_inset Formula $n\in\mathbb{N}^{*}$
+\begin_inset Formula $\forall n\in\mathbb{N}^{*}$
 \end_inset
 
 ,
- the integer tuples 
+ 
 \begin_inset Formula $\mathbb{Z}^{n}$
 \end_inset
 
@@ -1116,7 +1086,7 @@ For
 \end_layout
 
 \begin_layout Standard
-These integer-coordinate vectors are represented in 
+These integer–coordinate vectors are represented in 
 \begin_inset listings
 lstparams "language=Python,fontfamily=tt,fontsize={\scriptsize},breaklines=true,tabsize=4"
 inline true
@@ -1159,6 +1129,139 @@ tuple[int,
 \end_inset
 
 .
+\end_layout
+
+\begin_layout Subsection
+Indices
+\end_layout
+
+\begin_layout Standard
+\begin_inset Formula $\forall a\in\mathbb{N}$
+\end_inset
+
+ and 
+\begin_inset Formula $\forall b>1$
+\end_inset
+
+,
+ 
+\begin_inset Formula $\exists n\in\mathbb{N}^{*}$
+\end_inset
+
+ and 
+\begin_inset Formula $\exists a_{0},\ldots,a_{n-1}\in\mathbb{Z}_{b}$
+\end_inset
+
+,
+ such that
+\begin_inset Formula 
+\[
+a=\sum\nolimits^{n-1}_{i=0}a_{i}b^{i},
+\]
+
+\end_inset
+
+which forms the representation of 
+\begin_inset Formula $a$
+\end_inset
+
+ on base 
+\begin_inset Formula $b$
+\end_inset
+
+.
+ In particular,
+ 
+\begin_inset Formula $a<b^{n}$
+\end_inset
+
+ and the representation is unique up to 0–padding.
+\end_layout
+
+\begin_layout Standard
+\begin_inset Formula $\forall B\in\mathbb{N}^{*}$
+\end_inset
+
+,
+ 
+\begin_inset Formula $\mathbb{Z}_{B}\subset\mathbb{N}$
+\end_inset
+
+ is also a finite integer index set.
+ For 
+\begin_inset Formula $B=b^{n}$
+\end_inset
+
+,
+ 
+\begin_inset Formula $\forall a\in\mathbb{Z}_{B}$
+\end_inset
+
+,
+ 
+\begin_inset Formula $\exists!a_{0},\ldots,a_{n-1}\in\mathbb{Z}_{b}$
+\end_inset
+
+,
+ such that
+\begin_inset Formula 
+\[
+a=\sum\nolimits^{n-1}_{i=0}a_{i}b^{i}.
+\]
+
+\end_inset
+
+This makes finite index sets 
+\begin_inset Formula $\mathbb{Z}_{B}$
+\end_inset
+
+ compatible with the finite free module 
+\begin_inset Formula $\mathbb{Z}^{n}_{b}$
+\end_inset
+
+,
+ and intuitively means arranging the former in a box prescribed by the latter.
+\end_layout
+
+\begin_layout Standard
+These index sets are modelled with 
+\begin_inset listings
+lstparams "language=Python,fontfamily=tt,fontsize={\scriptsize},breaklines=true,tabsize=4"
+inline true
+status open
+
+\begin_layout Plain Layout
+goochess.mathematics.index
+\end_layout
+
+\end_inset
+
+,
+ with 
+\begin_inset listings
+lstparams "language=Python,fontfamily=tt,fontsize={\scriptsize},breaklines=true,tabsize=4"
+inline true
+status open
+
+\begin_layout Plain Layout
+goochess.mathematics.index.from_sequence
+\end_layout
+
+\end_inset
+
+ and 
+\begin_inset listings
+lstparams "language=Python,fontfamily=tt,fontsize={\scriptsize},breaklines=true,tabsize=4"
+inline true
+status open
+
+\begin_layout Plain Layout
+goochess.mathematics.index.array
+\end_layout
+
+\end_inset
+
+ validating the seam between the two.
 \end_layout
 
 \begin_layout Standard
