@@ -283,7 +283,7 @@ A
 \emph on
 semigroup
 \emph default
- is a set 
+ is a nonempty set 
 \begin_inset Formula $G$
 \end_inset
 
@@ -295,8 +295,8 @@ semigroup
 \emph on
 associative
 \emph default
-,
- or
+;
+ equivalently:
 \end_layout
 
 \begin_deeper
@@ -335,8 +335,8 @@ identity
 \begin_inset Formula $\mathds{1}$
 \end_inset
 
-,
- or
+;
+ equivalently:
 \end_layout
 
 \begin_deeper
@@ -347,7 +347,7 @@ identity
 
 ,
  such that 
-\begin_inset Formula $\forall a\in F$
+\begin_inset Formula $\forall a\in G$
 \end_inset
 
 ,
@@ -380,8 +380,8 @@ inverses
 \begin_inset Formula $\mathds{1}$
 \end_inset
 
-,
- or
+;
+ equivalently:
 \end_layout
 
 \begin_deeper
@@ -416,19 +416,19 @@ abelian
 \begin_inset Formula $\circ$
 \end_inset
 
- is also commutative,
- or
+ is also commutative;
+ equivalently:
 \end_layout
 
 \begin_deeper
 \begin_layout Description
 commutativity 
-\begin_inset Formula $\forall a,b\in F$
+\begin_inset Formula $\forall a,b\in G$
 \end_inset
 
 ,
  
-\begin_inset Formula $ab=ba$
+\begin_inset Formula $a\circ b=b\circ a$
 \end_inset
 
 .
@@ -436,19 +436,11 @@ commutativity
 
 \end_deeper
 \begin_layout Standard
-The (implied) uniquness of the identity and the inverse of each element allow for unique identity symbol and an inverse notation linking it to its inverse.
+The uniqueness of the identity and of each element's inverse follows from these axioms.
+ This allows a single identity symbol and an inverse notation linking each element to its inverse.
 \end_layout
 
 \begin_layout Definition
-\begin_inset Argument 1
-status open
-
-\begin_layout Plain Layout
-Field
-\end_layout
-
-\end_inset
-
 A 
 \emph on
 ring
@@ -457,7 +449,7 @@ ring
 \begin_inset Formula $R$
 \end_inset
 
- with two binary operations,
+ with two binary operations:
 \end_layout
 
 \begin_deeper
@@ -485,16 +477,7 @@ that satisfy:
 
 \begin_deeper
 \begin_layout Description
-additive 
-\begin_inset Formula $R$
-\end_inset
-
- with 
-\begin_inset Formula $+$
-\end_inset
-
- is an abelian group,
- or
+additive abelian group axioms:
 \end_layout
 
 \begin_deeper
@@ -561,20 +544,7 @@ commutativity
 
 \end_deeper
 \begin_layout Description
-multiplicative 
-\begin_inset Formula $R$
-\end_inset
-
- with 
-\begin_inset Formula $\cdot$
-\end_inset
-
- is a monoid with identity 
-\begin_inset Formula $1$
-\end_inset
-
-,
- or
+multiplicative monoid axioms:
 \end_layout
 
 \begin_deeper
@@ -615,12 +585,12 @@ distributivity with respect to addition
 \begin_inset Formula $+$
 \end_inset
 
-,
+:
 \end_layout
 
 \begin_deeper
 \begin_layout Itemize
-\begin_inset Formula $\forall a,b,c\in F$
+\begin_inset Formula $\forall a,b,c\in R$
 \end_inset
 
 ,
@@ -632,7 +602,7 @@ distributivity with respect to addition
 \end_layout
 
 \begin_layout Itemize
-\begin_inset Formula $\forall a,b,c\in F$
+\begin_inset Formula $\forall a,b,c\in R$
 \end_inset
 
 ,
@@ -658,8 +628,8 @@ commutative
 \begin_inset Formula $\cdot$
 \end_inset
 
- is also commutative,
- or
+ is also commutative;
+ equivalently:
 \end_layout
 
 \begin_deeper
@@ -682,21 +652,25 @@ An
 \emph on
 integral domain
 \emph default
- is a (nonzero) commutative ring whose multiplication 
+ is a nonzero commutative ring 
+\begin_inset Formula $R$
+\end_inset
+
+ whose multiplication 
 \begin_inset Formula $\cdot$
 \end_inset
 
  is closed in 
-\begin_inset Formula $R^{*}$
+\begin_inset Formula $R^{*}=R\setminus\{0\}$
 \end_inset
 
-,
- or
+;
+ equivalently:
 \end_layout
 
 \begin_deeper
 \begin_layout Description
-calcnellability 
+closure 
 \begin_inset Formula $\forall a,b\in R^{*}$
 \end_inset
 
@@ -710,13 +684,18 @@ calcnellability
 
 \end_deeper
 \begin_layout Standard
-A zero field is any singleton field with matching additive and multiplicative identities as the sole element of the field.
- All zero fields are isomorphic to eachother,
+A zero ring is any singleton ring with matching additive and multiplicative identities as the sole element of the ring.
+ All zero rings are isomorphic to each other,
  thus referred to as 
 \emph on
 the
 \emph default
- zero field.
+ zero ring.
+ Integral domains and fields require 
+\begin_inset Formula $0\ne1$
+\end_inset
+
+.
 \end_layout
 
 \begin_layout Example
@@ -771,18 +750,18 @@ int
 ,
 \begin_inset Formula 
 \[
-\mathbb{Z}_{n}=\{0,1,...n-1\}\subset\mathbb{Z}
+\mathbb{Z}_{n}=\{0,\ldots,n-1\}\subset\mathbb{Z}
 \]
 
 \end_inset
 
-with borrowed
+with modular operations:
 \end_layout
 
 \begin_deeper
 \begin_layout Description
 addition 
-\begin_inset Formula $+\colon\mathbb{Z}_{n}\times\mathbb{Z}_{n}\to\mathbb{Z}_{n}:a,b\mapsto(a+b)\mod n$
+\begin_inset Formula $+\colon\mathbb{Z}_{n}\times\mathbb{Z}_{n}\to\mathbb{Z}_{n}:(a,b)\mapsto(a+b)\bmod n$
 \end_inset
 
 ,
@@ -791,7 +770,7 @@ addition
 
 \begin_layout Description
 multiplication 
-\begin_inset Formula $\cdot\colon\mathbb{Z}_{n}\times\mathbb{Z}_{n}\to\mathbb{Z}_{n}:a,b\mapsto(ab)\mod n$
+\begin_inset Formula $\cdot\colon\mathbb{Z}_{n}\times\mathbb{Z}_{n}\to\mathbb{Z}_{n}:(a,b)\mapsto(ab)\bmod n$
 \end_inset
 
 ,
@@ -799,14 +778,33 @@ multiplication
 
 \end_deeper
 \begin_layout Example
-is also a finite integral domain.
+is a finite commutative ring.
+ It is an integral domain,
+ exactly when 
+\begin_inset Formula $n$
+\end_inset
+
+ is prime.
+ For 
+\begin_inset Formula $n=1$
+\end_inset
+
+,
+ it is the zero ring.
 \end_layout
 
-\begin_layout Example
+\begin_layout Standard
+The set 
 \begin_inset Formula $\mathbb{Z}_{n}$
 \end_inset
 
- often serves for 
+ gives the nonnegative positions of an indexable object of length 
+\begin_inset Formula $n$
+\end_inset
+
+.
+ Modular arithmetic additionally supplies wraparound behaviour.
+ The 
 \begin_inset listings
 lstparams "language=Python,fontfamily=tt,fontsize={\scriptsize},breaklines=true,tabsize=4"
 inline true
@@ -818,31 +816,22 @@ index
 
 \end_inset
 
- semantics of (finite) indexable objects in 
+ class in 
 \begin_inset listings
 lstparams "language=Python,fontfamily=tt,fontsize={\scriptsize},breaklines=true,tabsize=4"
 inline true
 status open
 
 \begin_layout Plain Layout
-python
+goochess
 \end_layout
 
 \end_inset
 
-.
+ instead enforces bounds and rejects out-of-bounds coordinates.
 \end_layout
 
 \begin_layout Definition
-\begin_inset Argument 1
-status open
-
-\begin_layout Plain Layout
-Vector space
-\end_layout
-
-\end_inset
-
 A 
 \emph on
 module over a commutative ring
@@ -855,7 +844,7 @@ module over a commutative ring
 \begin_inset Formula $M$
 \end_inset
 
- with two binary operations
+ with:
 \end_layout
 
 \begin_deeper
@@ -882,21 +871,12 @@ multiplication
 
 \end_deeper
 \begin_layout Definition
-that satisfy,
+that satisfy:
 \end_layout
 
 \begin_deeper
 \begin_layout Description
-additive 
-\begin_inset Formula $M$
-\end_inset
-
- with 
-\begin_inset Formula $+$
-\end_inset
-
- is an abelian group,
- or
+additive abelian group axioms:
 \end_layout
 
 \begin_deeper
@@ -963,7 +943,7 @@ commutativity
 
 \end_deeper
 \begin_layout Description
-multiplicative 
+multiplicative axioms:
 \end_layout
 
 \begin_deeper
@@ -999,7 +979,15 @@ identity
 
 \end_deeper
 \begin_layout Description
-distributivity 
+distributivity with respect to 
+\begin_inset Formula $R$
+\end_inset
+
+ addition and 
+\begin_inset Formula $M$
+\end_inset
+
+ addition:
 \end_layout
 
 \begin_deeper
@@ -1038,7 +1026,97 @@ distributivity
 \end_deeper
 \end_deeper
 \begin_layout Standard
-Modules in 
+A module 
+\begin_inset Formula $M$
+\end_inset
+
+ over 
+\begin_inset Formula $R$
+\end_inset
+
+ is 
+\emph on
+finite free
+\emph default
+ if it has a finite ordered basis 
+\begin_inset Formula $E=(\boldsymbol{e}_{1},\ldots,\boldsymbol{e}_{n})$
+\end_inset
+
+:
+ 
+\begin_inset Formula $\forall\boldsymbol{x}\in M$
+\end_inset
+
+,
+ 
+\begin_inset Formula $\exists!x_{1},\ldots,x_{n}\in R$
+\end_inset
+
+,
+ such that
+\begin_inset Formula 
+\[
+\boldsymbol{x}=\sum^{n}_{i=1}x_{i}\boldsymbol{e}_{i}\quad\longleftrightarrow\quad(x_{1},\ldots,x_{n})\in R^{n}.
+\]
+
+\end_inset
+
+This coordinate correspondence is a module isomorphism.
+ A general module need not have a basis.
+\end_layout
+
+\begin_layout Example
+For each fixed dimension 
+\begin_inset Formula $n\in\mathbb{N}^{*}$
+\end_inset
+
+,
+ the integer tuples 
+\begin_inset Formula $\mathbb{Z}^{n}$
+\end_inset
+
+ form a finite free module over 
+\begin_inset Formula $\mathbb{Z}$
+\end_inset
+
+ with componentwise addition and scalar multiplication:
+\end_layout
+
+\begin_deeper
+\begin_layout Description
+addition 
+\begin_inset Formula $+\colon\mathbb{Z}^{n}\times\mathbb{Z}^{n}\to\mathbb{Z}^{n}:(x_{1},\ldots,x_{n}),(y_{1},\ldots,y_{n})\mapsto(x_{1}+y_{1},\ldots,x_{n}+y_{n})$
+\end_inset
+
+,
+ and
+\end_layout
+
+\begin_layout Description
+scalar
+\begin_inset space ~
+\end_inset
+
+multiplication 
+\begin_inset Formula $\cdot\colon R\times M\to M:a,(x_{1},\ldots,x_{n})\mapsto(ax_{1},\ldots,ax_{n})$
+\end_inset
+
+,
+\end_layout
+
+\end_deeper
+\begin_layout Example
+For 
+\begin_inset Formula $n=0$
+\end_inset
+
+,
+ both the basis and coordinate tuple are empty,
+ and the module consists of its zero element.
+\end_layout
+
+\begin_layout Standard
+These integer-coordinate vectors are represented in 
 \begin_inset listings
 lstparams "language=Python,fontfamily=tt,fontsize={\scriptsize},breaklines=true,tabsize=4"
 inline true
@@ -1050,24 +1128,50 @@ goochess
 
 \end_inset
 
- are represented by 
+ by 
 \begin_inset listings
 lstparams "language=Python,fontfamily=tt,fontsize={\scriptsize},breaklines=true,tabsize=4"
 inline true
 status open
 
 \begin_layout Plain Layout
-goochess.mathematics.array[int]
+goochess.mathematics.array
 \end_layout
 
 \end_inset
 
-,
- already implemented over the integral domain 
-\begin_inset Formula $\mathbb{Z}$
+ which subclasses 
+\begin_inset listings
+lstparams "language=Python,fontfamily=tt,fontsize={\scriptsize},breaklines=true,tabsize=4"
+inline true
+status open
+
+\begin_layout Plain Layout
+tuple[int,
+ ...]
+\end_layout
+
 \end_inset
 
 .
+ Each fixed dimension corresponds to its own module 
+\begin_inset Formula $\mathbb{Z}^{n}$
+\end_inset
+
+.
+\end_layout
+
+\begin_layout Standard
+\begin_inset CommandInset bibtex
+LatexCommand bibtex
+btprint "btPrintCited"
+bibfiles "main"
+options "bibtotoc"
+encoding "default"
+
+\end_inset
+
+
 \end_layout
 
 \end_body
