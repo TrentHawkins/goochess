@@ -15,7 +15,7 @@ class Color(int, enum.Enum):
 		return self == Color.WHITE
 
 
-class Square(index[2, 8], enum.Enum):
+class Index(index[2, 8], enum.Enum):
 
 #	 1       :  2       :  3       :  4       :  5       :  6       :  7       :  8
 	A1 = 0o00; A2 = 0o01; A3 = 0o02; A4 = 0o03; A5 = 0o04; A6 = 0o05; A7 = 0o06; A8 = 0o07  # A
