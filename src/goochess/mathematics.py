@@ -198,7 +198,6 @@ class index(int):
 
 	@classmethod
 	def from_sequence(cls, components: sequence[int], /) -> typing.Self:
-
 		if len(components) != cls.dimension:
 			raise ValueError(f"components {components} do not match dimension {cls.dimension}")
 
