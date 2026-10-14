@@ -5,6 +5,16 @@ import enum
 from .mathematics import index
 
 
+class Color(int, enum.Enum):
+
+	WHITE =  1
+	BLACK = -1
+
+
+	def __bool__(self) -> bool:
+		return self == Color.WHITE
+
+
 class Square(index[2, 8], enum.Enum):
 
 #	 1       :  2       :  3       :  4       :  5       :  6       :  7       :  8
@@ -32,3 +42,7 @@ class Square(index[2, 8], enum.Enum):
 	@property
 	def file(self) -> str:
 		return self.name[0].lower()
+
+	@property
+	def color(self) -> Color:
+		return Color.WHITE if self else Color.BLACK
