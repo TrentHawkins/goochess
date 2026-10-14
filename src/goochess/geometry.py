@@ -1,10 +1,8 @@
 from __future__ import annotations
 
 import enum
-import re
-import typing
 
-from .mathematics import index, array, arrays
+from .mathematics import index
 
 
 class Square(index[2, 8], enum.Enum):
