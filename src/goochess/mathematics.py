@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 
+import itertools
 import math
 import numbers
 import operator
@@ -8,62 +9,59 @@ import typing
 
 
 type pair[T] = tuple[T, T]
-type array[T] = tuple[T, ...]
+type sequence[T] = tuple[T, ...]
 type operation[T] = typing.Callable[[T, T], T]
 type comparison[T] = typing.Callable[[T, T], bool]
 type mutation[*T] = typing.Callable[[str, *T], None]
 
 
-class vector(tuple[int, ...]):
+class array(tuple[int, ...]):
 
-	def __new__(cls, components: typing.Iterable[int] = (), /) -> typing.Self:
+	def __new__(cls, *components: int) -> typing.Self:
 		return super().__new__(cls, components)
+
+	def __getnewargs__(self) -> sequence[int]:
+		return tuple(self)
 
 	def __bool__(self) -> bool:
 		return any(self)
 
-	@typing.overload
-	def __getitem__(self, key: typing.SupportsIndex, /) -> int:
-		...
+	def __add__(self, other: int | sequence[int], /) -> typing.Self: return self.operate(other, operator.add, 0)
+	def __sub__(self, other: int | sequence[int], /) -> typing.Self: return self.operate(other, operator.sub, 0)
+	def __mul__(self, other: int | sequence[int], /) -> typing.Self: return self.operate(other, operator.mul, 1)
 
-	@typing.overload
-	def __getitem__(self, key: slice, /) -> typing.Self:
-		...
-
-	def __getitem__(self, key: typing.SupportsIndex | slice, /) -> int | typing.Self:
-		cls = type(self)
-
-		if isinstance(key, slice):
-			return cls(super().__getitem__(key))
-
-		return super().__getitem__(key)
-
-	def __add__(self, other: int | array[int], /) -> typing.Self: return self.operate(other, operator = operator.add, identity = 0)
-	def __sub__(self, other: int | array[int], /) -> typing.Self: return self.operate(other, operator = operator.sub, identity = 0)
-	def __mul__(self, other: int | array[int], /) -> typing.Self: return self.operate(other, operator = operator.mul, identity = 1)
-
-	def __matmul__(self, other: int | array[int], /) -> int:
+	def __matmul__(self, other: int | sequence[int], /) -> int:
 		return sum(self * other)
 
-	def __radd__(self, other: int | array[int], /) -> typing.Self: return  self + other
-	def __rsub__(self, other: int | array[int], /) -> typing.Self: return -self + other
-	def __rmul__(self, other: int | array[int], /) -> typing.Self: return  self * other
+	def __radd__(self, other: int | sequence[int], /) -> typing.Self: return  self + other
+	def __rsub__(self, other: int | sequence[int], /) -> typing.Self: return -self + other
+	def __rmul__(self, other: int | sequence[int], /) -> typing.Self: return  self * other
 
-	def __rmatmul__(self, other: int | array[int], /) -> int:
+	def __rmatmul__(self, other: int | sequence[int], /) -> int:
 		return self @ other
 
-	def __pos__(self) -> typing.Self: return self
-	def __neg__(self) -> typing.Self: return self * -1
+	def __iadd__(self, other: int | sequence[int], /) -> typing.Self: return self + other
+	def __isub__(self, other: int | sequence[int], /) -> typing.Self: return self - other
+	def __imul__(self, other: int | sequence[int], /) -> typing.Self: return self * other
+
+	def __imatmul__(self, other: int | sequence[int], /) -> int:
+		return self @ other
+
+	def __pos__(self) -> typing.Self: cls = type(self); return cls(*self)
+	def __neg__(self) -> typing.Self: cls = type(self); return cls(*(-left for left in self))
 
 	def __abs__(self) -> int:
 		return self @ self
 
 
-	def operate(self, other: int | array[int], /, *,
+	def operate(self, other: int | sequence[int], /,
 		operator: operation[int],
 		identity: int,
 	) -> typing.Self:
 		cls = type(self)
+
+		if other == ():
+			other = 0
 
 		if isinstance(other, int):
 			if isinstance(other, index):
@@ -74,41 +72,46 @@ class vector(tuple[int, ...]):
 
 			other = (other,) * len(self)
 
-		return cls(operator(left, right) for left, right in zip(self, other, strict = True))
+		if not len(self):
+			self = (0,) * len(other)
+
+		return cls(*(operator(left, right) for left, right in zip(self, other, strict = True)))
 
 
 class index(int):
 
 	registry: dict[tuple[type[index], pair[int]], type[index]] = {}
 
-	dim : int
+	dimension: int
 	base: int
 
+	lower: int = 0
+	upper: int
 
-	def __new__(cls, x: int | array[int]) -> typing.Self:
+
+	def __new__(cls, x: int | sequence[int]) -> typing.Self:
 		if isinstance(x, int):
-			if not 0 <= x < cls.base ** cls.dim:
-				raise ValueError
+			if not cls.lower <= x < cls.upper:
+				raise ValueError(f"{cls.__name__} {x} out of bound [{cls.lower}, {cls.upper})")
 
 			return super().__new__(cls, x)
 
-		return cls.from_vector(x)
+		return cls.from_sequence(x)
 
 	def __class_getitem__(cls, item: pair[int], /) -> type[index]:
-		dim, base = item
+		dimension, base = item
 
 		if (key := (cls, item)) in cls.registry:
 			return cls.registry[key]
 
-		class concrete(cls, dim = dim, base = base): ...
+		class _(cls, dimension = dimension, base = base): ...
 
-		qualifier = f"{dim}_{base}"
+		qualifier = f"{dimension}_{base}"
+		_.__name__ = f"{cls.__name__}_{qualifier}"
+		_.__qualname__ = f"{cls.__qualname__}_{qualifier}"
+		_.__module__ = cls.__module__
 
-		concrete.__name__ = f"{cls.__name__}_{qualifier}"
-		concrete.__qualname__ = f"{cls.__qualname__}_{qualifier}"
-		concrete.__module__ = cls.__module__
-
-		return cls.registry.setdefault(key, concrete)
+		return cls.registry.setdefault(key, _)
 
 	def __reduce__(self) -> str | tuple:
 		cls: type[index] = type(self)
@@ -124,13 +127,15 @@ class index(int):
 		return cls.restore, (tuple(reversed(items)), int(self)), super().__getstate__()
 
 	def __init_subclass__(cls, *args,
-		dim : int | None = None,
+		dimension : int | None = None,
 		base: int | None = None,
 	**kwargs) -> None:
 		super().__init_subclass__(*args, **kwargs)
 
-		if dim  is not None: cls.dim  = dim
+		if dimension is not None: cls.dimension = dimension
 		if base is not None: cls.base = base
+
+		cls.upper = cls.base ** cls.dimension
 
 	@typing.overload
 	def __getitem__(self, key: typing.SupportsIndex, /) -> int:
@@ -141,57 +146,88 @@ class index(int):
 		...
 
 	def __getitem__(self, key: typing.SupportsIndex | slice, /) -> int | index:
-		if isinstance(key, slice):
-			components = self.vector[key]
+		components = self.array[key]
+
+		if isinstance(components, tuple):
 			cls = index[len(components), self.base]
 
 			return cls(components)
 
-		return self.vector[key]
+		return components
 
-	def __add__(self, other: array[int], /) -> typing.Self:
+	def __add__(self, other: sequence[int], /) -> typing.Self:
 		cls = type(self)
 
-		return cls.from_vector(self.vector + other)
+		return cls.from_sequence(self.array + other)
 
-	def __radd__(self, other: array[int], /) -> typing.Self:
-		return self + other
+	def __radd__(self, other: sequence[int], /) -> typing.Self: return self + other
+	def __iadd__(self, other: sequence[int], /) -> typing.Self: return self + other
 
-	def __sub__(self, other: int | array[int], /) -> vector | typing.Self:
+	@typing.overload
+	def __sub__(self, other: int, /) -> array:
+		...
+
+	@typing.overload
+	def __sub__(self, other: sequence[int], /) -> typing.Self:
+		...
+
+	def __sub__(self, other: int | sequence[int], /) -> array | typing.Self:
 		cls = type(self)
 
 		if isinstance(other, int):
-			return self.vector - cls(other).vector
+			return self.array - cls(other).array
 
-		return cls.from_vector(self.vector - other)
+		return cls.from_sequence(self.array - other)
 
+	@typing.overload
+	def __isub__(self, other: int, /) -> array:
+		...
+
+	@typing.overload
+	def __isub__(self, other: sequence[int], /) -> typing.Self:
+		...
+
+	def __isub__(self, other: int | sequence[int], /) -> array | typing.Self: return self.__sub__(other)
 
 	@classmethod
-	def restore(cls, items: array[pair[int]], value: int, /) -> typing.Self:
+	def restore(cls, items: sequence[pair[int]], value: int, /) -> typing.Self:
 		for item in items:
 			cls = cls[item]
 
 		return cls(value)
 
 	@classmethod
-	def from_vector(cls, components: array[int], /) -> typing.Self:
+	def from_sequence(cls, components: sequence[int], /) -> typing.Self:
 
-		if len(components) != cls.dim or any(not 0 <= component < cls.base for component in components):
-			raise ValueError
+		if len(components) != cls.dimension:
+			raise ValueError(f"components {components} do not match dimension {cls.dimension}")
+
+		if any(not 0 <= component < cls.base for component in components):
+			raise ValueError(f"components {components} out of bound for {cls.__name__} with base {cls.base}")
 
 		return cls(sum(component * cls.base ** power for power, component in enumerate(components)))
 
 
 	@property
-	def vector(self) -> vector:
+	def array(self) -> array:
 		components = []
 		remaining = int(self)
 
-		for _ in range(self.dim):
+		for _ in range(self.dimension):
 			remaining, component = divmod(remaining, self.base)
 			components.append(component)
 
-		return vector(components)
+		return array(*components)
+
+
+	def range(self, step: array, stop: bool = False, /) -> typing.Generator[typing.Self]:
+		if len(step) != self.dimension or not step:
+			raise ValueError(f"step {step} does not match dimension {self.dimension}")
+
+		while not stop:
+			try: self += step
+			except ValueError: break
+			yield self
 
 
 class fraction(numbers.Number):
@@ -240,8 +276,8 @@ class fraction(numbers.Number):
 	def __bool__(self) -> bool:
 		return self.numerator != 0 or self.denominator == 0
 
-	def __add__(self, other: int | fraction, /) -> typing.Self: return self.operate(other, operator = operator.add)
-	def __sub__(self, other: int | fraction, /) -> typing.Self: return self.operate(other, operator = operator.sub)
+	def __add__(self, other: int | fraction, /) -> typing.Self: return self.operate(other, operator.add)
+	def __sub__(self, other: int | fraction, /) -> typing.Self: return self.operate(other, operator.sub)
 	def __mul__(self, other: int | fraction, /) -> typing.Self:
 		cls = type(self)
 		other = cls(other)
@@ -260,6 +296,13 @@ class fraction(numbers.Number):
 	def __rtruediv__(self, other: int | fraction, /) -> typing.Self:
 		return ~self * other
 
+	def __iadd__(self, other: int | fraction, /) -> typing.Self: return self + other
+	def __isub__(self, other: int | fraction, /) -> typing.Self: return self - other
+	def __imul__(self, other: int | fraction, /) -> typing.Self: return self * other
+
+	def __itruediv__(self, other: int | fraction, /) -> typing.Self:
+		return self / other
+
 	def __pow__(self, value: int, /) -> typing.Self:
 		numerator, denominator = self.numerator, self.denominator
 
@@ -271,6 +314,8 @@ class fraction(numbers.Number):
 
 		return cls(numerator ** value, denominator ** value)
 
+	def __ipow__(self, value: int, /) -> typing.Self: return self ** value
+
 	def __pos__(self, /) -> typing.Self: cls = type(self); return cls(    self                             )
 	def __neg__(self, /) -> typing.Self: cls = type(self); return cls(   -self.numerator , self.denominator)
 	def __abs__(self, /) -> typing.Self: cls = type(self); return cls(abs(self.numerator), self.denominator)
@@ -280,19 +325,19 @@ class fraction(numbers.Number):
 
 		return cls(self.denominator, self.numerator)
 
-	def __eq__(self, other: object, /) -> bool: return self.compare(other, comparator = operator.eq)
-	def __ne__(self, other: object, /) -> bool: return self.compare(other, comparator = operator.ne)
-	def __lt__(self, other: object, /) -> bool: return self.compare(other, comparator = operator.lt)
-	def __le__(self, other: object, /) -> bool: return self.compare(other, comparator = operator.le)
-	def __gt__(self, other: object, /) -> bool: return self.compare(other, comparator = operator.gt)
-	def __ge__(self, other: object, /) -> bool: return self.compare(other, comparator = operator.ge)
+	def __eq__(self, other: object, /) -> bool: return self.compare(other, operator.eq)
+	def __ne__(self, other: object, /) -> bool: return self.compare(other, operator.ne)
+	def __lt__(self, other: object, /) -> bool: return self.compare(other, operator.lt)
+	def __le__(self, other: object, /) -> bool: return self.compare(other, operator.le)
+	def __gt__(self, other: object, /) -> bool: return self.compare(other, operator.gt)
+	def __ge__(self, other: object, /) -> bool: return self.compare(other, operator.ge)
 
 	@property
 	def as_integer_ratio(self, /) -> pair[int]:
 		return self.numerator, self.denominator
 
 
-	def operate(self, other: int | fraction, /, *,
+	def operate(self, other: int | fraction, /,
 		operator: operation[int],
 	) -> typing.Self:
 		cls = type(self)
@@ -309,7 +354,7 @@ class fraction(numbers.Number):
 			self.denominator * other.denominator,
 		)
 
-	def compare(self, other: object, /, *,
+	def compare(self, other: object, /,
 		comparator: comparison[int],
 	) -> bool:
 		if not isinstance(other, int | fraction):
@@ -336,3 +381,83 @@ class fraction(numbers.Number):
 			raise AttributeError(f"'{fraction.__name__}' object attribute '{name}' is read-only")
 
 		mutator(name, *args)
+
+
+class collection[T: typing.Hashable](set[T]):
+
+	def __init__(self, *items: T) -> None:
+		super().__init__(items)
+
+	def __reduce__(self) -> tuple:
+		cls = type(self)
+
+		return cls, tuple(self), self.__getstate__()
+
+	def __or__ (self, other: typing.Iterable[T], /) -> typing.Self: return self.               union(other)
+	def __and__(self, other: typing.Iterable[T], /) -> typing.Self: return self.        intersection(other)
+	def __sub__(self, other: typing.Iterable[T], /) -> typing.Self: return self.          difference(other)
+	def __xor__(self, other: typing.Iterable[T], /) -> typing.Self: return self.symmetric_difference(other)
+
+	def __ror__ (self, other: typing.Iterable[T], /) -> typing.Self: return self | other
+	def __rand__(self, other: typing.Iterable[T], /) -> typing.Self: return self & other
+	def __rxor__(self, other: typing.Iterable[T], /) -> typing.Self: return self ^ other
+
+	def __ior__ (self, other: typing.Iterable[T], /) -> typing.Self: self.                     update(other); return self
+	def __iand__(self, other: typing.Iterable[T], /) -> typing.Self: self.        intersection_update(other); return self
+	def __isub__(self, other: typing.Iterable[T], /) -> typing.Self: self.          difference_update(other); return self
+	def __ixor__(self, other: typing.Iterable[T], /) -> typing.Self: self.symmetric_difference_update(other); return self
+
+
+	def        union(self, *others: typing.Iterable[T]) -> typing.Self: cls = type(self); return cls(*super().       union(*others))
+	def intersection(self, *others: typing.Iterable[T]) -> typing.Self: cls = type(self); return cls(*super().intersection(*others))
+	def   difference(self, *others: typing.Iterable[T]) -> typing.Self: cls = type(self); return cls(*super().  difference(*others))
+
+	def symmetric_difference(self, other : typing.Iterable[T]) -> typing.Self:
+		cls = type(self)
+
+		return cls(*super().symmetric_difference(other))
+
+	def copy(self) -> typing.Self:
+		cls = type(self)
+
+		return cls(*self)
+
+
+class arrays(collection[array]):
+
+	def __mul__(self, other: int | typing.Iterable[int] | typing.Iterable[sequence[int]], /) -> typing.Self:
+		cls = type(self)
+
+		if isinstance(other, int):
+			if other <  0: raise NotImplementedError
+			if other == 0: return cls()
+			if other == 1: return cls(*self)
+
+			return cls(*(left * other for left in self))
+
+		return cls(*(left + right for left, right in itertools.product(self, other)))
+
+	def __rmul__(self, other: int | typing.Iterable[int] | typing.Iterable[sequence[int]], /) -> typing.Self: return self * other
+	def __imul__(self, other: int | typing.Iterable[int] | typing.Iterable[sequence[int]], /) -> typing.Self: return self * other
+
+	def __pow__(self, other: int, /) -> typing.Self:
+		cls = type(self)
+
+		if other <= 0: raise NotImplementedError
+		if other == 1: return cls(*self)
+		if other == 2: return self * self
+
+		return cls(*(sum(terms, array()) for terms in itertools.product(self, repeat = other)))
+
+	def __ipow__(self, other: int, /) -> typing.Self: return self ** other
+
+
+class indices(collection[index]):
+
+	def __mul__(self, other: typing.Iterable[sequence[int]], /) -> typing.Self:
+		cls = type(self)
+
+		return cls(*(left + right for left, right in itertools.product(self, other)))
+
+	def __rmul__(self, other: typing.Iterable[sequence[int]], /) -> typing.Self: return self * other
+	def __imul__(self, other: typing.Iterable[sequence[int]], /) -> typing.Self: return self * other

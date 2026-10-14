@@ -1,11 +1,13 @@
 from __future__ import annotations
 
-from enum import Enum
+import enum
+import re
+import typing
 
-from .mathematics import index
+from .mathematics import index, array, arrays
 
 
-class Square(index[2, 8], Enum):
+class Square(index[2, 8], enum.Enum):
 
 #	 1       :  2       :  3       :  4       :  5       :  6       :  7       :  8
 	A1 = 0o00; A2 = 0o01; A3 = 0o02; A4 = 0o03; A5 = 0o04; A6 = 0o05; A7 = 0o06; A8 = 0o07  # A
@@ -22,7 +24,7 @@ class Square(index[2, 8], Enum):
 		return self.name.lower()
 
 	def __bool__(self) -> bool:
-		return bool(sum(self.vector) & 1)
+		return bool(sum(self.array) & 1)
 
 
 	@property
@@ -32,3 +34,23 @@ class Square(index[2, 8], Enum):
 	@property
 	def file(self) -> str:
 		return self.name[0].lower()
+
+
+class Vector:
+
+	north = array( 0, -1)
+	east  = array( 1,  0)
+	south = array( 0,  1)
+	west  = array(-1,  0)
+
+
+class Vectors:
+
+	ranks = arrays(
+		Vector.north,
+		Vector.south,
+	)
+	files = arrays(
+		Vector.east,
+		Vector.west,
+	)
