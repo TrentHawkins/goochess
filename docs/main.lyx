@@ -275,7 +275,168 @@ Foundations
 \end_layout
 
 \begin_layout Subsection
-Fields
+Vectors
+\end_layout
+
+\begin_layout Definition
+A 
+\emph on
+semigroup
+\emph default
+ is a set 
+\begin_inset Formula $G$
+\end_inset
+
+ with a binary operation 
+\begin_inset Formula $\circ\colon G\times G\to G$
+\end_inset
+
+ that is 
+\emph on
+associative
+\emph default
+,
+ or
+\end_layout
+
+\begin_deeper
+\begin_layout Description
+associativity 
+\begin_inset Formula $\forall a,b,c\in G$
+\end_inset
+
+,
+ 
+\begin_inset Formula $a\circ(b\circ c)=(a\circ b)\circ c$
+\end_inset
+
+.
+\end_layout
+
+\end_deeper
+\begin_layout Definition
+A 
+\emph on
+monoid
+\emph default
+ is a semigroup 
+\begin_inset Formula $G$
+\end_inset
+
+ whose operation 
+\begin_inset Formula $\circ$
+\end_inset
+
+ also admits an 
+\emph on
+identity
+\emph default
+ 
+\begin_inset Formula $\mathds{1}$
+\end_inset
+
+,
+ or
+\end_layout
+
+\begin_deeper
+\begin_layout Description
+identity 
+\begin_inset Formula $\exists!\mathds{1}\in G$
+\end_inset
+
+,
+ such that 
+\begin_inset Formula $\forall a\in F$
+\end_inset
+
+,
+ 
+\begin_inset Formula $a\circ\mathds{1}=\mathds{1}\circ a=a$
+\end_inset
+
+.
+\end_layout
+
+\end_deeper
+\begin_layout Definition
+A 
+\emph on
+group
+\emph default
+ is a monoid 
+\begin_inset Formula $G$
+\end_inset
+
+ whose operation 
+\begin_inset Formula $\circ$
+\end_inset
+
+ also supports 
+\emph on
+inverses
+\emph default
+ relative to the identity 
+\begin_inset Formula $\mathds{1}$
+\end_inset
+
+,
+ or
+\end_layout
+
+\begin_deeper
+\begin_layout Description
+inverse 
+\begin_inset Formula $\forall a\in G$
+\end_inset
+
+,
+ 
+\begin_inset Formula $\exists!a^{-1}\in G$
+\end_inset
+
+ such that 
+\begin_inset Formula $a\circ a^{-1}=a^{-1}\circ a=\mathds{1}$
+\end_inset
+
+.
+\end_layout
+
+\end_deeper
+\begin_layout Definition
+An 
+\emph on
+abelian
+\emph default
+ group is a group 
+\begin_inset Formula $G$
+\end_inset
+
+ whose operation 
+\begin_inset Formula $\circ$
+\end_inset
+
+ is also commutative,
+ or
+\end_layout
+
+\begin_deeper
+\begin_layout Description
+commutativity 
+\begin_inset Formula $\forall a,b\in F$
+\end_inset
+
+,
+ 
+\begin_inset Formula $ab=ba$
+\end_inset
+
+.
+\end_layout
+
+\end_deeper
+\begin_layout Standard
+The (implied) uniquness of the identity and the inverse of each element allow for unique identity symbol and an inverse notation linking it to its inverse.
 \end_layout
 
 \begin_layout Definition
@@ -288,117 +449,388 @@ Field
 
 \end_inset
 
-A field consists of a set 
-\begin_inset Formula $F$
+A 
+\emph on
+ring
+\emph default
+ is a set 
+\begin_inset Formula $R$
 \end_inset
- equipped with addition and multiplication,
- two binary operations on 
-\begin_inset Formula $F$
-\end_inset
-:
-\begin_inset Formula \[
-+\colon F\times F\to F,\qquad \cdot\colon F\times F\to F.
-\]
-\end_inset
-Each operation assigns a unique field element to each ordered pair of field elements.
- The following field axioms hold for all 
-\begin_inset Formula $a,b,c\in F$
-\end_inset
-.
+
+ with two binary operations,
 \end_layout
 
 \begin_deeper
-\begin_layout Enumerate
-\series bold
-Associative addition and multiplication.
-\series default
+\begin_layout Description
+addition 
+\begin_inset Formula $+\colon R\times R\to R$
+\end_inset
+
+,
+ and
+\end_layout
+
+\begin_layout Description
+multiplication 
+\begin_inset Formula $\cdot\colon R\times R\to R$
+\end_inset
+
+,
+\end_layout
+
+\end_deeper
+\begin_layout Definition
+that satisfy:
+\end_layout
+
+\begin_deeper
+\begin_layout Description
+additive 
+\begin_inset Formula $R$
+\end_inset
+
+ with 
+\begin_inset Formula $+$
+\end_inset
+
+ is an abelian group,
+ or
+\end_layout
+
+\begin_deeper
+\begin_layout Description
+associativity 
+\begin_inset Formula $\forall a,b,c\in R$
+\end_inset
+
+,
  
 \begin_inset Formula $a+(b+c)=(a+b)+c$
 \end_inset
- and 
-\begin_inset Formula $a\cdot(b\cdot c)=(a\cdot b)\cdot c$
-\end_inset
-.
+
+,
 \end_layout
 
-\begin_layout Enumerate
-\series bold
-Commutative addition and multiplication.
-\series default
+\begin_layout Description
+identity 
+\begin_inset Formula $\exists!0\in R$
+\end_inset
+
+,
+ such that 
+\begin_inset Formula $\forall a\in R$
+\end_inset
+
+,
+ 
+\begin_inset Formula $a+0=0+a=a$
+\end_inset
+
+,
+\end_layout
+
+\begin_layout Description
+inverse 
+\begin_inset Formula $\forall a\in R$
+\end_inset
+
+,
+ 
+\begin_inset Formula $\exists!(-a)\in R$
+\end_inset
+
+ such that 
+\begin_inset Formula $a+(-a)=0$
+\end_inset
+
+,
+\end_layout
+
+\begin_layout Description
+commutativity 
+\begin_inset Formula $\forall a,b\in R$
+\end_inset
+
+,
  
 \begin_inset Formula $a+b=b+a$
 \end_inset
- and 
-\begin_inset Formula $a\cdot b=b\cdot a$
-\end_inset
-.
+
+;
 \end_layout
 
-\begin_layout Enumerate
-\series bold
-Additive and multiplicative identities.
-\series default
- There are constants 
-\begin_inset Formula $0,1\in F$
+\end_deeper
+\begin_layout Description
+multiplicative 
+\begin_inset Formula $R$
 \end_inset
+
  with 
-\begin_inset Formula $0\ne1$
+\begin_inset Formula $\cdot$
 \end_inset
-, satisfying 
-\begin_inset Formula $a+0=a$
+
+ is a monoid with identity 
+\begin_inset Formula $1$
 \end_inset
- and 
-\begin_inset Formula $a\cdot1=a$
-\end_inset
-.
+
+,
+ or
 \end_layout
 
-\begin_layout Enumerate
-\series bold
-Additive inverses.
-\series default
- Each 
-\begin_inset Formula $a\in F$
+\begin_deeper
+\begin_layout Description
+associativity 
+\begin_inset Formula $\forall a,b,c\in R$
 \end_inset
- has an additive inverse 
-\begin_inset Formula $-a\in F$
-\end_inset
- satisfying 
-\begin_inset Formula $a+(-a)=0$
-\end_inset
-.
-\end_layout
 
-\begin_layout Enumerate
-\series bold
-Multiplicative inverses.
-\series default
- Each nonzero 
-\begin_inset Formula $a\in F$
-\end_inset
- has a multiplicative inverse 
-\begin_inset Formula $a^{-1}\in F$
-\end_inset
- satisfying 
-\begin_inset Formula $a\cdot a^{-1}=1$
-\end_inset
-.
-\end_layout
-
-\begin_layout Enumerate
-\series bold
-Multiplication distributes over addition.
-\series default
+,
  
-\begin_inset Formula $a\cdot(b+c)=(a\cdot b)+(a\cdot c)$
+\begin_inset Formula $a(bc)=(ab)c$
 \end_inset
+
+,
+\end_layout
+
+\begin_layout Description
+identity 
+\begin_inset Formula $\exists!1\in R$
+\end_inset
+
+,
+ such that 
+\begin_inset Formula $\forall a\in R$
+\end_inset
+
+,
+ 
+\begin_inset Formula $a1=1a=a$
+\end_inset
+
 .
 \end_layout
 
 \end_deeper
+\begin_layout Description
+distributivity with respect to addition 
+\begin_inset Formula $+$
+\end_inset
 
-\begin_layout Subsection
-Vectors
+,
+\end_layout
+
+\begin_deeper
+\begin_layout Itemize
+\begin_inset Formula $\forall a,b,c\in F$
+\end_inset
+
+,
+ 
+\begin_inset Formula $a(b+c)=ab+ac$
+\end_inset
+
+,
+\end_layout
+
+\begin_layout Itemize
+\begin_inset Formula $\forall a,b,c\in F$
+\end_inset
+
+,
+ 
+\begin_inset Formula $(a+b)c=ac+bc$
+\end_inset
+
+.
+\end_layout
+
+\end_deeper
+\end_deeper
+\begin_layout Definition
+A 
+\emph on
+commutative
+\emph default
+ ring is a ring 
+\begin_inset Formula $R$
+\end_inset
+
+ whose multiplication 
+\begin_inset Formula $\cdot$
+\end_inset
+
+ is also commutative,
+ or
+\end_layout
+
+\begin_deeper
+\begin_layout Description
+commutativity 
+\begin_inset Formula $\forall a,b\in R$
+\end_inset
+
+,
+ 
+\begin_inset Formula $ab=ba$
+\end_inset
+
+.
+\end_layout
+
+\end_deeper
+\begin_layout Definition
+An 
+\emph on
+integral domain
+\emph default
+ is a (nonzero) commutative ring whose multiplication 
+\begin_inset Formula $\cdot$
+\end_inset
+
+ is closed in 
+\begin_inset Formula $R^{*}$
+\end_inset
+
+,
+ or
+\end_layout
+
+\begin_deeper
+\begin_layout Description
+calcnellability 
+\begin_inset Formula $\forall a,b\in R^{*}$
+\end_inset
+
+,
+ 
+\begin_inset Formula $ab\in R^{*}$
+\end_inset
+
+.
+\end_layout
+
+\end_deeper
+\begin_layout Standard
+A zero field is any singleton field with matching additive and multiplicative identities as the sole element of the field.
+ All zero fields are isomorphic to eachother,
+ thus referred to as 
+\emph on
+the
+\emph default
+ zero field.
+\end_layout
+
+\begin_layout Example
+The integers 
+\begin_inset Formula $\mathbb{Z}$
+\end_inset
+
+ with addition and multiplication constitute an integral domain,
+ which is also used in 
+\begin_inset listings
+lstparams "language=Python,fontfamily=tt,fontsize={\scriptsize},breaklines=true,tabsize=4"
+inline true
+status open
+
+\begin_layout Plain Layout
+goochess
+\end_layout
+
+\end_inset
+
+ under the 
+\begin_inset listings
+lstparams "language=Python,fontfamily=tt,fontsize={\scriptsize},breaklines=true,tabsize=4"
+inline true
+status open
+
+\begin_layout Plain Layout
+python
+\end_layout
+
+\end_inset
+
+ builtin type 
+\begin_inset listings
+lstparams "language=Python,fontfamily=tt,fontsize={\scriptsize},breaklines=true,tabsize=4"
+inline true
+status open
+
+\begin_layout Plain Layout
+int
+\end_layout
+
+\end_inset
+
+.
+\end_layout
+
+\begin_layout Example
+\begin_inset Formula $\forall n\in\mathbb{N}^{*}$
+\end_inset
+
+,
+\begin_inset Formula 
+\[
+\mathbb{Z}_{n}=\{0,1,...n-1\}\subset\mathbb{Z}
+\]
+
+\end_inset
+
+with borrowed
+\end_layout
+
+\begin_deeper
+\begin_layout Description
+addition 
+\begin_inset Formula $+\colon\mathbb{Z}_{n}\times\mathbb{Z}_{n}\to\mathbb{Z}_{n}:a,b\mapsto(a+b)\mod n$
+\end_inset
+
+,
+ and
+\end_layout
+
+\begin_layout Description
+multiplication 
+\begin_inset Formula $\cdot\colon\mathbb{Z}_{n}\times\mathbb{Z}_{n}\to\mathbb{Z}_{n}:a,b\mapsto(ab)\mod n$
+\end_inset
+
+,
+\end_layout
+
+\end_deeper
+\begin_layout Example
+is also a finite integral domain.
+\end_layout
+
+\begin_layout Example
+\begin_inset Formula $\mathbb{Z}_{n}$
+\end_inset
+
+ often serves for 
+\begin_inset listings
+lstparams "language=Python,fontfamily=tt,fontsize={\scriptsize},breaklines=true,tabsize=4"
+inline true
+status open
+
+\begin_layout Plain Layout
+index
+\end_layout
+
+\end_inset
+
+ semantics of (finite) indexable objects in 
+\begin_inset listings
+lstparams "language=Python,fontfamily=tt,fontsize={\scriptsize},breaklines=true,tabsize=4"
+inline true
+status open
+
+\begin_layout Plain Layout
+python
+\end_layout
+
+\end_inset
+
+.
 \end_layout
 
 \begin_layout Definition
@@ -411,278 +843,231 @@ Vector space
 
 \end_inset
 
-A vector space over a field 
-\begin_inset Formula $F$
+A 
+\emph on
+module over a commutative ring
+\emph default
+ 
+\begin_inset Formula $R$
 \end_inset
- is a nonempty set 
-\begin_inset Formula $V$
+
+ is a set 
+\begin_inset Formula $M$
 \end_inset
- with vector addition and scalar multiplication:
-\begin_inset Formula \[
-\begin{aligned}+\colon V\times V&\to V,& (\mathbf{v},\mathbf{w})&\mapsto\mathbf{v}+\mathbf{w},\\ \cdot\colon F\times V&\to V,& (a,\mathbf{v})&\mapsto a\mathbf{v}.\end{aligned}
-\]
-\end_inset
-Elements of 
-\begin_inset Formula $V$
-\end_inset
- are vectors; elements of 
-\begin_inset Formula $F$
-\end_inset
- are scalars.
- For all 
-\begin_inset Formula $\mathbf{u},\mathbf{v},\mathbf{w}\in V$
-\end_inset
- and 
-\begin_inset Formula $a,b\in F$
-\end_inset
-, the following eight axioms hold:
+
+ with two binary operations
 \end_layout
 
 \begin_deeper
-\begin_layout Enumerate
-\series bold
-Addition is associative.
-\series default
- 
-\begin_inset Formula $\mathbf{u}+(\mathbf{v}+\mathbf{w})=(\mathbf{u}+\mathbf{v})+\mathbf{w}$
+\begin_layout Description
+addition 
+\begin_inset Formula $+\colon M\times M\to M$
 \end_inset
-.
+
+,
+ and
 \end_layout
 
-\begin_layout Enumerate
-\series bold
-Addition is commutative.
-\series default
- 
-\begin_inset Formula $\mathbf{u}+\mathbf{v}=\mathbf{v}+\mathbf{u}$
+\begin_layout Description
+scalar
+\begin_inset space ~
 \end_inset
-.
+
+multiplication 
+\begin_inset Formula $\cdot\colon R\times M\to M$
+\end_inset
+
+,
 \end_layout
 
-\begin_layout Enumerate
-\series bold
-Additive identity.
-\series default
- There is a zero vector 
-\begin_inset Formula $\mathbf{0}\in V$
+\end_deeper
+\begin_layout Definition
+that satisfy,
+\end_layout
+
+\begin_deeper
+\begin_layout Description
+additive 
+\begin_inset Formula $M$
 \end_inset
+
  with 
-\begin_inset Formula $\mathbf{v}+\mathbf{0}=\mathbf{v}$
+\begin_inset Formula $+$
 \end_inset
-.
+
+ is an abelian group,
+ or
 \end_layout
 
-\begin_layout Enumerate
-\series bold
-Additive inverses.
-\series default
- Each 
-\begin_inset Formula $\mathbf{v}\in V$
+\begin_deeper
+\begin_layout Description
+associativity 
+\begin_inset Formula $\forall\boldsymbol{x},\boldsymbol{y},\boldsymbol{z}\in M$
 \end_inset
- has an additive inverse 
-\begin_inset Formula $-\mathbf{v}\in V$
-\end_inset
- satisfying 
-\begin_inset Formula $\mathbf{v}+(-\mathbf{v})=\mathbf{0}$
-\end_inset
-.
-\end_layout
 
-\begin_layout Enumerate
-\series bold
-Compatibility of scalar multiplication.
-\series default
+,
  
-\begin_inset Formula $a(b\mathbf{v})=(ab)\mathbf{v}$
+\begin_inset Formula $\boldsymbol{x}+(\boldsymbol{y}+\boldsymbol{z})=(\boldsymbol{x}+\boldsymbol{y})+\boldsymbol{z}$
 \end_inset
-.
+
+,
 \end_layout
 
-\begin_layout Enumerate
-\series bold
-Scalar identity.
-\series default
+\begin_layout Description
+identity 
+\begin_inset Formula $\exists!\boldsymbol{0}\in M$
+\end_inset
+
+,
+ such that 
+\begin_inset Formula $\forall\boldsymbol{x}\in M$
+\end_inset
+
+,
  
-\begin_inset Formula $1\mathbf{v}=\mathbf{v}$
+\begin_inset Formula $\boldsymbol{x}+\boldsymbol{0}=\boldsymbol{0}+\boldsymbol{x}=\boldsymbol{x}$
 \end_inset
-, with 
-\begin_inset Formula $1$
-\end_inset
- the field's multiplicative identity.
+
+,
 \end_layout
 
-\begin_layout Enumerate
-\series bold
-Distributivity over vector addition.
-\series default
- 
-\begin_inset Formula $a(\mathbf{u}+\mathbf{v})=a\mathbf{u}+a\mathbf{v}$
+\begin_layout Description
+inverse 
+\begin_inset Formula $\forall\boldsymbol{x}\in M$
 \end_inset
-.
+
+,
+ 
+\begin_inset Formula $\exists!(-\boldsymbol{x})\in M$
+\end_inset
+
+ such that 
+\begin_inset Formula $\boldsymbol{x}+(-\boldsymbol{x})=\boldsymbol{0}$
+\end_inset
+
+,
 \end_layout
 
-\begin_layout Enumerate
-\series bold
-Distributivity over scalar addition.
-\series default
- 
-\begin_inset Formula $(a+b)\mathbf{v}=a\mathbf{v}+b\mathbf{v}$
+\begin_layout Description
+commutativity 
+\begin_inset Formula $\forall\boldsymbol{x},\boldsymbol{y}\in M$
 \end_inset
+
+,
+ 
+\begin_inset Formula $\boldsymbol{x}+\boldsymbol{y}=\boldsymbol{y}+\boldsymbol{x}$
+\end_inset
+
+;
+\end_layout
+
+\end_deeper
+\begin_layout Description
+multiplicative 
+\end_layout
+
+\begin_deeper
+\begin_layout Description
+compatibility 
+\begin_inset Formula $\forall a,b\in R$
+\end_inset
+
+ and 
+\begin_inset Formula $\forall\boldsymbol{x}\in M$
+\end_inset
+
+,
+ 
+\begin_inset Formula $a(b\boldsymbol{x})=(ab)\boldsymbol{x}$
+\end_inset
+
+,
+\end_layout
+
+\begin_layout Description
+identity 
+\begin_inset Formula $\forall\boldsymbol{x}\in M$
+\end_inset
+
+,
+ 
+\begin_inset Formula $1\boldsymbol{x}=\boldsymbol{x}$
+\end_inset
+
+;
+\end_layout
+
+\end_deeper
+\begin_layout Description
+distributivity 
+\end_layout
+
+\begin_deeper
+\begin_layout Itemize
+\begin_inset Formula $\forall a\in R$
+\end_inset
+
+ and 
+\begin_inset Formula $\forall\boldsymbol{x},\boldsymbol{y}\in M$
+\end_inset
+
+,
+ 
+\begin_inset Formula $a(\boldsymbol{x}+\boldsymbol{y})=a\boldsymbol{x}+a\boldsymbol{y}$
+\end_inset
+
+,
+\end_layout
+
+\begin_layout Itemize
+\begin_inset Formula $\forall a,b\in R$
+\end_inset
+
+ and 
+\begin_inset Formula $\forall\boldsymbol{x}\in M$
+\end_inset
+
+,
+ 
+\begin_inset Formula $(a+b)\boldsymbol{x}=a\boldsymbol{x}+b\boldsymbol{x}$
+\end_inset
+
 .
 \end_layout
 
 \end_deeper
-
-\begin_layout Subsubsection
-Bases and dimension
-\end_layout
-
-\begin_layout Definition
-\begin_inset Argument 1
-status open
-
-\begin_layout Plain Layout
-Linear combinations and span
-\end_layout
-
-\end_inset
-
-For 
-\begin_inset Formula $G\subseteq V$
-\end_inset
-, linear combinations are finite sums
-\begin_inset Formula \[
-\sum_{i=1}^{m}a_i\mathbf{g}_i,\qquad a_i\in F,\quad\mathbf{g}_i\in G,\quad m\in\mathbb{Z}_{\ge0}.
-\]
-\end_inset
-Their set is 
-\begin_inset Formula $\operatorname{span}_F(G)$
-\end_inset
-.
-\end_layout
-
+\end_deeper
 \begin_layout Standard
-\begin_inset Separator parbreak
-\end_inset
-
-\end_layout
-
-\begin_layout Definition
-\begin_inset Argument 1
+Modules in 
+\begin_inset listings
+lstparams "language=Python,fontfamily=tt,fontsize={\scriptsize},breaklines=true,tabsize=4"
+inline true
 status open
 
 \begin_layout Plain Layout
-Linear independence
+goochess
 \end_layout
 
 \end_inset
 
-\begin_inset Formula $G$
+ are represented by 
+\begin_inset listings
+lstparams "language=Python,fontfamily=tt,fontsize={\scriptsize},breaklines=true,tabsize=4"
+inline true
+status open
+
+\begin_layout Plain Layout
+goochess.mathematics.array[int]
+\end_layout
+
 \end_inset
- is linearly independent if, for every finite choice of distinct 
-\begin_inset Formula $\mathbf{g}_1,\ldots,\mathbf{g}_m\in G$
-\end_inset
- and scalars 
-\begin_inset Formula $a_1,\ldots,a_m\in F$
-\end_inset
+
 ,
-\begin_inset Formula \[
-\sum_{i=1}^{m}a_i\mathbf{g}_i=\mathbf{0}\quad\Longleftrightarrow\quad a_1=\cdots=a_m=0.
-\]
-\end_inset
-\end_layout
-
-\begin_layout Standard
-\begin_inset Separator parbreak
+ already implemented over the integral domain 
+\begin_inset Formula $\mathbb{Z}$
 \end_inset
 
-\end_layout
-
-\begin_layout Definition
-\begin_inset Argument 1
-status open
-
-\begin_layout Plain Layout
-Basis and dimension
-\end_layout
-
-\end_inset
-
-A basis is a linearly independent subset spanning 
-\begin_inset Formula $V$
-\end_inset
 .
- All bases have equal cardinality, the dimension 
-\begin_inset Formula $\dim_F V$
-\end_inset
-.
-\end_layout
-
-\begin_layout Subsubsection
-Coordinates and tuple representation
-\end_layout
-
-\begin_layout Definition
-\begin_inset Argument 1
-status open
-
-\begin_layout Plain Layout
-Coordinate representation
-\end_layout
-
-\end_inset
-
-A finite ordered basis 
-\begin_inset Formula $B=(\mathbf{b}_1,\ldots,\mathbf{b}_n)$
-\end_inset
- gives each 
-\begin_inset Formula $\mathbf{v}\in V$
-\end_inset
- unique coordinates 
-\begin_inset Formula $a_1,\ldots,a_n\in F$
-\end_inset
-:
-\begin_inset Formula \[
-\mathbf{v}=a_1\mathbf{b}_1+\cdots+a_n\mathbf{b}_n.
-\]
-\end_inset
-The coordinate vector is
-\begin_inset Formula \[
-[\mathbf{v}]_B=(a_1,\ldots,a_n)\in F^n.
-\]
-\end_inset
-\end_layout
-
-\begin_layout Standard
-The coordinate space 
-\begin_inset Formula $F^n$
-\end_inset
- uses componentwise operations:
-\begin_inset Formula \[
-\begin{aligned}(a_1,\ldots,a_n)+(b_1,\ldots,b_n)&=(a_1+b_1,\ldots,a_n+b_n),\\ c(a_1,\ldots,a_n)&=(ca_1,\ldots,ca_n),\qquad c\in F.\end{aligned}
-\]
-\end_inset
-The coordinate map 
-\begin_inset Formula $\Phi_B\colon V\to F^n,\ \mathbf{v}\mapsto[\mathbf{v}]_B$
-\end_inset
- is a bijective linear map (a vector-space isomorphism):
-\begin_inset Formula \[
-\Phi_B(\mathbf{v}+\mathbf{w})=\Phi_B(\mathbf{v})+\Phi_B(\mathbf{w}),\qquad\Phi_B(c\mathbf{v})=c\Phi_B(\mathbf{v}).
-\]
-\end_inset
-Thus vectors have an ordered tuple representation relative to the chosen basis.
-\end_layout
-
-\begin_layout Standard
-\begin_inset CommandInset bibtex
-LatexCommand bibtex
-btprint "btPrintCited"
-bibfiles "main"
-options "bibtotoc"
-encoding "default"
-
-\end_inset
-
 \end_layout
 
 \end_body
