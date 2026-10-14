@@ -1,3 +1,7 @@
+[build-system]
+requires = ["setuptools>=77"]
+build-backend = "setuptools.build_meta"
+
 [project]
 name = "goochess"
 version = "0.1.0"
@@ -20,10 +24,13 @@ typeCheckingMode = "basic"
 venvPath = "."
 venv = ".venv"
 
+[tool.setuptools.packages.find]
+where = ["src"]
+include = ["goochess*"]
+namespaces = false
+
 [tool.pytest.ini_options]
-pythonpath = [
-    "src",
-]
+testpaths = ["tests"]
 
 [tool.pylint.main]
 source-roots = [
