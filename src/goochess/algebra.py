@@ -26,26 +26,16 @@ class Move(index[2, 8]):
 		raise NotImplementedError("algebraic representation will go here")
 
 	def __bool__(self) -> bool:
-		raise NotImplementedError("probably validate move here")
-
-	def __hash__(self) -> int:
-		return hash(
-			(type(self.piece),
-				self.source,
-				self.target,
-			)
-		)
-
-	def __eq__(self, other: object) -> bool:
-		raise NotImplementedError("sync with hash or the other way around")
-
-	def __ne__(self, other: object) -> bool:
-		return not self == other
+		return self.other is None
 
 
 	@property
 	def target(self) -> Index:
 		return Index(int(self))
+
+	@property
+	def other(self) -> Piece | None:
+		return self.board[self.target]
 
 	@property
 	def board(self) -> Board:
