@@ -1,10 +1,8 @@
 from __future__ import annotations
 
 import enum
-import re
-import typing
 
-from .mathematics import index, array, arrays
+from .mathematics import index
 
 
 class Square(index[2, 8], enum.Enum):
@@ -34,23 +32,3 @@ class Square(index[2, 8], enum.Enum):
 	@property
 	def file(self) -> str:
 		return self.name[0].lower()
-
-
-class Vector:
-
-	north = array( 0, -1)
-	east  = array( 1,  0)
-	south = array( 0,  1)
-	west  = array(-1,  0)
-
-
-class Vectors:
-
-	ranks = arrays(
-		Vector.north,
-		Vector.south,
-	)
-	files = arrays(
-		Vector.east,
-		Vector.west,
-	)
