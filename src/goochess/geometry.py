@@ -31,9 +31,11 @@ class Index(index[2, 8], enum.Enum):
 	def __repr__(self) -> str:
 		return self.name.lower()
 
+	def __str__(self) -> str:
+		return repr(self)
+
 	def __bool__(self) -> bool:
 		return bool(sum(self.array) & 1)
-
 
 	@property
 	def rank(self) -> int:
