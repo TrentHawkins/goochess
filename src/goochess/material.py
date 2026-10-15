@@ -1,9 +1,10 @@
 from __future__ import annotations
 
 
-from .geometry import Color, Index
-from .engine import Board
+import typing
 
+from .geometry import Color, Index
+if typing.TYPE_CHECKING: from .engine import Board
 
 class Piece:
 

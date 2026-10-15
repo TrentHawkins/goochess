@@ -137,6 +137,9 @@ class index(int):
 
 		cls.upper = cls.base ** cls.dimension
 
+	def __len__(self) -> int:
+		return self.dimension
+
 	@typing.overload
 	def __getitem__(self, key: typing.SupportsIndex, /) -> int:
 		...

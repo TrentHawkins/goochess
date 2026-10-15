@@ -1,15 +1,20 @@
 from __future__ import annotations
 
+import typing
 
 from .geometry import index, Index
-from .engine import Board
-from .material import Piece
+
+if typing.TYPE_CHECKING: from .engine import Board
+if typing.TYPE_CHECKING: from .material import Piece
 
 
-class Move(index):
+class Move(index[2, 8]):
 
-	def __init__(self, _: index, piece: Piece):
-		if (source := self.piece.index) is None:
+	def __new__(cls, x: int, /, piece: Piece) -> typing.Self:
+		return super().__new__(cls, x)
+
+	def __init__(self, x: int, piece: Piece) -> None:
+		if (source := piece.index) is None:
 			raise ValueError("a piece must have a valid index before creating a move")
 
 		super().__init__()
@@ -23,16 +28,24 @@ class Move(index):
 	def __bool__(self) -> bool:
 		raise NotImplementedError("probably validate move here")
 
-	def __hash__(self) -> str:
-		raise NotImplementedError("probably hash on algebraic representation")
+	def __hash__(self) -> int:
+		return hash(
+			(type(self.piece),
+				self.source,
+				self.target,
+			)
+		)
 
 	def __eq__(self, other: object) -> bool:
 		raise NotImplementedError("sync with hash or the other way around")
 
+	def __ne__(self, other: object) -> bool:
+		return not self == other
+
 
 	@property
 	def target(self) -> Index:
-		return Index(self)
+		return Index(int(self))
 
 	@property
 	def board(self) -> Board:
