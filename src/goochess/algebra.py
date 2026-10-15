@@ -10,6 +10,8 @@ if typing.TYPE_CHECKING: from .material import Piece
 
 class Move(index[2, 8]):
 
+	action: str = ""
+
 	def __new__(cls, x: int, /, piece: Piece) -> typing.Self:
 		return super().__new__(cls, x)
 
@@ -25,7 +27,7 @@ class Move(index[2, 8]):
 		self.source = source
 
 	def __repr__(self) -> str:
-		raise NotImplementedError("algebraic representation will go here")
+		return f"{self.piece}{self.action}{self.target}"
 
 	def __bool__(self) -> bool:
 		return self.board[self.target] is None
@@ -41,6 +43,8 @@ class Move(index[2, 8]):
 
 
 class Capture(Move):
+
+	action: str = "x"
 
 	def __bool__(self) -> bool:
 		return (other := self.board[self.target]) is not None and other.color != self.piece.color
