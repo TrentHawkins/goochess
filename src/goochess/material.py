@@ -8,13 +8,13 @@ from .engine import Board
 class Piece:
 
 	def __init__(self,
-		color: Color              ,
+		board: Board,
+		color: Color,
 		index: Index | None = None,
-		board: Board | None = None,
 	) -> None:
+		self.board = board
 		self.color = color
 		self.index = index
-		self.board = board
 
 
 class Pawn(Piece):
