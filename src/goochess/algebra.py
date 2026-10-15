@@ -20,6 +20,8 @@ class Move(index[2, 8]):
 		super().__init__()
 
 		self.piece = piece
+		self.other = self.board[self.target]
+
 		self.source = source
 
 	def __repr__(self) -> str:
@@ -34,9 +36,11 @@ class Move(index[2, 8]):
 		return Index(int(self))
 
 	@property
-	def other(self) -> Piece | None:
-		return self.board[self.target]
-
-	@property
 	def board(self) -> Board:
 		return self.piece.board
+
+
+class Capture(Move):
+
+	def __bool__(self) -> bool:
+		return self.other is not None and self.other.color != self.piece.color
