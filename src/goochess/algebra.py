@@ -28,7 +28,7 @@ class Move(index[2, 8]):
 		raise NotImplementedError("algebraic representation will go here")
 
 	def __bool__(self) -> bool:
-		return self.other is None
+		return self.board[self.target] is None
 
 
 	@property
@@ -43,4 +43,4 @@ class Move(index[2, 8]):
 class Capture(Move):
 
 	def __bool__(self) -> bool:
-		return self.other is not None and self.other.color != self.piece.color
+		return (other := self.board[self.target]) is not None and other.color != self.piece.color
