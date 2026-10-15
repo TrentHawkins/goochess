@@ -431,7 +431,6 @@ class arrays(collection[array]):
 		cls = type(self)
 
 		if isinstance(other, int):
-			if other <  0: raise NotImplementedError
 			if other == 0: return cls()
 			if other == 1: return cls(*self)
 

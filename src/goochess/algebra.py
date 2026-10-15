@@ -44,7 +44,7 @@ class Move(index[2, 8]):
 		return self.piece.board
 
 
-class Capture(Move):
+class Capt(Move):
 
 	action: str = "x"
 
