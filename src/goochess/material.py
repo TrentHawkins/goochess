@@ -11,6 +11,7 @@ class Piece:
 	white: str
 	black: str
 
+
 	def __init__(self,
 		board: Board,
 		color: Color,
@@ -26,8 +27,8 @@ class Piece:
 
 class Pawn(Piece):
 
-	white: str = "P"  # "♙"
-	black: str = "p"  # "♟"
+	white: str = ""  # "♙"
+	black: str = ""  # "♟"
 
 
 class Melee(Piece):

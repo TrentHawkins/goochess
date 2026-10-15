@@ -27,7 +27,9 @@ class Move(index[2, 8]):
 		self.source = source
 
 	def __repr__(self) -> str:
-		return f"{self.piece}{self.action}{self.target}"
+		piece = str(self.piece).upper() or (self.source.file if self.action else "")
+
+		return piece + self.action + str(self.target)
 
 	def __bool__(self) -> bool:
 		return self.board[self.target] is None
