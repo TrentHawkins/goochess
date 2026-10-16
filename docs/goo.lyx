@@ -1,0 +1,1281 @@
+#LyX 2.5 created this file. For more info see https://www.lyx.org/
+\lyxformat 643
+\begin_document
+\begin_header
+\save_transient_properties true
+\origin unavailable
+\textclass scrartcl
+\begin_preamble
+%\usepackage{bm}
+\usepackage{bbm}
+\usepackage{xcolor}
+\usepackage{cleveref}
+%\usepackage{csquotes}
+%\usepackage{textcomp}
+%\usepackage{textgreek}
+%\usepackage{pdflscape}
+
+\definecolor{red}{rgb}{0.8,0.0,0.0}
+\definecolor{green}{rgb}{0.2,0.6,0.0}
+\definecolor{blue}{rgb}{0.2,0.4,1.0}
+\definecolor{magenta}{rgb}{0.6,0.2,0.8}
+\addtokomafont{disposition}{\rmfamily}
+\addtokomafont{descriptionlabel}{\rmfamily}
+\setlength{\columnseprule}{0.4pt}
+\renewcommand{\arraystretch}{1.5}
+\relpenalty=10000
+\binoppenalty=10000
+% Float policy: at most one figure/table per text page, and avoid small float-only pages.
+\setcounter{topnumber}{1}
+\setcounter{bottomnumber}{0}
+\setcounter{totalnumber}{1}
+\renewcommand{\topfraction}{0.85}
+\renewcommand{\bottomfraction}{0}
+\renewcommand{\textfraction}{0.10}
+\renewcommand{\floatpagefraction}{0.75}
+
+% Typewriter font: Fira Code, for its programming ligatures, with graceful fallbacks.
+% Fira Code is not part of TeX Live, so it is taken from the system when installed
+% there, Retina weight preferred; otherwise TeX Live's own Fira Mono keeps the same
+% design without the ligatures. LyX loads fontspec before this preamble, so the test
+% is available here, and the choice made here overrides the document settings.
+\IfFontExistsTF{Fira Code}{%
+  \IfFontExistsTF{Fira Code Retina}
+    {\setmonofont{Fira Code}[UprightFont=* Retina, BoldFont=* Bold, Contextuals=Alternate, Scale=MatchLowercase]}
+    {\setmonofont{Fira Code}[Contextuals=Alternate, Scale=MatchLowercase]}%
+}{%
+  \IfFontExistsTF{Fira Mono}{\setmonofont{Fira Mono}[Scale=MatchLowercase]}{}%
+}
+
+\usepackage[framemethod=TikZ]{mdframed}
+
+\definecolor{code}{HTML}{EEEEEE}
+\definecolor{codeborder}{HTML}{DDDDDD}
+
+\mdfdefinestyle{codebox}{
+    backgroundcolor=code,
+    linecolor=codeborder,
+    linewidth=0.5pt,
+    roundcorner=2.5pt,
+    innerleftmargin=5pt,
+    innerrightmargin=5pt,
+    innertopmargin=5pt,
+    innerbottommargin=5pt,
+    skipabove=\glueexpr 3.75pt + \parskip\relax,
+}
+\mdfsetup{
+    skipbelow=\glueexpr 6.25pt - \parskip\relax
+}
+\surroundwithmdframed[style=codebox]{minted}
+% Listings included from files arrive as \inputminted, a command rather than an
+% environment, so the hook above never sees them. Give them the same box. Deferred,
+% because LyX loads minted after this preamble.
+\AtBeginDocument{%
+  \let\PlainInputMinted\inputminted
+  \renewcommand{\inputminted}[3][]{%
+    \begin{mdframed}[style=codebox]\PlainInputMinted[#1]{#2}{#3}\end{mdframed}}%
+}
+% minted 3 boxes every hyphen, defining \PYGZhy as \mbox{-}, so that a line can never
+% break inside an operator such as ->. The box also hides the hyphen from the font's
+% shaper, so the arrow ligature never forms. Listings here never break at hyphens
+% anyway, fvextra forbids it, so the patch is switched off. Harmless with a minted
+% that does not define it.
+\makeatletter
+\AtBeginDocument{\let\minted@patch@PygmentsZhy\relax}
+\makeatother
+
+\usepackage{tcolorbox}
+\usepackage{scalefnt}
+\usepackage{dsfont}
+
+\newcommand{\InlineCodeScale}{1.0  }
+\newcommand{\InlineCodeRaise}{0.1em}
+
+\AtBeginDocument{%
+  \setmintedinline{%
+    bgcolor=none,
+    breaklines=false,
+    fontsize={\scalefont{\InlineCodeScale}},
+    fontseries=auto,
+    fontshape=auto
+  }%
+  \renewcommand{\FancyVerbFormatInline}[1]{%
+    \raisebox{\InlineCodeRaise}{%
+      \tcbox[
+        on line,
+        colback=code,
+        colframe=codeborder,
+        boxrule=0.5pt,
+        arc=1.75pt,
+        outer arc=2.25pt,
+        boxsep=0pt,
+        left=1.5pt,
+        right=1.5pt,
+        top=1.0pt,
+        bottom=0.5pt
+      ]{\strut\smash{#1}}%
+    }%
+  }%
+}
+\end_preamble
+\use_default_options true
+\begin_modules
+fix-cm
+fixme
+theorems-ams-bytype
+theorems-sec-bytype
+eqs-within-sections
+\end_modules
+\maintain_unincluded_children no
+\language english
+\language_package default
+\inputencoding utf8
+\fontencoding auto
+\font_roman "default" "default"
+\font_sans "default" "default"
+\font_typewriter "ADOBESourceCodePro" "default"
+\font_math "auto" "auto"
+\font_default_family default
+\use_non_tex_fonts true
+\font_sc false
+\font_roman_osf false
+\font_sans_osf false
+\font_typewriter_osf false
+\font_sf_scale 100 100
+\font_tt_scale 100 100
+\use_microtype false
+\use_dash_ligatures true
+\graphics default
+\default_output_format pdf5
+\output_sync 1
+\bibtex_command biber
+\index_command default
+\float_placement H
+\float_alignment center
+\paperfontsize 9
+\spacing single
+\use_hyperref true
+\pdf_bookmarks true
+\pdf_bookmarksnumbered false
+\pdf_bookmarksopen false
+\pdf_bookmarksopenlevel 1
+\pdf_breaklinks false
+\pdf_pdfborder false
+\pdf_colorlinks true
+\pdf_backref false
+\pdf_pdfusetitle true
+\papersize letter
+\use_geometry true
+\use_package amsmath 1
+\use_package amssymb 1
+\use_package cancel 1
+\use_package esint 1
+\use_package mathdots 1
+\use_package mathtools 1
+\use_package mhchem 1
+\use_package stackrel 1
+\use_package stmaryrd 1
+\use_package undertilde 1
+\cite_engine biblatex
+\cite_engine_type authoryear
+\biblio_style plain
+\biblio_options maxbibnames=99
+\biblatex_bibstyle numeric
+\biblatex_citestyle numeric
+\use_bibtopic false
+\use_indices false
+\paperorientation portrait
+\suppress_date true
+\justification false
+\crossref_package refstyle
+\use_formatted_ref 0
+\use_minted 1
+\use_lineno 0
+\backgroundcolor none
+\fontcolor none
+\notefontcolor lightgray
+\boxbgcolor red
+\table_border_color default
+\table_odd_row_color default
+\table_even_row_color default
+\table_alt_row_colors_start 1
+\index Index
+\shortcut idx
+\color #006600
+\end_index
+\leftmargin 0.625in
+\topmargin 1in
+\rightmargin 0.625in
+\bottommargin 1in
+\headheight 0.5in
+\headsep 0.5in
+\footskip 0.5in
+\columnsep 0.25in
+\secnumdepth 3
+\tocdepth 3
+\paragraph_separation skip
+\defskip halfline
+\is_math_indent 0
+\math_numbering_side default
+\quotes_style english
+\dynamic_quotes 1
+\papercolumns 1
+\papersides 1
+\paperpagestyle headings
+\tablestyle No_Borders
+\listings_params "style=friendly"
+\bullet 1 0 9 -1
+\bullet 3 0 7 -1
+\tracking_changes false
+\output_changes false
+\change_bars false
+\postpone_fragile_content false
+\html_math_output 0
+\html_css_as_file 0
+\html_be_strict false
+\docbook_table_output 0
+\docbook_mathml_prefix 1
+\docbook_mathml_version 0
+\end_header
+
+\begin_body
+
+\begin_layout Section*
+Introduction
+\end_layout
+
+\begin_layout Standard
+This paper introduces programming chess with emphasis on semantics and code clarity rather than algorithmic efficiency.
+ The code shall read like natural text and be self–documenting,
+ while still doing the job,
+ effectively.
+ Given that we supply a graphical layer to the game for practical smoke testing,
+ this package is called 
+\begin_inset listings
+lstparams "language=Python,fontfamily=tt,fontsize={\scriptsize},breaklines=true,tabsize=4"
+inline true
+status open
+
+\begin_layout Plain Layout
+goochess
+\end_layout
+
+\end_inset
+
+ after GOOChess,
+ standing for 
+\emph on
+Graphical Object–Oriented Chess
+\emph default
+.
+\end_layout
+
+\begin_layout Section
+Foundations
+\end_layout
+
+\begin_layout Subsection
+Arrays
+\end_layout
+
+\begin_layout Definition
+A 
+\emph on
+semigroup
+\emph default
+ is a nonempty set 
+\begin_inset Formula $G$
+\end_inset
+
+ with a binary operation 
+\begin_inset Formula $\circ\colon G\times G\to G$
+\end_inset
+
+ that is 
+\emph on
+associative
+\emph default
+;
+ equivalently:
+\end_layout
+
+\begin_deeper
+\begin_layout Description
+associativity 
+\begin_inset Formula $\forall a,b,c\in G$
+\end_inset
+
+,
+ 
+\begin_inset Formula $a\circ(b\circ c)=(a\circ b)\circ c$
+\end_inset
+
+.
+\end_layout
+
+\end_deeper
+\begin_layout Definition
+A 
+\emph on
+monoid
+\emph default
+ is a semigroup 
+\begin_inset Formula $G$
+\end_inset
+
+ whose operation 
+\begin_inset Formula $\circ$
+\end_inset
+
+ also admits an 
+\emph on
+identity
+\emph default
+ 
+\begin_inset Formula $\mathds{1}$
+\end_inset
+
+;
+ equivalently:
+\end_layout
+
+\begin_deeper
+\begin_layout Description
+identity 
+\begin_inset Formula $\exists!\mathds{1}\in G$
+\end_inset
+
+,
+ such that 
+\begin_inset Formula $\forall a\in G$
+\end_inset
+
+,
+ 
+\begin_inset Formula $a\circ\mathds{1}=\mathds{1}\circ a=a$
+\end_inset
+
+.
+\end_layout
+
+\end_deeper
+\begin_layout Definition
+A 
+\emph on
+group
+\emph default
+ is a monoid 
+\begin_inset Formula $G$
+\end_inset
+
+ whose operation 
+\begin_inset Formula $\circ$
+\end_inset
+
+ also supports 
+\emph on
+inverses
+\emph default
+ relative to the identity 
+\begin_inset Formula $\mathds{1}$
+\end_inset
+
+;
+ equivalently:
+\end_layout
+
+\begin_deeper
+\begin_layout Description
+inverse 
+\begin_inset Formula $\forall a\in G$
+\end_inset
+
+,
+ 
+\begin_inset Formula $\exists!a^{-1}\in G$
+\end_inset
+
+ such that 
+\begin_inset Formula $a\circ a^{-1}=a^{-1}\circ a=\mathds{1}$
+\end_inset
+
+.
+\end_layout
+
+\end_deeper
+\begin_layout Definition
+An 
+\emph on
+abelian
+\emph default
+ group is a group 
+\begin_inset Formula $G$
+\end_inset
+
+ whose operation 
+\begin_inset Formula $\circ$
+\end_inset
+
+ is also commutative;
+ equivalently:
+\end_layout
+
+\begin_deeper
+\begin_layout Description
+commutativity 
+\begin_inset Formula $\forall a,b\in G$
+\end_inset
+
+,
+ 
+\begin_inset Formula $a\circ b=b\circ a$
+\end_inset
+
+.
+\end_layout
+
+\end_deeper
+\begin_layout Standard
+The uniqueness of the identity and of each element's inverse follows from these axioms.
+ This allows a single identity symbol and an inverse notation linking each element to its inverse.
+\end_layout
+
+\begin_layout Definition
+A 
+\emph on
+ring
+\emph default
+ is a set 
+\begin_inset Formula $R$
+\end_inset
+
+ with two binary operations:
+\end_layout
+
+\begin_deeper
+\begin_layout Description
+addition 
+\begin_inset Formula $+\colon R\times R\to R$
+\end_inset
+
+,
+ and
+\end_layout
+
+\begin_layout Description
+multiplication 
+\begin_inset Formula $\cdot\colon R\times R\to R$
+\end_inset
+
+,
+\end_layout
+
+\end_deeper
+\begin_layout Definition
+that satisfy:
+\end_layout
+
+\begin_deeper
+\begin_layout Description
+additive abelian group axioms:
+\end_layout
+
+\begin_deeper
+\begin_layout Description
+associativity 
+\begin_inset Formula $\forall a,b,c\in R$
+\end_inset
+
+,
+ 
+\begin_inset Formula $a+(b+c)=(a+b)+c$
+\end_inset
+
+,
+\end_layout
+
+\begin_layout Description
+identity 
+\begin_inset Formula $\exists!0\in R$
+\end_inset
+
+,
+ such that 
+\begin_inset Formula $\forall a\in R$
+\end_inset
+
+,
+ 
+\begin_inset Formula $a+0=0+a=a$
+\end_inset
+
+,
+\end_layout
+
+\begin_layout Description
+inverse 
+\begin_inset Formula $\forall a\in R$
+\end_inset
+
+,
+ 
+\begin_inset Formula $\exists!(-a)\in R$
+\end_inset
+
+ such that 
+\begin_inset Formula $a+(-a)=0$
+\end_inset
+
+,
+\end_layout
+
+\begin_layout Description
+commutativity 
+\begin_inset Formula $\forall a,b\in R$
+\end_inset
+
+,
+ 
+\begin_inset Formula $a+b=b+a$
+\end_inset
+
+;
+\end_layout
+
+\end_deeper
+\begin_layout Description
+multiplicative monoid axioms:
+\end_layout
+
+\begin_deeper
+\begin_layout Description
+associativity 
+\begin_inset Formula $\forall a,b,c\in R$
+\end_inset
+
+,
+ 
+\begin_inset Formula $a(bc)=(ab)c$
+\end_inset
+
+,
+\end_layout
+
+\begin_layout Description
+identity 
+\begin_inset Formula $\exists!1\in R$
+\end_inset
+
+,
+ such that 
+\begin_inset Formula $\forall a\in R$
+\end_inset
+
+,
+ 
+\begin_inset Formula $a1=1a=a$
+\end_inset
+
+.
+\end_layout
+
+\end_deeper
+\begin_layout Description
+distributivity with respect to addition 
+\begin_inset Formula $+$
+\end_inset
+
+:
+\end_layout
+
+\begin_deeper
+\begin_layout Itemize
+\begin_inset Formula $\forall a,b,c\in R$
+\end_inset
+
+,
+ 
+\begin_inset Formula $a(b+c)=ab+ac$
+\end_inset
+
+,
+\end_layout
+
+\begin_layout Itemize
+\begin_inset Formula $\forall a,b,c\in R$
+\end_inset
+
+,
+ 
+\begin_inset Formula $(a+b)c=ac+bc$
+\end_inset
+
+.
+\end_layout
+
+\end_deeper
+\end_deeper
+\begin_layout Definition
+A 
+\emph on
+commutative
+\emph default
+ ring is a ring 
+\begin_inset Formula $R$
+\end_inset
+
+ whose multiplication 
+\begin_inset Formula $\cdot$
+\end_inset
+
+ is also commutative;
+ equivalently:
+\end_layout
+
+\begin_deeper
+\begin_layout Description
+commutativity 
+\begin_inset Formula $\forall a,b\in R$
+\end_inset
+
+,
+ 
+\begin_inset Formula $ab=ba$
+\end_inset
+
+.
+\end_layout
+
+\end_deeper
+\begin_layout Definition
+An 
+\emph on
+integral domain
+\emph default
+ is a nonzero commutative ring 
+\begin_inset Formula $R$
+\end_inset
+
+ whose multiplication 
+\begin_inset Formula $\cdot$
+\end_inset
+
+ is closed in 
+\begin_inset Formula $R^{*}=R\setminus\{0\}$
+\end_inset
+
+;
+ equivalently:
+\end_layout
+
+\begin_deeper
+\begin_layout Description
+closure 
+\begin_inset Formula $\forall a,b\in R^{*}$
+\end_inset
+
+,
+ 
+\begin_inset Formula $ab\in R^{*}$
+\end_inset
+
+.
+\end_layout
+
+\end_deeper
+\begin_layout Standard
+A zero ring is any singleton ring with matching additive and multiplicative identities as the sole element of the ring.
+ All zero rings are isomorphic to each other,
+ thus referred to as 
+\emph on
+the
+\emph default
+ zero ring.
+ Integral domains and fields require 
+\begin_inset Formula $0\ne1$
+\end_inset
+
+.
+\end_layout
+
+\begin_layout Example
+The integers 
+\begin_inset Formula $\mathbb{Z}$
+\end_inset
+
+ with addition and multiplication constitute an integral domain,
+ which is also used in 
+\begin_inset listings
+lstparams "language=Python,fontfamily=tt,fontsize={\scriptsize},breaklines=true,tabsize=4"
+inline true
+status open
+
+\begin_layout Plain Layout
+goochess
+\end_layout
+
+\end_inset
+
+ under the 
+\begin_inset listings
+lstparams "language=Python,fontfamily=tt,fontsize={\scriptsize},breaklines=true,tabsize=4"
+inline true
+status open
+
+\begin_layout Plain Layout
+python
+\end_layout
+
+\end_inset
+
+ builtin type 
+\begin_inset listings
+lstparams "language=Python,fontfamily=tt,fontsize={\scriptsize},breaklines=true,tabsize=4"
+inline true
+status open
+
+\begin_layout Plain Layout
+int
+\end_layout
+
+\end_inset
+
+.
+\end_layout
+
+\begin_layout Example
+\begin_inset Formula $\forall n\in\mathbb{N}^{*}$
+\end_inset
+
+,
+\begin_inset Formula 
+\[
+\mathbb{Z}_{n}=\{0,\ldots,n-1\}\subset\mathbb{N}
+\]
+
+\end_inset
+
+with modular operations:
+\end_layout
+
+\begin_deeper
+\begin_layout Description
+addition 
+\begin_inset Formula $+\colon\mathbb{Z}_{n}\times\mathbb{Z}_{n}\to\mathbb{Z}_{n}:(a,b)\mapsto(a+b)\bmod n$
+\end_inset
+
+,
+ and
+\end_layout
+
+\begin_layout Description
+multiplication 
+\begin_inset Formula $\cdot\colon\mathbb{Z}_{n}\times\mathbb{Z}_{n}\to\mathbb{Z}_{n}:(a,b)\mapsto(ab)\bmod n$
+\end_inset
+
+,
+\end_layout
+
+\end_deeper
+\begin_layout Example
+is a finite commutative ring.
+ It is an integral domain,
+ exactly when 
+\begin_inset Formula $n$
+\end_inset
+
+ is prime.
+ For 
+\begin_inset Formula $n=1$
+\end_inset
+
+,
+ it is the zero ring.
+\end_layout
+
+\begin_layout Definition
+A 
+\emph on
+module over a commutative ring
+\emph default
+ 
+\begin_inset Formula $R$
+\end_inset
+
+ is a set 
+\begin_inset Formula $M$
+\end_inset
+
+ with:
+\end_layout
+
+\begin_deeper
+\begin_layout Description
+addition 
+\begin_inset Formula $+\colon M\times M\to M$
+\end_inset
+
+,
+ and
+\end_layout
+
+\begin_layout Description
+scalar
+\begin_inset space ~
+\end_inset
+
+multiplication 
+\begin_inset Formula $\cdot\colon R\times M\to M$
+\end_inset
+
+,
+\end_layout
+
+\end_deeper
+\begin_layout Definition
+that satisfy:
+\end_layout
+
+\begin_deeper
+\begin_layout Description
+additive abelian group axioms:
+\end_layout
+
+\begin_deeper
+\begin_layout Description
+associativity 
+\begin_inset Formula $\forall\boldsymbol{x},\boldsymbol{y},\boldsymbol{z}\in M$
+\end_inset
+
+,
+ 
+\begin_inset Formula $\boldsymbol{x}+(\boldsymbol{y}+\boldsymbol{z})=(\boldsymbol{x}+\boldsymbol{y})+\boldsymbol{z}$
+\end_inset
+
+,
+\end_layout
+
+\begin_layout Description
+identity 
+\begin_inset Formula $\exists!\boldsymbol{0}\in M$
+\end_inset
+
+,
+ such that 
+\begin_inset Formula $\forall\boldsymbol{x}\in M$
+\end_inset
+
+,
+ 
+\begin_inset Formula $\boldsymbol{x}+\boldsymbol{0}=\boldsymbol{0}+\boldsymbol{x}=\boldsymbol{x}$
+\end_inset
+
+,
+\end_layout
+
+\begin_layout Description
+inverse 
+\begin_inset Formula $\forall\boldsymbol{x}\in M$
+\end_inset
+
+,
+ 
+\begin_inset Formula $\exists!(-\boldsymbol{x})\in M$
+\end_inset
+
+ such that 
+\begin_inset Formula $\boldsymbol{x}+(-\boldsymbol{x})=\boldsymbol{0}$
+\end_inset
+
+,
+\end_layout
+
+\begin_layout Description
+commutativity 
+\begin_inset Formula $\forall\boldsymbol{x},\boldsymbol{y}\in M$
+\end_inset
+
+,
+ 
+\begin_inset Formula $\boldsymbol{x}+\boldsymbol{y}=\boldsymbol{y}+\boldsymbol{x}$
+\end_inset
+
+;
+\end_layout
+
+\end_deeper
+\begin_layout Description
+multiplicative axioms:
+\end_layout
+
+\begin_deeper
+\begin_layout Description
+compatibility 
+\begin_inset Formula $\forall a,b\in R$
+\end_inset
+
+ and 
+\begin_inset Formula $\forall\boldsymbol{x}\in M$
+\end_inset
+
+,
+ 
+\begin_inset Formula $a(b\boldsymbol{x})=(ab)\boldsymbol{x}$
+\end_inset
+
+,
+\end_layout
+
+\begin_layout Description
+identity 
+\begin_inset Formula $\forall\boldsymbol{x}\in M$
+\end_inset
+
+,
+ 
+\begin_inset Formula $1\boldsymbol{x}=\boldsymbol{x}$
+\end_inset
+
+;
+\end_layout
+
+\end_deeper
+\begin_layout Description
+distributivity with respect to 
+\begin_inset Formula $R$
+\end_inset
+
+ addition and 
+\begin_inset Formula $M$
+\end_inset
+
+ addition:
+\end_layout
+
+\begin_deeper
+\begin_layout Itemize
+\begin_inset Formula $\forall a\in R$
+\end_inset
+
+ and 
+\begin_inset Formula $\forall\boldsymbol{x},\boldsymbol{y}\in M$
+\end_inset
+
+,
+ 
+\begin_inset Formula $a(\boldsymbol{x}+\boldsymbol{y})=a\boldsymbol{x}+a\boldsymbol{y}$
+\end_inset
+
+,
+\end_layout
+
+\begin_layout Itemize
+\begin_inset Formula $\forall a,b\in R$
+\end_inset
+
+ and 
+\begin_inset Formula $\forall\boldsymbol{x}\in M$
+\end_inset
+
+,
+ 
+\begin_inset Formula $(a+b)\boldsymbol{x}=a\boldsymbol{x}+b\boldsymbol{x}$
+\end_inset
+
+.
+\end_layout
+
+\end_deeper
+\end_deeper
+\begin_layout Standard
+A module 
+\begin_inset Formula $M$
+\end_inset
+
+ over 
+\begin_inset Formula $R$
+\end_inset
+
+ is 
+\emph on
+finite free
+\emph default
+ if it has a finite ordered basis 
+\begin_inset Formula $E=(\boldsymbol{e}_{1},\ldots,\boldsymbol{e}_{n})$
+\end_inset
+
+:
+ 
+\begin_inset Formula $\forall\boldsymbol{x}\in M$
+\end_inset
+
+,
+ 
+\begin_inset Formula $\exists!x_{1},\ldots,x_{n}\in R$
+\end_inset
+
+,
+ such that
+\begin_inset Formula 
+\[
+\boldsymbol{x}=\sum\nolimits^{n}_{i=1}x_{i}\boldsymbol{e}_{i}\quad\longleftrightarrow\quad(x_{1},\ldots,x_{n})\in R^{n},
+\]
+
+\end_inset
+
+where 
+\begin_inset Formula $R^{n}$
+\end_inset
+
+ is a module over 
+\begin_inset Formula $R$
+\end_inset
+
+,
+ therefore this coordinate correspondence is a module isomorphism.
+ A general module need not have a basis.
+\end_layout
+
+\begin_layout Example
+\begin_inset Formula $\forall n\in\mathbb{N}^{*}$
+\end_inset
+
+,
+ 
+\begin_inset Formula $\mathbb{Z}^{n}$
+\end_inset
+
+ form a finite free module over 
+\begin_inset Formula $\mathbb{Z}$
+\end_inset
+
+ with componentwise addition and scalar multiplication:
+\end_layout
+
+\begin_deeper
+\begin_layout Description
+addition 
+\begin_inset Formula $+\colon\mathbb{Z}^{n}\times\mathbb{Z}^{n}\to\mathbb{Z}^{n}:(x_{1},\ldots,x_{n}),(y_{1},\ldots,y_{n})\mapsto(x_{1}+y_{1},\ldots,x_{n}+y_{n})$
+\end_inset
+
+,
+ and
+\end_layout
+
+\begin_layout Description
+scalar
+\begin_inset space ~
+\end_inset
+
+multiplication 
+\begin_inset Formula $\cdot\colon R\times M\to M:a,(x_{1},\ldots,x_{n})\mapsto(ax_{1},\ldots,ax_{n})$
+\end_inset
+
+,
+\end_layout
+
+\end_deeper
+\begin_layout Example
+For 
+\begin_inset Formula $n=0$
+\end_inset
+
+,
+ both the basis and coordinate tuple are empty,
+ and the module consists of its zero element.
+\end_layout
+
+\begin_layout Standard
+These integer–coordinate vectors are represented in 
+\begin_inset listings
+lstparams "language=Python,fontfamily=tt,fontsize={\scriptsize},breaklines=true,tabsize=4"
+inline true
+status open
+
+\begin_layout Plain Layout
+goochess
+\end_layout
+
+\end_inset
+
+ by 
+\begin_inset listings
+lstparams "language=Python,fontfamily=tt,fontsize={\scriptsize},breaklines=true,tabsize=4"
+inline true
+status open
+
+\begin_layout Plain Layout
+goochess.mathematics.array
+\end_layout
+
+\end_inset
+
+ which subclasses 
+\begin_inset listings
+lstparams "language=Python,fontfamily=tt,fontsize={\scriptsize},breaklines=true,tabsize=4"
+inline true
+status open
+
+\begin_layout Plain Layout
+tuple[int,
+ ...]
+\end_layout
+
+\end_inset
+
+.
+ Each fixed dimension corresponds to its own module 
+\begin_inset Formula $\mathbb{Z}^{n}$
+\end_inset
+
+.
+\end_layout
+
+\begin_layout Subsection
+Indices
+\end_layout
+
+\begin_layout Standard
+\begin_inset Formula $\forall a\in\mathbb{N}$
+\end_inset
+
+ and 
+\begin_inset Formula $\forall b>1$
+\end_inset
+
+,
+ 
+\begin_inset Formula $\exists n\in\mathbb{N}^{*}$
+\end_inset
+
+ and 
+\begin_inset Formula $\exists a_{0},\ldots,a_{n-1}\in\mathbb{Z}_{b}$
+\end_inset
+
+,
+ such that
+\begin_inset Formula 
+\[
+a=\sum\nolimits^{n-1}_{i=0}a_{i}b^{i},
+\]
+
+\end_inset
+
+which forms the representation of 
+\begin_inset Formula $a$
+\end_inset
+
+ on base 
+\begin_inset Formula $b$
+\end_inset
+
+.
+ In particular,
+ 
+\begin_inset Formula $a<b^{n}$
+\end_inset
+
+ and the representation is unique up to 0–padding.
+\end_layout
+
+\begin_layout Standard
+\begin_inset Formula $\forall B\in\mathbb{N}^{*}$
+\end_inset
+
+,
+ 
+\begin_inset Formula $\mathbb{Z}_{B}\subset\mathbb{N}$
+\end_inset
+
+ is also a finite integer index set.
+ For 
+\begin_inset Formula $B=b^{n}$
+\end_inset
+
+,
+ 
+\begin_inset Formula $\forall a\in\mathbb{Z}_{B}$
+\end_inset
+
+,
+ 
+\begin_inset Formula $\exists!a_{0},\ldots,a_{n-1}\in\mathbb{Z}_{b}$
+\end_inset
+
+,
+ such that
+\begin_inset Formula 
+\[
+a=\sum\nolimits^{n-1}_{i=0}a_{i}b^{i}.
+\]
+
+\end_inset
+
+This makes finite index sets 
+\begin_inset Formula $\mathbb{Z}_{B}$
+\end_inset
+
+ compatible with the finite free module 
+\begin_inset Formula $\mathbb{Z}^{n}_{b}$
+\end_inset
+
+,
+ and intuitively means arranging the former in a box prescribed by the latter.
+\end_layout
+
+\begin_layout Standard
+These index sets are modelled with 
+\begin_inset listings
+lstparams "language=Python,fontfamily=tt,fontsize={\scriptsize},breaklines=true,tabsize=4"
+inline true
+status open
+
+\begin_layout Plain Layout
+goochess.mathematics.index
+\end_layout
+
+\end_inset
+
+,
+ with 
+\begin_inset listings
+lstparams "language=Python,fontfamily=tt,fontsize={\scriptsize},breaklines=true,tabsize=4"
+inline true
+status open
+
+\begin_layout Plain Layout
+goochess.mathematics.index.from_sequence
+\end_layout
+
+\end_inset
+
+ and 
+\begin_inset listings
+lstparams "language=Python,fontfamily=tt,fontsize={\scriptsize},breaklines=true,tabsize=4"
+inline true
+status open
+
+\begin_layout Plain Layout
+goochess.mathematics.index.array
+\end_layout
+
+\end_inset
+
+ validating the seam between the two.
+\end_layout
+
+\begin_layout Standard
+\begin_inset CommandInset bibtex
+LatexCommand bibtex
+btprint "btPrintCited"
+bibfiles "goo"
+options "bibtotoc"
+encoding "default"
+
+\end_inset
+
+
+\end_layout
+
+\end_body
+\end_document
