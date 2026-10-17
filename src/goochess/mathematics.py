@@ -137,6 +137,9 @@ class index(int):
 
 		cls.upper = cls.base ** cls.dimension
 
+	def __len__(self) -> int:
+		return self.dimension
+
 	@typing.overload
 	def __getitem__(self, key: typing.SupportsIndex, /) -> int:
 		...
@@ -428,7 +431,6 @@ class arrays(collection[array]):
 		cls = type(self)
 
 		if isinstance(other, int):
-			if other <  0: raise NotImplementedError
 			if other == 0: return cls()
 			if other == 1: return cls(*self)
 

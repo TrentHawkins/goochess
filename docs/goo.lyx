@@ -1268,7 +1268,7 @@ goochess.mathematics.index.array
 \begin_inset CommandInset bibtex
 LatexCommand bibtex
 btprint "btPrintCited"
-bibfiles "main"
+bibfiles "goo"
 options "bibtotoc"
 encoding "default"
 
