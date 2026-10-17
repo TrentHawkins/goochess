@@ -9,7 +9,7 @@ from .mathematics import arrays, indices
 from .geometry import Color, Index, Compass
 from .algebra import Move, Capt
 
-if typing.TYPE_CHECKING: from .engine import Board
+if typing.TYPE_CHECKING: from .engine import Side, Game
 
 
 class Piece:
@@ -22,13 +22,10 @@ class Piece:
 	specs: arrays
 
 
-	def __init__(self,
-		board: Board,
-		color: Color,
-		index: Index,
+	def __init__(self, side: Side,
+		index: Index | None = None,
 	) -> None:
-		self.board = board
-		self.color = color
+		self.side = side
 		self.index = index
 
 	def __repr__(self) -> str:
@@ -48,6 +45,14 @@ class Piece:
 	@property
 	def squares(self) -> indices:
 		return self.targets
+
+	@property
+	def color(self) -> Color:
+		return self.side.color
+
+	@property
+	def game(self) -> Game:
+		return self.side.game
 
 
 class Melee(Piece):

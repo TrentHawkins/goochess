@@ -222,6 +222,18 @@ class index(int):
 		return array(*components)
 
 
+	def flip(self, dim: int) -> typing.Self:
+		cls = type(self)
+
+		if not -cls.dimension <= dim < cls.dimension:
+			raise IndexError("dimension out of range")
+
+		place = cls.base ** (dim % cls.dimension)
+		value = int(self)
+		digit = value // place % cls.base
+
+		return cls(value + (cls.base - 1 - 2 * digit) * place)
+
 	def range(self, step: array, stop: bool = False, /) -> typing.Generator[typing.Self]:
 		if len(step) != self.dimension or not step:
 			raise ValueError(f"step {step} does not match dimension {self.dimension}")
