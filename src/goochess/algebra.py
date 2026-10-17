@@ -22,7 +22,7 @@ class Move(index[2, 8]):
 		super().__init__()
 
 		self.piece = piece
-		self.other = self.board[self.target]
+		self.other = self.game[self.target]
 
 		self.source = source
 
@@ -32,7 +32,7 @@ class Move(index[2, 8]):
 		return piece + self.action + str(self.target)
 
 	def __bool__(self) -> bool:
-		return self.board[self.target] is None
+		return self.game[self.target] is None
 
 
 	@property
@@ -40,8 +40,8 @@ class Move(index[2, 8]):
 		return Index(int(self))
 
 	@property
-	def board(self) -> Board:
-		return self.piece.board
+	def game(self) -> Board:
+		return self.piece.game
 
 
 class Capt(Move):
@@ -49,4 +49,4 @@ class Capt(Move):
 	action: str = "x"
 
 	def __bool__(self) -> bool:
-		return (other := self.board[self.target]) is not None and other.color != self.piece.color
+		return (other := self.game[self.target]) is not None and other.color != self.piece.color
