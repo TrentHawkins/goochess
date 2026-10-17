@@ -12,6 +12,7 @@ class Move(index[2, 8]):
 
 	action: str = ""
 
+
 	def __new__(cls, x: int, /, piece: Piece) -> typing.Self:
 		return super().__new__(cls, x)
 
@@ -47,6 +48,7 @@ class Move(index[2, 8]):
 class Capt(Move):
 
 	action: str = "x"
+
 
 	def __bool__(self) -> bool:
 		return (other := self.game[self.target]) is not None and other.color != self.piece.color
