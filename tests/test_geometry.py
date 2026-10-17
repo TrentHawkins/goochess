@@ -7,14 +7,14 @@ import pickle
 
 import pytest
 
-from goochess.geometry import Square, Vector, Vectors
+from goochess.geometry import Square
 from goochess.mathematics import array, arrays, indices
 
 
 class TestSquare: # pylint: disable = no-member
 
 	members = tuple(Square)
-	diagonal = Vector.north + Vector.east
+	diagonal = array(0, -1) + array(1, 0)
 	translations = (
 		(operator.add, Square.A1, array(1, 1), Square.B2),
 		(operator.add, array(1, 1), Square.A1, Square.B2),
@@ -81,51 +81,3 @@ class TestSquare: # pylint: disable = no-member
 
 		for protocol in self.pickle_protocols:
 			assert pickle.loads(pickle.dumps(value, protocol = protocol)) is value
-
-
-class TestVector:
-
-	definitions = (
-		(Vector.north, ( 0, -1)),
-		(Vector.east,  (+1,  0)),
-		(Vector.south, ( 0, +1)),
-		(Vector.west,  (-1,  0)),
-	)
-	opposites = ((Vector.north, Vector.south), (Vector.east, Vector.west))
-
-	@pytest.mark.parametrize("direction, expected", definitions)
-	def test_coordinates(self, direction, expected) -> None:
-		assert direction == expected
-		assert type(direction) is array
-
-	@pytest.mark.parametrize("first, second", opposites)
-	def test_opposites(self, first, second) -> None:
-		assert -first == second
-		assert -second == first
-
-
-class TestVectors:
-
-	axes = (
-		(Vectors.ranks, {(0, -1), (0, 1)}),
-		(Vectors.files, {(1, 0), (-1, 0)}),
-	)
-	rook = Vectors.ranks | Vectors.files
-	bishop = Vectors.ranks * Vectors.files
-	knight = (2 * Vectors.ranks * Vectors.files) | (Vectors.ranks * (2 * Vectors.files))
-	movements = (
-		(rook, {(0, -1), (1, 0), (0, 1), (-1, 0)}),
-		(bishop, {(1, -1), (1, 1), (-1, 1), (-1, -1)}),
-		(knight, {(1, -2), (2, -1), (2, 1), (1, 2), (-1, 2), (-2, 1), (-2, -1), (-1, -2)}),
-	)
-
-	@pytest.mark.parametrize("directions, expected", axes)
-	def test_axes(self, directions, expected) -> None:
-		assert directions == expected
-		assert type(directions) is arrays
-
-	@pytest.mark.parametrize("directions, expected", movements)
-	def test_composition(self, directions, expected) -> None:
-		assert directions == expected
-		assert type(directions) is arrays
-		assert all(type(direction) is array for direction in directions)
