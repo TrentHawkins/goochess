@@ -178,6 +178,7 @@ class TestIndex:
 	template = index.__class_getitem__((2, 8))
 	nested_template = template.__class_getitem__((3, 4))
 	index_types = (Binary, Board, Decimal, template, nested_template)
+	flip_types = (*index_types, index.__class_getitem__((3, 3)), index.__class_getitem__((0, 8)))
 	encoding = ((Binary, (1, 0, 1), 5), (Board, (2, 3), 26), (Decimal, (3, 2, 1), 123))
 	position = Board((2, 3))
 	other = Board((1, 1))
@@ -239,6 +240,29 @@ class TestIndex:
 
 		with pytest.raises(IndexError):
 			_ = self.position[2]
+
+	@pytest.mark.parametrize("index_type", flip_types)
+	def test_flip(self, index_type) -> None:
+		for encoded in range(index_type.upper):
+			value = index_type(encoded)
+
+			for dim in range(index_type.dimension):
+				result = value.flip(dim)
+				assert type(result) is index_type
+				assert result[dim] + value[dim] == index_type.base - 1
+				assert result.array[:dim] == value.array[:dim]
+				assert result.array[dim + 1:] == value.array[dim + 1:]
+				assert result.flip(dim) == value
+				assert value.flip(dim - index_type.dimension) == result
+				assert int(value) == encoded
+
+	@pytest.mark.parametrize("index_type", flip_types)
+	def test_invalid_flip_dimension(self, index_type) -> None:
+		value = index_type(0)
+
+		for dim in (index_type.dimension, -index_type.dimension - 1):
+			with pytest.raises(IndexError):
+				value.flip(dim)
 
 	def test_specializations(self) -> None:
 		assert index.__class_getitem__((2, 8)) is self.template
