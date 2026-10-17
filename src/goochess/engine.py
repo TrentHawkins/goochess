@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 
-from .geometry import Square
+from .geometry import Index
 from .material import Piece
 
 
