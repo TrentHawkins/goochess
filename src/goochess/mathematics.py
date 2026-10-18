@@ -222,18 +222,6 @@ class index(int):
 		return array(*components)
 
 
-	def flip(self, dim: int) -> typing.Self:
-		cls = type(self)
-
-		if not -cls.dimension <= dim < cls.dimension:
-			raise IndexError("dimension out of range")
-
-		place = cls.base ** (dim % cls.dimension)
-		value = int(self)
-		digit = value // place % cls.base
-
-		return cls(value + (cls.base - 1 - 2 * digit) * place)
-
 	def range(self, step: array, stop: bool = False, /) -> typing.Generator[typing.Self]:
 		if len(step) != self.dimension or not step:
 			raise ValueError(f"step {step} does not match dimension {self.dimension}")
@@ -242,6 +230,15 @@ class index(int):
 			try: self += step
 			except ValueError: break
 			yield self
+
+	def mid(self, other: int, /) -> typing.Self:
+		cls = type(self)
+		components = self.array + cls(other).array
+
+		if any(component % 2 for component in components):
+			raise ValueError(f"{self} and {other} have no integral midpoint")
+
+		return cls.from_sequence(tuple(component // 2 for component in components))
 
 
 class fraction(numbers.Number):

@@ -1,13 +1,14 @@
 from __future__ import annotations
 
 
-import enum
+import abc
+import contextlib
 import typing
 
-from .mathematics import arrays, indices
+from .mathematics import array, arrays, indices
 
 from .geometry import Color, Index, Compass
-from .algebra import Move, Capt
+from .algebra import Move, Capt, Rush
 
 if typing.TYPE_CHECKING: from .engine import Side, Game
 
@@ -23,10 +24,12 @@ class Piece:
 
 
 	def __init__(self, side: Side,
-		index: Index | None = None,
+		square: Index | None = None,
 	) -> None:
 		self.side = side
-		self.index = index
+		self.square = square
+
+		self.moved = False  # to be set to `True` by the move executor
 
 	def __repr__(self) -> str:
 		return (self.white if self.color else self.black).strip()
@@ -55,51 +58,48 @@ class Piece:
 		return self.side.game
 
 
-class Melee(Piece):
+class Omni(Piece, abc.ABC):
 
 	@property
 	def targets(self) -> indices:
 		targets = super().targets
 
-		if self.index is None:
+		if self.square is None:
 			return targets
 
 		for move in self.moves:
-			target = self.index
-
-			try:
-				if step := Move(target := target + move, self): targets.add(step)
-				if step := Capt(target                 , self): targets.add(step)
-
-			except ValueError:
-				continue
+			with contextlib.suppress(ValueError):
+				targets.update(self.search(self.square, move))
 
 		return targets
 
 
-class Ranged(Piece):
-
-	@property
-	def targets(self) -> indices:
-		targets = super().targets
-
-		if self.index is None:
-			return targets
-
-		for move in self.moves:
-			target = self.index
-
-			try:
-				while step := Move(target := target + move, self): targets.add(step)
-				if    step := Capt(target                 , self): targets.add(step)
-
-			except ValueError:
-				continue
-
-		return targets
+	@abc.abstractmethod
+	def search(self, square: Index,
+		move: array,
+	) -> typing.Generator[Move]:
+		...
 
 
-class Officer(Piece):
+class Melee(Omni):
+
+	def search(self, square: Index,
+		move: array,
+	) -> typing.Generator[Move]:
+		if step := Move(square := square + move, self): yield step
+		if step := Capt(square                 , self): yield step
+
+
+class Ranged(Omni):
+
+	def search(self, square: Index,
+		move: array,
+	) -> typing.Generator[Move]:
+		while step := Move(square := square + move, self): yield step
+		if    step := Capt(square                 , self): yield step
+
+
+class Officer(Omni):
 
 	...
 
@@ -131,7 +131,7 @@ class Knight(Melee, Officer):
 	moves = Rook.moves * Bishop.moves - Rook.moves
 
 
-class Star(Piece):
+class Star(Omni):
 
 	moves = Rook.moves | Bishop.moves
 
@@ -153,37 +153,25 @@ class King(Melee, Star):
 class Pawn(Piece):
 
 	value =  1
-	white = " "  # "♙"
-	black = " "  # "♟"
-
-	moves = Compass.north
-	capts = Compass.north * Compass.files
-	specs = Compass.north
+	white = "P"  # "♙"
+	black = "p"  # "♟"
 
 
 	@property
-	def targets(self) -> indices:
-		targets = super().targets
+	def forward(self) -> array:
+		return Compass.north if self.color else Compass.south
 
-		if self.index is None:
+	@property
+	def targets(self) -> indices:
+		targets = indices()
+
+		if self.square is None:
 			return targets
 
-		for move in self.moves * self.color:
-			target = self.index
-
-			try:
-				if step := Move(target := target + move, self): targets.add(step)
-
-			except ValueError:
-				continue
-
-		for capt in self.capts * self.color:
-			target = self.index
-
-			try:
-				if step := Capt(target := target + capt, self): targets.add(step)
-
-			except ValueError:
-				continue
+		with contextlib.suppress(ValueError):
+			if step := Move(self.square               , self): targets.add(step)
+			if step := Rush(self.square + self.forward, self): targets.add(step)
+			if step := Capt(self.square + Compass.east, self): targets.add(step)
+			if step := Capt(self.square + Compass.west, self): targets.add(step)
 
 		return targets
