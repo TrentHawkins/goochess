@@ -54,15 +54,17 @@ class Capt(Move):
 		return (other := self.game[self.target]) is not None and other.color != self.piece.color
 
 
-class Rush(Move):
+class Spec(Move):
 
-	middle: Index
+	...
 
 
-	def __init__(self, x: int, piece: Piece) -> None:
-		super().__init__(x, piece)
-
-		self.middle = Index(self.source.mid(self.target))
+class Rush(Spec):
 
 	def __bool__(self) -> bool:
-		return not self.piece.moved and self.game[self.middle] is None and super().__bool__()
+		return super().__bool__() and not self.piece.moved and self.game[self.middle] is None
+
+
+	@property
+	def middle(self) -> Index:
+		return self.source.middle(self.target)

@@ -231,14 +231,14 @@ class index(int):
 			except ValueError: break
 			yield self
 
-	def mid(self, other: int, /) -> typing.Self:
+	def middle(self, other: int, /) -> typing.Self:
 		cls = type(self)
-		components = self.array + cls(other).array
+		other = cls(other)
 
-		if any(component % 2 for component in components):
+		if any((left + right) % 2 for left, right in zip(self.array, other.array, strict = True)):
 			raise ValueError(f"{self} and {other} have no integral midpoint")
 
-		return cls.from_sequence(tuple(component // 2 for component in components))
+		return cls((int(self) + int(other)) // 2)
 
 
 class fraction(numbers.Number):

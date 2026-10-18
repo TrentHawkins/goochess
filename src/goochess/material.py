@@ -163,15 +163,20 @@ class Pawn(Piece):
 
 	@property
 	def targets(self) -> indices:
-		targets = indices()
+		targets = super().targets
 
 		if self.square is None:
 			return targets
 
+		try: square = self.square + self.forward
+		except ValueError: return targets
+
 		with contextlib.suppress(ValueError):
-			if step := Move(self.square               , self): targets.add(step)
-			if step := Rush(self.square + self.forward, self): targets.add(step)
-			if step := Capt(self.square + Compass.east, self): targets.add(step)
-			if step := Capt(self.square + Compass.west, self): targets.add(step)
+			if step := Move(square               , self): targets.add(step)
+			if step := Rush(square + self.forward, self): targets.add(step)
+
+		for capt in Compass.files:
+			with contextlib.suppress(ValueError):
+				if step := Capt(square + capt, self): targets.add(step)
 
 		return targets
