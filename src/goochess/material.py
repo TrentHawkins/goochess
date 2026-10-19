@@ -6,7 +6,6 @@ import contextlib
 import typing
 
 from .mathematics import array, arrays, indices
-
 from .geometry import Color, Index, Compass
 from .algebra import Move, Capt, Rush
 

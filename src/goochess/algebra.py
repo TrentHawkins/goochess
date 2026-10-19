@@ -3,8 +3,7 @@ from __future__ import annotations
 import typing
 
 from .geometry import index, Index
-
-if typing.TYPE_CHECKING: from .engine import Board
+if typing.TYPE_CHECKING: from .engine import Game, Side
 if typing.TYPE_CHECKING: from .material import Piece
 
 
@@ -23,7 +22,7 @@ class Move(index[2, 8]):
 		super().__init__()
 
 		self.piece = piece
-		self.other = self.game[self.target]
+		self.other = self.piece.game[self.target]
 
 		self.source = source
 
@@ -33,16 +32,12 @@ class Move(index[2, 8]):
 		return piece + self.action + str(self.target)
 
 	def __bool__(self) -> bool:
-		return self.game[self.target] is None
+		return self.piece.game[self.target] is None
 
 
 	@property
 	def target(self) -> Index:
 		return Index(int(self))
-
-	@property
-	def game(self) -> Board:
-		return self.piece.game
 
 
 class Capt(Move):
@@ -51,7 +46,7 @@ class Capt(Move):
 
 
 	def __bool__(self) -> bool:
-		return (other := self.game[self.target]) is not None and other.color != self.piece.color
+		return (other := self.piece.game[self.target]) is not None and other.color != self.piece.color
 
 
 class Spec(Move):
@@ -62,7 +57,7 @@ class Spec(Move):
 class Rush(Spec):
 
 	def __bool__(self) -> bool:
-		return super().__bool__() and not self.piece.moved and self.game[self.middle] is None
+		return super().__bool__() and not self.piece.moved and self.piece.game[self.middle] is None
 
 
 	@property

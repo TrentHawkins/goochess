@@ -41,6 +41,14 @@ class Side(collection[Piece]):
 	def color(self) -> Color:
 		return Color.WHITE if self is self.game.white else Color.BLACK
 
+	@property
+	def other(self) -> Side:
+		return self.game.black if self is self.game.white else self.game.white
+
+	@property
+	def pawn_rank(self) -> int:
+		return 1 if self.color else 6
+
 
 class Game(Board):
 
