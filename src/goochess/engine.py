@@ -2,7 +2,7 @@ from __future__ import annotations
 
 
 from .mathematics import collection
-from .geometry import Index, Color
+from .geometry import Square, Color
 from .material import Piece
 
 
@@ -14,13 +14,13 @@ class Board(list[Piece | None]):
 	def __repr__(self) -> str:
 		...
 
-	def __setitem__(self, key: Index, value: Piece | None):
+	def __setitem__(self, key: Square, value: Piece | None):
 		if value is not None:
 			value.square = key
 
 		super().__setitem__(key, value)
 
-	def __delitem__(self, key: Index):
+	def __delitem__(self, key: Square):
 		if (piece := self[key]) is not None:
 			piece.square = None
 
@@ -44,10 +44,6 @@ class Side(collection[Piece]):
 	@property
 	def other(self) -> Side:
 		return self.game.black if self is self.game.white else self.game.white
-
-	@property
-	def pawn_rank(self) -> int:
-		return 1 if self.color else 6
 
 
 class Game(Board):

@@ -7,36 +7,36 @@ import pickle
 
 import pytest
 
-from goochess.geometry import Index
+from goochess.geometry import Square
 from goochess.mathematics import array, arrays, indices
 
 
 class TestSquare: # pylint: disable = no-member
 
-	members = tuple(Index)
+	members = tuple(Square)
 	diagonal = array(0, -1) + array(1, 0)
 	translations = (
-		(operator.add, Index.A1, array(1, 1), Index.B2),
-		(operator.add, array(1, 1), Index.A1, Index.B2),
-		(operator.add, array(1, 0), Index.B2, Index.B3),
-		(operator.add, Index.A1, array(1, 0), Index.A2),
-		(operator.add, Index.A1, array(0, 1), Index.B1),
-		(operator.sub, Index.B2, array(1, 1), Index.A1),
-		(operator.add, Index.D4, diagonal, Index.C5),
-		(operator.add, diagonal, Index.D4, Index.C5),
+		(operator.add, Square.A1, array(1, 1), Square.B2),
+		(operator.add, array(1, 1), Square.A1, Square.B2),
+		(operator.add, array(1, 0), Square.B2, Square.B3),
+		(operator.add, Square.A1, array(1, 0), Square.A2),
+		(operator.add, Square.A1, array(0, 1), Square.B1),
+		(operator.sub, Square.B2, array(1, 1), Square.A1),
+		(operator.add, Square.D4, diagonal, Square.C5),
+		(operator.add, diagonal, Square.D4, Square.C5),
 	)
-	differences = ((Index.B2, Index.A1, (1, 1)), (Index.A1, Index.H8, (-7, -7)), (Index.A1, Index.A1, (0, 0)))
-	invalid_translations = ((Index.H1, array(0, 1)), (Index.A8, array(1, 0)), (Index.A1, array(-1, 0)))
-	rays = ((Index.A6, array(1, 0), (Index.A7, Index.A8)), (Index.H8, array(1, 1), ()))
-	serialization_values = (Index.A1, Index.B2, Index.H8)
+	differences = ((Square.B2, Square.A1, (1, 1)), (Square.A1, Square.H8, (-7, -7)), (Square.A1, Square.A1, (0, 0)))
+	invalid_translations = ((Square.H1, array(0, 1)), (Square.A8, array(1, 0)), (Square.A1, array(-1, 0)))
+	rays = ((Square.A6, array(1, 0), (Square.A7, Square.A8)), (Square.H8, array(1, 1), ()))
+	serialization_values = (Square.A1, Square.B2, Square.H8)
 	copy_functions = (copy.copy, copy.deepcopy)
 	pickle_protocols = tuple(range(pickle.HIGHEST_PROTOCOL + 1))
 
 	def test_board(self) -> None:
-		assert (Index.dimension, Index.base) == (2, 8)
+		assert (Square.dimension, Square.base) == (2, 8)
 		assert tuple(int(member) for member in self.members) == tuple(range(64))
-		assert not Index.A1
-		assert Index.H1
+		assert not Square.A1
+		assert Square.H1
 
 	def test_collection(self) -> None:
 		assert indices(*self.members) == set(self.members)
@@ -51,7 +51,7 @@ class TestSquare: # pylint: disable = no-member
 		assert member.file == file.lower()
 		assert repr(member) == member.name.lower()
 		assert bool(member) is (sum(components) % 2 == 1)
-		assert Index.from_sequence(components) is member
+		assert Square.from_sequence(components) is member
 
 	@pytest.mark.parametrize("operation, left, right, expected", translations)
 	def test_translation(self, operation, left, right, expected) -> None:
