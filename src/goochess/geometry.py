@@ -2,20 +2,20 @@ from __future__ import annotations
 
 import enum
 
-from .mathematics import index, array, arrays
+from . import mathematics
 
-class Compass(arrays):
+class Compass(mathematics.arrays):
 
-	north = array( 1, 0)
-	south = array(-1, 0)
-	east  = array(0,  1)
-	west  = array(0, -1)
+	north = mathematics.array( 1, 0)
+	south = mathematics.array(-1, 0)
+	east  = mathematics.array(0,  1)
+	west  = mathematics.array(0, -1)
 
-	ranks = arrays(
+	ranks = mathematics.arrays(
 		north,
 		south,
 	)
-	files = arrays(
+	files = mathematics.arrays(
 		east,
 		west,
 	)
@@ -31,7 +31,7 @@ class Color(int, enum.Enum):
 		return self == Color.WHITE
 
 
-class Index(index[2, 8], enum.Enum):
+class Square(mathematics.index[2, 8], enum.Enum):
 
 #	 1       :  2       :  3       :  4       :  5       :  6       :  7       :  8
 	A1 = 0o00; A2 = 0o01; A3 = 0o02; A4 = 0o03; A5 = 0o04; A6 = 0o05; A7 = 0o06; A8 = 0o07  # A

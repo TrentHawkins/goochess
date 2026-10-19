@@ -2,29 +2,29 @@ from __future__ import annotations
 
 
 import abc
+import enum
 import contextlib
 import typing
 
-from .mathematics import array, arrays, indices
-
-from .geometry import Color, Index, Compass
-from .algebra import Move, Capt, Rush
+from . import mathematics
+from . import geometry
+from . import algebra
 
 if typing.TYPE_CHECKING: from .engine import Side, Game
 
 
 class Piece:
 
-	value: int
+	value: int = 0
 	white: str
 	black: str
 
-	moves: arrays
-	specs: arrays
+	moves: mathematics.arrays
+	specs: mathematics.arrays
 
 
 	def __init__(self, side: Side,
-		square: Index | None = None,
+		square: geometry.Square | None = None,
 	) -> None:
 		self.side = side
 		self.square = square
@@ -42,15 +42,15 @@ class Piece:
 
 
 	@property
-	def targets(self) -> indices:
-		return indices()
+	def targets(self) -> mathematics.indices:
+		return mathematics.indices()
 
 	@property
-	def squares(self) -> indices:
+	def squares(self) -> mathematics.indices:
 		return self.targets
 
 	@property
-	def color(self) -> Color:
+	def color(self) -> geometry.Color:
 		return self.side.color
 
 	@property
@@ -61,7 +61,7 @@ class Piece:
 class Omni(Piece, abc.ABC):
 
 	@property
-	def targets(self) -> indices:
+	def targets(self) -> mathematics.indices:
 		targets = super().targets
 
 		if self.square is None:
@@ -75,54 +75,49 @@ class Omni(Piece, abc.ABC):
 
 
 	@abc.abstractmethod
-	def search(self, square: Index,
-		move: array,
-	) -> typing.Generator[Move]:
+	def search(self, square: geometry.Square,
+		move: mathematics.array,
+	) -> typing.Generator[algebra.Move]:
 		...
 
 
 class Melee(Omni):
 
-	def search(self, square: Index,
-		move: array,
-	) -> typing.Generator[Move]:
-		if step := Move(square := square + move, self): yield step
-		if step := Capt(square                 , self): yield step
+	def search(self, square: geometry.Square,
+		move: mathematics.array,
+	) -> typing.Generator[algebra.Move]:
+		if step := algebra.Move(square := square + move, self): yield step
+		if step := algebra.Capt(square                 , self): yield step
 
 
 class Ranged(Omni):
 
-	def search(self, square: Index,
-		move: array,
-	) -> typing.Generator[Move]:
-		while step := Move(square := square + move, self): yield step
-		if    step := Capt(square                 , self): yield step
+	def search(self, square: geometry.Square,
+		move: mathematics.array,
+	) -> typing.Generator[algebra.Move]:
+		while step := algebra.Move(square := square + move, self): yield step
+		if    step := algebra.Capt(square                 , self): yield step
 
 
-class Officer(Omni):
-
-	...
-
-
-class Rook(Ranged, Officer):
+class Rook(Ranged, Omni):
 
 	value =  5
 	white = "R"  # "♖"
 	black = "r"  # "♜"
 
-	moves = Compass.ranks | Compass.files
+	moves = geometry.Compass.ranks | geometry.Compass.files
 
 
-class Bishop(Ranged, Officer):
+class Bishop(Ranged, Omni):
 
 	value =  3
 	white = "B"  # "♗"
 	black = "b"  # "♝"
 
-	moves = Compass.ranks * Compass.files
+	moves = geometry.Compass.ranks * geometry.Compass.files
 
 
-class Knight(Melee, Officer):
+class Knight(Melee, Omni):
 
 	value =  3
 	white = "N"  # "♘"
@@ -136,16 +131,23 @@ class Star(Omni):
 	moves = Rook.moves | Bishop.moves
 
 
-class Queen(Ranged, Star, Officer):
+class Queen(Ranged, Star):
 
 	value =  9
 	white = "Q"  # "♕"
 	black = "q"  # "♛"
 
 
+class Officer(enum.Enum):
+
+	Q = Queen
+	R = Rook
+	N = Knight
+	B = Bishop
+
+
 class King(Melee, Star):
 
-	value =  0
 	white = "K"  # "♔"
 	black = "k"  # "♚"
 
@@ -158,29 +160,35 @@ class Pawn(Piece):
 
 
 	@property
-	def forward(self) -> array:
-		return Compass.north if self.color else Compass.south
+	def forward(self) -> mathematics.array:
+		return geometry.Compass.north if self.color else geometry.Compass.south
 
 	@property
-	def targets(self) -> indices:
+	def targets(self) -> mathematics.indices:
 		targets = super().targets
 
 		if self.square is None:
 			return targets
 
-		Δ = self.forward; ᐊ, ᐅ = tuple(Compass.files)
+		Δ = self.forward; ᐊ, ᐅ = tuple(geometry.Compass.files)
 
 		try: square = self.square + Δ
 		except ValueError: return targets
 
 		with contextlib.suppress(ValueError):
-			if step := Move(square    , self): targets.add(step)
-			if step := Rush(square + Δ, self): targets.add(step)
+			if step := algebra.Move(square    , self): targets.add(step)
+			if step := algebra.Rush(square + Δ, self): targets.add(step)
 
 		with contextlib.suppress(ValueError):
-			if step := Capt(square + ᐊ, self): targets.add(step)
+			if step := algebra.Capt(square + ᐊ, self): targets.add(step)
 
 		with contextlib.suppress(ValueError):
-			if step := Capt(square + ᐅ, self): targets.add(step)
+			if step := algebra.Capt(square + ᐅ, self): targets.add(step)
 
 		return targets
+
+
+class Ghost(Piece):
+
+	white = "P"  # "♙"
+	black = "p"  # "♟"
