@@ -2,6 +2,7 @@ from __future__ import annotations
 
 
 import abc
+import enum
 import contextlib
 import typing
 
@@ -98,12 +99,7 @@ class Ranged(Omni):
 		if    step := Capt(square                 , self): yield step
 
 
-class Officer(Omni):
-
-	...
-
-
-class Rook(Ranged, Officer):
+class Rook(Ranged, Omni):
 
 	value =  5
 	white = "R"  # "♖"
@@ -112,7 +108,7 @@ class Rook(Ranged, Officer):
 	moves = Compass.ranks | Compass.files
 
 
-class Bishop(Ranged, Officer):
+class Bishop(Ranged, Omni):
 
 	value =  3
 	white = "B"  # "♗"
@@ -121,7 +117,7 @@ class Bishop(Ranged, Officer):
 	moves = Compass.ranks * Compass.files
 
 
-class Knight(Melee, Officer):
+class Knight(Melee, Omni):
 
 	value =  3
 	white = "N"  # "♘"
@@ -135,11 +131,19 @@ class Star(Omni):
 	moves = Rook.moves | Bishop.moves
 
 
-class Queen(Ranged, Star, Officer):
+class Queen(Ranged, Star):
 
 	value =  9
 	white = "Q"  # "♕"
 	black = "q"  # "♛"
+
+
+class Officer(enum.Enum):
+
+	Q = Queen
+	R = Rook
+	N = Knight
+	B = Bishop
 
 
 class King(Melee, Star):

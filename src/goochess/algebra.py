@@ -3,8 +3,7 @@ from __future__ import annotations
 import typing
 
 from .geometry import index, Index
-if typing.TYPE_CHECKING: from .engine import Game, Side
-if typing.TYPE_CHECKING: from .material import Piece
+if typing.TYPE_CHECKING: from .material import Piece, Pawn, Officer
 
 
 class Move(index[2, 8]):
@@ -27,7 +26,7 @@ class Move(index[2, 8]):
 		self.source = source
 
 	def __repr__(self) -> str:
-		piece = str(self.piece).upper().replace("P", "") or (self.source.file if self.action else "")
+		piece = self.piece.white.replace("P", "") or (self.source.file if self.action else "")
 
 		return piece + self.action + str(self.target)
 
@@ -63,3 +62,27 @@ class Rush(Spec):
 	@property
 	def middle(self) -> Index:
 		return self.source.middle(self.target)
+
+
+class Promotion(Spec):
+
+	to: Officer
+
+
+	def __repr__(self) -> str:
+		return super().__repr__() + "=" + self.to.name
+
+	def __bool__(self) -> bool:
+		return isinstance(self.piece, Pawn) and super().__bool__() and self.source.rank == self.piece.side.pawn_rank
+
+
+class Check(Move):
+
+	def __repr__(self) -> str:
+		return super().__repr__() + "+"
+
+
+class Checkmate(Check):
+
+	def __repr__(self) -> str:
+		return super().__repr__().replace("+", "#")
