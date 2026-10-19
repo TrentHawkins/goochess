@@ -253,16 +253,16 @@ class TestIndex:
 
 	@pytest.mark.parametrize("left, right, expected", midpoints)
 	def test_midpoint(self, left, right, expected) -> None:
-		result = left.mid(right)
+		result = left.middle(right)
 		assert result.array == expected
 		assert type(result) is type(left)
-		assert right.mid(left) == result
-		assert left.mid(int(right)) == result
+		assert right.middle(left) == result
+		assert left.middle(int(right)) == result
 
 	@pytest.mark.parametrize("left, right", invalid_midpoints)
 	def test_nonintegral_midpoint(self, left, right) -> None:
 		with pytest.raises(ValueError):
-			left.mid(right)
+			left.middle(right)
 
 	def test_specializations(self) -> None:
 		assert index.__class_getitem__((2, 8)) is self.template
