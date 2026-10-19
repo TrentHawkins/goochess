@@ -31,10 +31,7 @@ class AlgebraSetup:
 
 	@staticmethod
 	def board() -> Game:
-		game = Game("")
-		list.extend(game, [None] * 64)
-
-		return game
+		return Game("8/8/8/8/8/8/8/8")
 
 	@staticmethod
 	def place[T: Piece](game: Game, kind: type[T], square: Square,

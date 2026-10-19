@@ -15,9 +15,9 @@ if typing.TYPE_CHECKING: from .engine import Side, Game
 
 class Piece:
 
-	value: int = 0
-	white: str
-	black: str
+	value: int =  0
+	white: str = "-"
+	black: str = "-"
 
 	moves: mathematics.arrays
 	specs: mathematics.arrays
