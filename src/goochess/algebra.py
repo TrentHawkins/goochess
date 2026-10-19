@@ -70,6 +70,12 @@ class Rush(Spec):
 
 class Promotion(Spec):
 
+	def __class_getitem__(cls, item: type[Move], /) -> type[Promotion]:
+		if item is Move: return PromotionMove
+		if item is Capt: return PromotionCapt
+
+		raise TypeError(f"{cls.__name__} expects Move or Capt")
+
 	def __init__(self, x: int, piece: material.Piece) -> None:
 		super().__init__(x, piece)
 
@@ -86,6 +92,10 @@ class Promotion(Spec):
 	@functools.cached_property
 	def officers(self) -> itertools.cycle[material.Officer]:
 		return itertools.cycle(material.Officer)
+
+
+class PromotionMove(Promotion, Move): ...
+class PromotionCapt(Promotion, Capt): ...
 
 
 class EnPassant(Capt):

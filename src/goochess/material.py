@@ -15,7 +15,7 @@ if typing.TYPE_CHECKING: from .engine import Side, Game
 
 class Piece:
 
-	value: int
+	value: int = 0
 	white: str
 	black: str
 
@@ -148,7 +148,6 @@ class Officer(enum.Enum):
 
 class King(Melee, Star):
 
-	value =  0
 	white = "K"  # "♔"
 	black = "k"  # "♚"
 
@@ -191,6 +190,5 @@ class Pawn(Piece):
 
 class Ghost(Piece):
 
-	value =  0
 	white = "P"  # "♙"
 	black = "p"  # "♟"

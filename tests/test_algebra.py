@@ -1,9 +1,11 @@
 from __future__ import annotations
 
 
+import pickle
+
 import pytest
 
-from goochess.algebra import Capt, EnPassant, Promotion
+from goochess.algebra import Capt, Check, EnPassant, Move, Promotion, PromotionCapt, PromotionMove
 from goochess.engine import Game
 from goochess.geometry import Color, Square
 from goochess.material import Ghost, Knight, Officer, Pawn, Piece
@@ -52,10 +54,31 @@ class AlgebraSetup:
 
 class TestPromotion(AlgebraSetup):
 
+	variants = ((Move, PromotionMove), (Capt, PromotionCapt))
+	unsupported = (Check, (2, 8))
+	pickle_protocols = tuple(range(pickle.HIGHEST_PROTOCOL + 1))
+
+	@pytest.mark.parametrize("base, expected", variants)
+	def test_subscription_selects_named_variant(self, base, expected) -> None:
+		assert Promotion[base] is expected
+		assert Promotion[base] is Promotion[base]
+		assert issubclass(expected, Promotion)
+		assert issubclass(expected, base)
+
+	@pytest.mark.parametrize("base, expected", variants)
+	def test_named_variant_class_serialization(self, base, expected) -> None:
+		for protocol in self.pickle_protocols:
+			assert pickle.loads(pickle.dumps(Promotion[base], protocol = protocol)) is expected
+
+	@pytest.mark.parametrize("item", unsupported)
+	def test_unsupported_subscription(self, item) -> None:
+		with pytest.raises(TypeError):
+			_ = Promotion[item]
+
 	@pytest.mark.parametrize("color, source, target, notation", AlgebraSetup.quiet_cases)
 	def test_validity_before_selection(self, color, source, target, notation) -> None:
 		pawn = self.place(self.board(), Pawn, source, color)
-		promotion = Promotion(target, pawn)
+		promotion = Promotion[Move](target, pawn)
 		assert bool(promotion)
 		assert promotion.source is source
 		assert promotion.target is target
@@ -104,17 +127,6 @@ class TestPromotion(AlgebraSetup):
 		assert repr(promotion) == "a8=N"
 		assert promotion.to is Officer.N
 
-	def test_choices_are_independent(self) -> None:
-		pawn = self.place(self.board(), Pawn, Square.A7, Color.WHITE)
-		first = Promotion(Square.A8, pawn)
-		second = Promotion(Square.A8, pawn)
-		first.to = Officer.N
-		second.to = Officer.Q
-		assert first.to is Officer.N
-		assert second.to is Officer.Q
-		first.to = Officer.R
-		assert second.to is Officer.Q
-
 	def test_choice_resolves_to_officer(self) -> None:
 		pawn = self.place(self.board(), Pawn, Square.A7, Color.WHITE)
 		promotion = Promotion(Square.A8, pawn)
@@ -124,13 +136,27 @@ class TestPromotion(AlgebraSetup):
 
 class TestCapturePromotion(AlgebraSetup):
 
-	class CapturePromotion(Promotion, Capt):
-		...
+	CapturePromotion = Promotion[Capt]
 
 	illegal_ranks = (
 		(Color.WHITE, Square.B6, Square.A7),
 		(Color.BLACK, Square.G3, Square.H2),
 	)
+
+	def test_choices_are_independent(self) -> None:
+		game = self.board()
+		pawn = self.place(game, Pawn, Square.B7, Color.WHITE)
+		self.place(game, Knight, Square.A8, Color.BLACK)
+		first = self.CapturePromotion(Square.A8, pawn)
+		second = self.CapturePromotion(Square.A8, pawn)
+		first.to = Officer.N
+		second.to = Officer.Q
+		assert repr(first) == "bxa8=N"
+		assert repr(second) == "bxa8=Q"
+		first.to = Officer.R
+		assert repr(first) == "bxa8=R"
+		assert second.to is Officer.Q
+		assert bool(first) and bool(second)
 
 	@pytest.mark.parametrize("color, source, target, notation", AlgebraSetup.capture_cases)
 	@pytest.mark.parametrize("choice", AlgebraSetup.choices)
