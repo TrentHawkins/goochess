@@ -168,15 +168,19 @@ class Pawn(Piece):
 		if self.square is None:
 			return targets
 
-		try: square = self.square + self.forward
+		Δ = self.forward; ᐊ, ᐅ = tuple(Compass.files)
+
+		try: square = self.square + Δ
 		except ValueError: return targets
 
 		with contextlib.suppress(ValueError):
-			if step := Move(square               , self): targets.add(step)
-			if step := Rush(square + self.forward, self): targets.add(step)
+			if step := Move(square    , self): targets.add(step)
+			if step := Rush(square + Δ, self): targets.add(step)
 
-		for capt in Compass.files:
-			with contextlib.suppress(ValueError):
-				if step := Capt(square + capt, self): targets.add(step)
+		with contextlib.suppress(ValueError):
+			if step := Capt(square + ᐊ, self): targets.add(step)
+
+		with contextlib.suppress(ValueError):
+			if step := Capt(square + ᐅ, self): targets.add(step)
 
 		return targets
