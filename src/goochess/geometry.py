@@ -2,10 +2,30 @@ from __future__ import annotations
 
 import enum
 
-from .mathematics import index
+from .mathematics import index, array, arrays
+
+class Compass(arrays):
+
+	north = arrays(array( 1, 0))
+	south = arrays(array(-1, 0))
+	east  = arrays(array(0,  1))
+	west  = arrays(array(0, -1))
+
+	ranks = north | south
+	files = east  | west
 
 
-class Square(index[2, 8], enum.Enum):
+class Color(int, enum.Enum):
+
+	WHITE =  1
+	BLACK = -1
+
+
+	def __bool__(self) -> bool:
+		return self == Color.WHITE
+
+
+class Index(index[2, 8], enum.Enum):
 
 #	 1       :  2       :  3       :  4       :  5       :  6       :  7       :  8
 	A1 = 0o00; A2 = 0o01; A3 = 0o02; A4 = 0o03; A5 = 0o04; A6 = 0o05; A7 = 0o06; A8 = 0o07  # A
@@ -21,9 +41,11 @@ class Square(index[2, 8], enum.Enum):
 	def __repr__(self) -> str:
 		return self.name.lower()
 
+	def __str__(self) -> str:
+		return repr(self)
+
 	def __bool__(self) -> bool:
 		return bool(sum(self.array) & 1)
-
 
 	@property
 	def rank(self) -> int:
@@ -32,3 +54,7 @@ class Square(index[2, 8], enum.Enum):
 	@property
 	def file(self) -> str:
 		return self.name[0].lower()
+
+	@property
+	def color(self) -> Color:
+		return Color.WHITE if self else Color.BLACK

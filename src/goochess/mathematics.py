@@ -137,6 +137,9 @@ class index(int):
 
 		cls.upper = cls.base ** cls.dimension
 
+	def __len__(self) -> int:
+		return self.dimension
+
 	@typing.overload
 	def __getitem__(self, key: typing.SupportsIndex, /) -> int:
 		...
@@ -218,6 +221,18 @@ class index(int):
 
 		return array(*components)
 
+
+	def flip(self, dim: int) -> typing.Self:
+		cls = type(self)
+
+		if not -cls.dimension <= dim < cls.dimension:
+			raise IndexError("dimension out of range")
+
+		place = cls.base ** (dim % cls.dimension)
+		value = int(self)
+		digit = value // place % cls.base
+
+		return cls(value + (cls.base - 1 - 2 * digit) * place)
 
 	def range(self, step: array, stop: bool = False, /) -> typing.Generator[typing.Self]:
 		if len(step) != self.dimension or not step:
@@ -428,7 +443,6 @@ class arrays(collection[array]):
 		cls = type(self)
 
 		if isinstance(other, int):
-			if other <  0: raise NotImplementedError
 			if other == 0: return cls()
 			if other == 1: return cls(*self)
 
