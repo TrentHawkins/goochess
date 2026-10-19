@@ -16,13 +16,13 @@ class Board(list[Piece | None]):
 
 	def __setitem__(self, key: Index, value: Piece | None):
 		if value is not None:
-			value.index = key
+			value.square = key
 
 		super().__setitem__(key, value)
 
 	def __delitem__(self, key: Index):
 		if (piece := self[key]) is not None:
-			piece.index = None
+			piece.square = None
 
 		super().__setitem__(key, None)
 

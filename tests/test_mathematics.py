@@ -178,8 +178,18 @@ class TestIndex:
 	template = index.__class_getitem__((2, 8))
 	nested_template = template.__class_getitem__((3, 4))
 	index_types = (Binary, Board, Decimal, template, nested_template)
-	flip_types = (*index_types, index.__class_getitem__((3, 3)), index.__class_getitem__((0, 8)))
 	encoding = ((Binary, (1, 0, 1), 5), (Board, (2, 3), 26), (Decimal, (3, 2, 1), 123))
+	midpoints = (
+		(Board((0, 0)), Board((6, 4)), (3, 2)),
+		(Decimal((8, 2, 4)), Decimal((2, 6, 8)), (5, 4, 6)),
+		(nested_template((0, 1, 2)), nested_template((2, 3, 0)), (1, 2, 1)),
+		(Binary((1, 0, 1)), Binary((1, 0, 1)), (1, 0, 1)),
+	)
+	invalid_midpoints = (
+		(Board((0, 0)), Board((1, 0))),
+		(Board((0, 0)), Board((0, 1))),
+		(Decimal((0, 0, 0)), Decimal((0, 0, 1))),
+	)
 	position = Board((2, 3))
 	other = Board((1, 1))
 	displacement = array(1, -1)
@@ -241,28 +251,18 @@ class TestIndex:
 		with pytest.raises(IndexError):
 			_ = self.position[2]
 
-	@pytest.mark.parametrize("index_type", flip_types)
-	def test_flip(self, index_type) -> None:
-		for encoded in range(index_type.upper):
-			value = index_type(encoded)
+	@pytest.mark.parametrize("left, right, expected", midpoints)
+	def test_midpoint(self, left, right, expected) -> None:
+		result = left.mid(right)
+		assert result.array == expected
+		assert type(result) is type(left)
+		assert right.mid(left) == result
+		assert left.mid(int(right)) == result
 
-			for dim in range(index_type.dimension):
-				result = value.flip(dim)
-				assert type(result) is index_type
-				assert result[dim] + value[dim] == index_type.base - 1
-				assert result.array[:dim] == value.array[:dim]
-				assert result.array[dim + 1:] == value.array[dim + 1:]
-				assert result.flip(dim) == value
-				assert value.flip(dim - index_type.dimension) == result
-				assert int(value) == encoded
-
-	@pytest.mark.parametrize("index_type", flip_types)
-	def test_invalid_flip_dimension(self, index_type) -> None:
-		value = index_type(0)
-
-		for dim in (index_type.dimension, -index_type.dimension - 1):
-			with pytest.raises(IndexError):
-				value.flip(dim)
+	@pytest.mark.parametrize("left, right", invalid_midpoints)
+	def test_nonintegral_midpoint(self, left, right) -> None:
+		with pytest.raises(ValueError):
+			left.mid(right)
 
 	def test_specializations(self) -> None:
 		assert index.__class_getitem__((2, 8)) is self.template
@@ -610,6 +610,8 @@ class TestArrays:
 		(2, {array(0, 0), array(2, 0)}),
 		(0, set()),
 		(1, set(left)),
+		(-1, {array(0, 0), array(-1, 0)}),
+		(-2, {array(0, 0), array(-2, 0)}),
 	)
 	powers = (
 		(1, set(left)),
@@ -690,13 +692,6 @@ class TestArrays:
 	def test_unsupported_power(self, exponent) -> None:
 		with pytest.raises(NotImplementedError):
 			_ = self.left ** exponent
-
-	def test_negative_scalar(self) -> None:
-		with pytest.raises(NotImplementedError):
-			_ = self.left * -1
-
-		with pytest.raises(NotImplementedError):
-			_ = -1 * self.left
 
 	@pytest.mark.parametrize("collection_type", collection_types)
 	def test_augmented_power(self, collection_type) -> None:

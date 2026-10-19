@@ -12,11 +12,12 @@ class Move(index[2, 8]):
 
 	action: str = ""
 
+
 	def __new__(cls, x: int, /, piece: Piece) -> typing.Self:
 		return super().__new__(cls, x)
 
 	def __init__(self, x: int, piece: Piece) -> None:
-		if (source := piece.index) is None:
+		if (source := piece.square) is None:
 			raise ValueError("a piece must have a valid index before creating a move")
 
 		super().__init__()
@@ -27,7 +28,7 @@ class Move(index[2, 8]):
 		self.source = source
 
 	def __repr__(self) -> str:
-		piece = str(self.piece).upper() or (self.source.file if self.action else "")
+		piece = str(self.piece).upper().replace("P", "") or (self.source.file if self.action else "")
 
 		return piece + self.action + str(self.target)
 
@@ -48,5 +49,22 @@ class Capt(Move):
 
 	action: str = "x"
 
+
 	def __bool__(self) -> bool:
 		return (other := self.game[self.target]) is not None and other.color != self.piece.color
+
+
+class Spec(Move):
+
+	...
+
+
+class Rush(Spec):
+
+	def __bool__(self) -> bool:
+		return super().__bool__() and not self.piece.moved and self.game[self.middle] is None
+
+
+	@property
+	def middle(self) -> Index:
+		return self.source.middle(self.target)
