@@ -6,13 +6,19 @@ from .mathematics import index, array, arrays
 
 class Compass(arrays):
 
-	north = arrays(array( 1, 0))
-	south = arrays(array(-1, 0))
-	east  = arrays(array(0,  1))
-	west  = arrays(array(0, -1))
+	north = array( 1, 0)
+	south = array(-1, 0)
+	east  = array(0,  1)
+	west  = array(0, -1)
 
-	ranks = north | south
-	files = east  | west
+	ranks = arrays(
+		north,
+		south,
+	)
+	files = arrays(
+		east,
+		west,
+	)
 
 
 class Color(int, enum.Enum):
