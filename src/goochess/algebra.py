@@ -1,5 +1,8 @@
 from __future__ import annotations
 
+
+import functools
+import itertools
 import typing
 
 from . import mathematics
@@ -67,14 +70,22 @@ class Rush(Spec):
 
 class Promotion(Spec):
 
-	to: material.Officer = material.Officer.Q
+	def __init__(self, x: int, piece: material.Piece) -> None:
+		super().__init__(x, piece)
 
+		self.to = next(self.officers)
 
 	def __repr__(self) -> str:
 		return super().__repr__() + "=" + self.to.name
 
 	def __bool__(self) -> bool:
-		return isinstance(self.piece, material.Pawn) and super().__bool__() and self.source.rank == (7 if self.piece.color else 2)
+		return super().__bool__() and \
+			isinstance(self.piece, material.Pawn ) and self.source.rank == (7 if self.piece.color else 2)
+
+
+	@functools.cached_property
+	def officers(self) -> itertools.cycle[material.Officer]:
+		return itertools.cycle(material.Officer)
 
 
 class EnPassant(Capt):
@@ -82,8 +93,9 @@ class EnPassant(Capt):
 	def __bool__(self) -> bool:
 		other = self.piece.game[self.target]
 
-		return isinstance(self.piece, material.Pawn) and \
-			isinstance(other, material.Ghost) and super().__bool__() and self.source.rank == (5 if self.piece.color else 4)
+		return super().__bool__() and \
+			isinstance(self.piece, material.Pawn ) and \
+			isinstance(     other, material.Ghost) and self.source.rank == (5 if self.piece.color else 4)
 
 
 class Check(Move):
