@@ -1,20 +1,24 @@
 from __future__ import annotations
 
+
+import functools
+import itertools
 import typing
 
-from .geometry import index, Index
-if typing.TYPE_CHECKING: from .material import Piece, Pawn, Officer
+from . import mathematics
+from . import geometry
+from . import material
 
 
-class Move(index[2, 8]):
+class Move(mathematics.index[2, 8]):
 
 	action: str = ""
 
 
-	def __new__(cls, x: int, /, piece: Piece) -> typing.Self:
+	def __new__(cls, x: int, /, piece: material.Piece) -> typing.Self:
 		return super().__new__(cls, x)
 
-	def __init__(self, x: int, piece: Piece) -> None:
+	def __init__(self, x: int, piece: material.Piece) -> None:
 		if (source := piece.square) is None:
 			raise ValueError("a piece must have a valid index before creating a move")
 
@@ -35,8 +39,8 @@ class Move(index[2, 8]):
 
 
 	@property
-	def target(self) -> Index:
-		return Index(int(self))
+	def target(self) -> geometry.Square:
+		return geometry.Square(int(self))
 
 
 class Capt(Move):
@@ -60,20 +64,48 @@ class Rush(Spec):
 
 
 	@property
-	def middle(self) -> Index:
+	def middle(self) -> geometry.Square:
 		return self.source.middle(self.target)
 
 
 class Promotion(Spec):
 
-	to: Officer
+	def __class_getitem__(cls, item: type[Move], /) -> type[Promotion]:
+		if item is Move: return PromotionMove
+		if item is Capt: return PromotionCapt
 
+		raise TypeError(f"{cls.__name__} expects Move or Capt")
+
+	def __init__(self, x: int, piece: material.Piece) -> None:
+		super().__init__(x, piece)
+
+		self.to = next(self.officers)
 
 	def __repr__(self) -> str:
 		return super().__repr__() + "=" + self.to.name
 
 	def __bool__(self) -> bool:
-		return isinstance(self.piece, Pawn) and super().__bool__() and self.source.rank == self.piece.side.pawn_rank
+		return super().__bool__() and \
+			isinstance(self.piece, material.Pawn ) and self.source.rank == (7 if self.piece.color else 2)
+
+
+	@functools.cached_property
+	def officers(self) -> itertools.cycle[material.Officer]:
+		return itertools.cycle(material.Officer)
+
+
+class PromotionMove(Promotion, Move): ...
+class PromotionCapt(Promotion, Capt): ...
+
+
+class EnPassant(Capt):
+
+	def __bool__(self) -> bool:
+		other = self.piece.game[self.target]
+
+		return super().__bool__() and \
+			isinstance(self.piece, material.Pawn ) and \
+			isinstance(     other, material.Ghost) and self.source.rank == (5 if self.piece.color else 4)
 
 
 class Check(Move):
