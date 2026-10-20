@@ -11,7 +11,25 @@ from goochess.geometry import Color, Compass, Index
 from goochess.mathematics import array, arrays, indices
 
 
-class TestSquare: # pylint: disable = no-member
+class TestColor:
+
+	cases = ((Color.WHITE, 1, True), (Color.BLACK, -1, False))
+	invalid_values = (-2, 0, 2)
+
+	@pytest.mark.parametrize("color, value, white", cases)
+	def test_numeric_value_and_truth(self, color, value, white) -> None:
+		assert int(color) == value
+		assert Color(value) is color
+		assert bool(color) is white
+		assert color * 3 == value * 3
+
+	@pytest.mark.parametrize("value", invalid_values)
+	def test_invalid_value(self, value) -> None:
+		with pytest.raises(ValueError):
+			Color(value)
+
+
+class TestIndex: # pylint: disable = no-member
 
 	members = tuple(Index)
 	fen_names = tuple(f"{file}{rank}" for rank in range(8, 0, -1) for file in "ABCDEFGH")
@@ -102,3 +120,7 @@ class TestCompass:
 	def test_direction(self, direction, components, target) -> None:
 		assert direction == components
 		assert Index.D4 + direction is target
+
+	def test_orthogonal_groups(self) -> None:
+		assert Compass.ranks == arrays(Compass.north, Compass.south)
+		assert Compass.files == arrays(Compass.east, Compass.west)

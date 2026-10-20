@@ -9,7 +9,7 @@ import typing
 from . import mathematics
 from . import geometry
 from . import algebra
-from . import engine
+if typing.TYPE_CHECKING: from . import engine
 
 
 class Piece:
@@ -40,6 +40,13 @@ class Piece:
 
 	def __eq__(self, other) -> bool:
 		return self is other
+
+
+	@staticmethod
+	def fromnotation(notation: str, /, board: engine.Board) -> Piece:
+		cls = Roster[notation.upper()].value
+
+		return cls(board, color = geometry.Color.WHITE if notation.isupper() else geometry.Color.BLACK)
 
 
 	@property
@@ -179,6 +186,16 @@ class Pawn(Piece):
 			if step := algebra.Capt(square + ᐅ, self): targets.add(step)
 
 		return targets
+
+
+class Roster(enum.Enum):
+
+	P = Pawn
+	Q = Queen
+	R = Rook
+	N = Knight
+	B = Bishop
+	K = King
 
 
 class Ghost(Piece):

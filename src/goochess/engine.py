@@ -10,22 +10,29 @@ from . import material
 class Board(list[material.Piece | None]):
 
 	def __init__(self, forsyth_edwards: str, /):
-		super().__init__([material.Piece.from_symbol(piece) if piece != "-" else None for piece in notation.board(forsyth_edwards)])
+		super().__init__([None] * len(geometry.Index))
+
+		for square, piece in enumerate(notation.serial(forsyth_edwards)):
+			index = geometry.Index(square)
+
+			if piece != "-":
+				self[index] = material.Piece.fromnotation(piece, self)
 
 	def __repr__(self) -> str:
 		return str(self.serial)
 
 	def __setitem__(self, key: geometry.Index, value: material.Piece | None):
+		if (piece := self[key]) is not None:
+			piece.index = None
+
 		if value is not None:
 			value.index = key
+			value.board = self
 
 		super().__setitem__(key, value)
 
 	def __delitem__(self, key: geometry.Index):
-		if (piece := self[key]) is not None:
-			piece.index = None
-
-		super().__setitem__(key, None)
+		self[key] = None
 
 
 	@property
@@ -69,4 +76,4 @@ class Game(Board):
 
 		for piece in self:
 			if piece is not None:
-				piece.side.add(piece)
+				(self.white if piece.color else self.black).add(piece)

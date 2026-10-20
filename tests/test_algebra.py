@@ -5,7 +5,7 @@ import pickle
 
 import pytest
 
-from goochess.algebra import Capt, Check, EnPassant, Move, Promotion, PromotionCapt, PromotionMove
+from goochess.algebra import Capt, Check, Checkmate, EnPassant, Move, Promotion, PromotionCapt, PromotionMove, Rush
 from goochess.engine import Game
 from goochess.geometry import Color, Index
 from goochess.material import Ghost, Knight, Officer, Pawn, Piece
@@ -38,7 +38,7 @@ class AlgebraSetup:
 		color: Color,
 	) -> T:
 		side = game.white if color is Color.WHITE else game.black
-		piece = kind(side)
+		piece = kind(game, color = color)
 		game[square] = piece
 		side.add(piece)
 
@@ -47,6 +47,158 @@ class AlgebraSetup:
 	@staticmethod
 	def opponent(color: Color) -> Color:
 		return Color.BLACK if color is Color.WHITE else Color.WHITE
+
+
+class TestMove(AlgebraSetup):
+
+	notations = (
+		(Pawn, Color.WHITE, Index.E2, Index.E3, "e3"),
+		(Pawn, Color.BLACK, Index.E7, Index.E6, "e6"),
+		(Knight, Color.WHITE, Index.B1, Index.C3, "Nc3"),
+		(Knight, Color.BLACK, Index.B8, Index.C6, "Nc6"),
+	)
+	invalid_targets = (-1, 64)
+
+	@pytest.mark.parametrize("kind, color, source, target, notation", notations)
+	def test_source_target_and_notation(self, kind, color, source, target, notation) -> None:
+		piece = self.place(self.board(), kind, source, color)
+		move = Move(target, piece)
+		assert move.piece is piece
+		assert move.source is source
+		assert move.target is target
+		assert move.other is None
+		assert repr(move) == notation
+		assert bool(move)
+
+	def test_requires_placed_piece(self) -> None:
+		piece = Pawn(self.board(), color = Color.WHITE)
+
+		with pytest.raises(ValueError, match = "valid index"):
+			Move(Index.E3, piece)
+
+	@pytest.mark.parametrize("target", invalid_targets)
+	def test_target_bounds(self, target) -> None:
+		piece = self.place(self.board(), Pawn, Index.E2, Color.WHITE)
+
+		with pytest.raises(ValueError):
+			Move(target, piece)
+
+	def test_source_is_snapshot(self) -> None:
+		game = self.board()
+		piece = self.place(game, Pawn, Index.E2, Color.WHITE)
+		move = Move(Index.E4, piece)
+		del game[Index.E2]
+		game[Index.E3] = piece
+		assert piece.index is Index.E3
+		assert move.source is Index.E2
+
+	def test_destination_occupancy_is_live(self) -> None:
+		game = self.board()
+		piece = self.place(game, Pawn, Index.E2, Color.WHITE)
+		move = Move(Index.E3, piece)
+		assert bool(move)
+		self.place(game, Knight, Index.E3, Color.BLACK)
+		assert not move
+		assert move.other is None
+		del game[Index.E3]
+		assert bool(move)
+
+	def test_equality_and_hash_use_target(self) -> None:
+		first = self.place(self.board(), Pawn, Index.E2, Color.WHITE)
+		second = self.place(self.board(), Knight, Index.F6, Color.BLACK)
+		move = Move(Index.E4, first)
+		capture = Capt(Index.E4, second)
+		assert move == capture == Index.E4
+		assert hash(move) == hash(capture) == hash(Index.E4)
+		assert len({move, capture}) == 1
+		assert move != Move(Index.E3, first)
+
+
+class TestCapt(AlgebraSetup):
+
+	notations = (
+		(Pawn, Color.WHITE, Index.E4, Index.D5, "exd5"),
+		(Pawn, Color.BLACK, Index.E5, Index.D4, "exd4"),
+		(Knight, Color.WHITE, Index.B1, Index.C3, "Nxc3"),
+		(Knight, Color.BLACK, Index.B8, Index.C6, "Nxc6"),
+	)
+
+	@pytest.mark.parametrize("kind, color, source, target, notation", notations)
+	def test_enemy_capture_and_notation(self, kind, color, source, target, notation) -> None:
+		game = self.board()
+		piece = self.place(game, kind, source, color)
+		enemy = self.place(game, Knight, target, self.opponent(color))
+		capture = Capt(target, piece)
+		assert bool(capture)
+		assert capture.piece is piece
+		assert capture.source is source
+		assert capture.target is target
+		assert capture.other is enemy
+		assert repr(capture) == notation
+
+	def test_requires_enemy_and_preserves_other_snapshot(self) -> None:
+		game = self.board()
+		piece = self.place(game, Pawn, Index.E4, Color.WHITE)
+		enemy = self.place(game, Knight, Index.D5, Color.BLACK)
+		capture = Capt(Index.D5, piece)
+		assert bool(capture)
+		del game[Index.D5]
+		assert not capture
+		self.place(game, Knight, Index.D5, Color.WHITE)
+		assert not capture
+		self.place(game, Knight, Index.D5, Color.BLACK)
+		assert bool(capture)
+		assert capture.other is enemy
+
+
+class TestRush(AlgebraSetup):
+
+	cases = (
+		(Color.WHITE, Index.A2, Index.A3, Index.A4),
+		(Color.BLACK, Index.H7, Index.H6, Index.H5),
+	)
+	states = tuple((moved, middle, target) for moved in (False, True) for middle in (False, True) for target in (False, True))
+
+	@pytest.mark.parametrize("color, source, middle, target", cases)
+	@pytest.mark.parametrize("moved, middle_occupied, target_occupied", states)
+	def test_requires_unmoved_piece_and_clear_path(self, color, source, middle, target,
+		moved, middle_occupied, target_occupied,
+	) -> None:
+		game = self.board()
+		piece = self.place(game, Pawn, source, color)
+		piece.moved = moved
+
+		if middle_occupied:
+			self.place(game, Knight, middle, self.opponent(color))
+
+		if target_occupied:
+			self.place(game, Knight, target, self.opponent(color))
+
+		rush = Rush(target, piece)
+		assert rush.middle is middle
+		assert bool(rush) is (not moved and not middle_occupied and not target_occupied)
+
+
+class TestCheck(AlgebraSetup):
+
+	def test_notation(self) -> None:
+		piece = self.place(self.board(), Knight, Index.B1, Color.WHITE)
+		check = Check(Index.C3, piece)
+		assert repr(check) == "Nc3+"
+		assert check.source is Index.B1
+		assert check.target is Index.C3
+		assert bool(check)
+
+
+class TestCheckmate(AlgebraSetup):
+
+	def test_notation(self) -> None:
+		piece = self.place(self.board(), Knight, Index.B1, Color.WHITE)
+		checkmate = Checkmate(Index.C3, piece)
+		assert repr(checkmate) == "Nc3#"
+		assert checkmate.source is Index.B1
+		assert checkmate.target is Index.C3
+		assert bool(checkmate)
 
 
 class TestPromotion(AlgebraSetup):
@@ -131,7 +283,7 @@ class TestPromotion(AlgebraSetup):
 		assert promotion.to.value is Knight
 
 
-class TestCapturePromotion(AlgebraSetup):
+class TestPromotionCapt(AlgebraSetup):
 
 	CapturePromotion = Promotion[Capt]
 
