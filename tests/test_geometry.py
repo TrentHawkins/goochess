@@ -7,35 +7,39 @@ import pickle
 
 import pytest
 
-from goochess.geometry import Square
+from goochess.geometry import Color, Compass, Square
 from goochess.mathematics import array, arrays, indices
 
 
 class TestSquare: # pylint: disable = no-member
 
 	members = tuple(Square)
-	diagonal = array(0, -1) + array(1, 0)
+	fen_names = tuple(f"{file}{rank}" for rank in range(8, 0, -1) for file in "ABCDEFGH")
+	diagonal = array(-1, 0) + array(0, -1)
 	translations = (
-		(operator.add, Square.A1, array(1, 1), Square.B2),
-		(operator.add, array(1, 1), Square.A1, Square.B2),
-		(operator.add, array(1, 0), Square.B2, Square.B3),
-		(operator.add, Square.A1, array(1, 0), Square.A2),
-		(operator.add, Square.A1, array(0, 1), Square.B1),
-		(operator.sub, Square.B2, array(1, 1), Square.A1),
+		(operator.add, Square.A1, array(1, -1), Square.B2),
+		(operator.add, array(1, -1), Square.A1, Square.B2),
+		(operator.add, array(0, -1), Square.B2, Square.B3),
+		(operator.add, Square.A1, array(0, -1), Square.A2),
+		(operator.add, Square.A1, array(1, 0), Square.B1),
+		(operator.sub, Square.B2, array(1, -1), Square.A1),
 		(operator.add, Square.D4, diagonal, Square.C5),
 		(operator.add, diagonal, Square.D4, Square.C5),
 	)
-	differences = ((Square.B2, Square.A1, (1, 1)), (Square.A1, Square.H8, (-7, -7)), (Square.A1, Square.A1, (0, 0)))
-	invalid_translations = ((Square.H1, array(0, 1)), (Square.A8, array(1, 0)), (Square.A1, array(-1, 0)))
-	rays = ((Square.A6, array(1, 0), (Square.A7, Square.A8)), (Square.H8, array(1, 1), ()))
+	differences = ((Square.B2, Square.A1, (1, -1)), (Square.A1, Square.H8, (-7, 7)), (Square.A1, Square.A1, (0, 0)))
+	invalid_translations = ((Square.H1, array(1, 0)), (Square.A8, array(0, -1)), (Square.A1, array(0, 1)))
+	rays = ((Square.A6, array(0, -1), (Square.A7, Square.A8)), (Square.H8, array(1, -1), ()))
 	serialization_values = (Square.A1, Square.B2, Square.H8)
 	copy_functions = (copy.copy, copy.deepcopy)
 	pickle_protocols = tuple(range(pickle.HIGHEST_PROTOCOL + 1))
 
 	def test_board(self) -> None:
 		assert (Square.dimension, Square.base) == (2, 8)
+		assert tuple(member.name for member in self.members) == self.fen_names
 		assert tuple(int(member) for member in self.members) == tuple(range(64))
+		assert (int(Square.A8), int(Square.H8), int(Square.A7), int(Square.A1), int(Square.H1)) == (0, 7, 8, 56, 63)
 		assert not Square.A1
+		assert Square.A8
 		assert Square.H1
 
 	def test_collection(self) -> None:
@@ -44,13 +48,15 @@ class TestSquare: # pylint: disable = no-member
 	@pytest.mark.parametrize("member", members)
 	def test_coordinates_and_notation(self, member) -> None:
 		file, rank = member.name
-		components = (int(rank) - 1, ord(file) - ord("A"))
+		components = (ord(file) - ord("A"), 8 - int(rank))
+		white = (ord(file) - ord("A") + int(rank) - 1) % 2 == 1
 		assert member.array == components
 		assert (member[0], member[1]) == components
 		assert member.rank == int(rank)
 		assert member.file == file.lower()
 		assert repr(member) == member.name.lower()
-		assert bool(member) is (sum(components) % 2 == 1)
+		assert bool(member) is white
+		assert member.color is (Color.WHITE if white else Color.BLACK)
 		assert Square.from_sequence(components) is member
 
 	@pytest.mark.parametrize("operation, left, right, expected", translations)
@@ -81,3 +87,18 @@ class TestSquare: # pylint: disable = no-member
 
 		for protocol in self.pickle_protocols:
 			assert pickle.loads(pickle.dumps(value, protocol = protocol)) is value
+
+
+class TestCompass:
+
+	directions = (
+		(Compass.north, (0, -1), Square.D5),
+		(Compass.south, (0, 1), Square.D3),
+		(Compass.east, (1, 0), Square.E4),
+		(Compass.west, (-1, 0), Square.C4),
+	)
+
+	@pytest.mark.parametrize("direction, components, target", directions)
+	def test_direction(self, direction, components, target) -> None:
+		assert direction == components
+		assert Square.D4 + direction is target
