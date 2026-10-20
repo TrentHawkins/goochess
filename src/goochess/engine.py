@@ -13,22 +13,27 @@ class Board(list[material.Piece | None]):
 		super().__init__([material.Piece.from_symbol(piece) if piece != "-" else None for piece in notation.board(forsyth_edwards)])
 
 	def __repr__(self) -> str:
-		return str(notation.serial("".join(map(self.piece, geometry.Square))))
+		return str(self.serial)
 
-	def __setitem__(self, key: geometry.Square, value: material.Piece | None):
+	def __setitem__(self, key: geometry.Index, value: material.Piece | None):
 		if value is not None:
-			value.square = key
+			value.index = key
 
 		super().__setitem__(key, value)
 
-	def __delitem__(self, key: geometry.Square):
+	def __delitem__(self, key: geometry.Index):
 		if (piece := self[key]) is not None:
-			piece.square = None
+			piece.index = None
 
 		super().__setitem__(key, None)
 
 
-	def piece(self, square: geometry.Square, /) -> str:
+	@property
+	def serial(self) -> notation.serial:
+		return notation.serial("".join(map(self.piece, geometry.Index)))
+
+
+	def piece(self, square: geometry.Index, /) -> str:
 		if (piece := self[square]) is None:
 			return "-"
 

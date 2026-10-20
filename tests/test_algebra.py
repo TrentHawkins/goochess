@@ -7,7 +7,7 @@ import pytest
 
 from goochess.algebra import Capt, Check, EnPassant, Move, Promotion, PromotionCapt, PromotionMove
 from goochess.engine import Game
-from goochess.geometry import Color, Square
+from goochess.geometry import Color, Index
 from goochess.material import Ghost, Knight, Officer, Pawn, Piece
 
 
@@ -15,18 +15,18 @@ class AlgebraSetup:
 
 	choices = tuple(Officer)
 	quiet_cases = (
-		(Color.WHITE, Square.A7, Square.A8, "a8"),
-		(Color.BLACK, Square.H2, Square.H1, "h1"),
+		(Color.WHITE, Index.A7, Index.A8, "a8"),
+		(Color.BLACK, Index.H2, Index.H1, "h1"),
 	)
 	capture_cases = (
-		(Color.WHITE, Square.B7, Square.A8, "bxa8"),
-		(Color.BLACK, Square.G2, Square.H1, "gxh1"),
+		(Color.WHITE, Index.B7, Index.A8, "bxa8"),
+		(Color.BLACK, Index.G2, Index.H1, "gxh1"),
 	)
 	other_ranks = (
-		(Color.WHITE, Square.A6, Square.A7),
-		(Color.BLACK, Square.H3, Square.H2),
-		(Color.WHITE, Square.A2, Square.A1),
-		(Color.BLACK, Square.H7, Square.H8),
+		(Color.WHITE, Index.A6, Index.A7),
+		(Color.BLACK, Index.H3, Index.H2),
+		(Color.WHITE, Index.A2, Index.A1),
+		(Color.BLACK, Index.H7, Index.H8),
 	)
 
 	@staticmethod
@@ -34,7 +34,7 @@ class AlgebraSetup:
 		return Game("8/8/8/8/8/8/8/8")
 
 	@staticmethod
-	def place[T: Piece](game: Game, kind: type[T], square: Square,
+	def place[T: Piece](game: Game, kind: type[T], square: Index,
 		color: Color,
 	) -> T:
 		side = game.white if color is Color.WHITE else game.black
@@ -100,8 +100,8 @@ class TestPromotion(AlgebraSetup):
 		assert not promotion
 
 	def test_requires_pawn(self) -> None:
-		knight = self.place(self.board(), Knight, Square.C7, Color.WHITE)
-		promotion = Promotion(Square.A8, knight)
+		knight = self.place(self.board(), Knight, Index.C7, Color.WHITE)
+		promotion = Promotion(Index.A8, knight)
 		assert not promotion
 
 	@pytest.mark.parametrize("color, source, target, notation", AlgebraSetup.quiet_cases)
@@ -116,8 +116,8 @@ class TestPromotion(AlgebraSetup):
 		assert repr(promotion) == notation + "=N"
 
 	def test_reading_preserves_choice(self) -> None:
-		pawn = self.place(self.board(), Pawn, Square.A7, Color.WHITE)
-		promotion = Promotion(Square.A8, pawn)
+		pawn = self.place(self.board(), Pawn, Index.A7, Color.WHITE)
+		promotion = Promotion(Index.A8, pawn)
 		promotion.to = Officer.N
 		assert bool(promotion)
 		assert promotion.to is Officer.N
@@ -125,8 +125,8 @@ class TestPromotion(AlgebraSetup):
 		assert promotion.to is Officer.N
 
 	def test_choice_resolves_to_officer(self) -> None:
-		pawn = self.place(self.board(), Pawn, Square.A7, Color.WHITE)
-		promotion = Promotion(Square.A8, pawn)
+		pawn = self.place(self.board(), Pawn, Index.A7, Color.WHITE)
+		promotion = Promotion(Index.A8, pawn)
 		promotion.to = Officer.N
 		assert promotion.to.value is Knight
 
@@ -136,16 +136,16 @@ class TestCapturePromotion(AlgebraSetup):
 	CapturePromotion = Promotion[Capt]
 
 	illegal_ranks = (
-		(Color.WHITE, Square.B6, Square.A7),
-		(Color.BLACK, Square.G3, Square.H2),
+		(Color.WHITE, Index.B6, Index.A7),
+		(Color.BLACK, Index.G3, Index.H2),
 	)
 
 	def test_choices_are_independent(self) -> None:
 		game = self.board()
-		pawn = self.place(game, Pawn, Square.B7, Color.WHITE)
-		self.place(game, Knight, Square.A8, Color.BLACK)
-		first = self.CapturePromotion(Square.A8, pawn)
-		second = self.CapturePromotion(Square.A8, pawn)
+		pawn = self.place(game, Pawn, Index.B7, Color.WHITE)
+		self.place(game, Knight, Index.A8, Color.BLACK)
+		first = self.CapturePromotion(Index.A8, pawn)
+		second = self.CapturePromotion(Index.A8, pawn)
 		first.to = Officer.N
 		second.to = Officer.Q
 		assert repr(first) == "bxa8=N"
@@ -192,16 +192,16 @@ class TestCapturePromotion(AlgebraSetup):
 class TestEnPassant(AlgebraSetup):
 
 	valid_moves = (
-		(Color.WHITE, Square.E5, Square.D6),
-		(Color.BLACK, Square.E4, Square.D3),
+		(Color.WHITE, Index.E5, Index.D6),
+		(Color.BLACK, Index.E4, Index.D3),
 	)
 	other_ranks = (
-		(Color.WHITE, Square.E1, Square.D2),
-		(Color.WHITE, Square.E2, Square.D3),
-		(Color.WHITE, Square.E4, Square.D5),
-		(Color.BLACK, Square.E7, Square.D6),
-		(Color.BLACK, Square.E6, Square.D5),
-		(Color.BLACK, Square.E5, Square.D4),
+		(Color.WHITE, Index.E1, Index.D2),
+		(Color.WHITE, Index.E2, Index.D3),
+		(Color.WHITE, Index.E4, Index.D5),
+		(Color.BLACK, Index.E7, Index.D6),
+		(Color.BLACK, Index.E6, Index.D5),
+		(Color.BLACK, Index.E5, Index.D4),
 	)
 	occupants = (
 		(None, False, False),

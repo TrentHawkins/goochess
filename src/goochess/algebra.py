@@ -19,13 +19,13 @@ class Move(mathematics.index[2, 8]):
 		return super().__new__(cls, x)
 
 	def __init__(self, x: int, piece: material.Piece) -> None:
-		if (source := piece.square) is None:
+		if (source := piece.index) is None:
 			raise ValueError("a piece must have a valid index before creating a move")
 
 		super().__init__()
 
 		self.piece = piece
-		self.other = self.piece.game[self.target]
+		self.other = self.piece.board[self.target]
 
 		self.source = source
 
@@ -35,12 +35,12 @@ class Move(mathematics.index[2, 8]):
 		return piece + self.action + str(self.target)
 
 	def __bool__(self) -> bool:
-		return self.piece.game[self.target] is None
+		return self.piece.board[self.target] is None
 
 
 	@property
-	def target(self) -> geometry.Square:
-		return geometry.Square(int(self))
+	def target(self) -> geometry.Index:
+		return geometry.Index(int(self))
 
 
 class Capt(Move):
@@ -49,7 +49,7 @@ class Capt(Move):
 
 
 	def __bool__(self) -> bool:
-		return (other := self.piece.game[self.target]) is not None and other.color != self.piece.color
+		return (other := self.piece.board[self.target]) is not None and other.color != self.piece.color
 
 
 class Spec(Move):
@@ -60,11 +60,11 @@ class Spec(Move):
 class Rush(Spec):
 
 	def __bool__(self) -> bool:
-		return super().__bool__() and not self.piece.moved and self.piece.game[self.middle] is None
+		return super().__bool__() and not self.piece.moved and self.piece.board[self.middle] is None
 
 
 	@property
-	def middle(self) -> geometry.Square:
+	def middle(self) -> geometry.Index:
 		return self.source.middle(self.target)
 
 
@@ -101,7 +101,7 @@ class PromotionCapt(Promotion, Capt): ...
 class EnPassant(Capt):
 
 	def __bool__(self) -> bool:
-		other = self.piece.game[self.target]
+		other = self.piece.board[self.target]
 
 		return super().__bool__() and \
 			isinstance(self.piece, material.Pawn ) and \

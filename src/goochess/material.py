@@ -9,8 +9,7 @@ import typing
 from . import mathematics
 from . import geometry
 from . import algebra
-
-if typing.TYPE_CHECKING: from .engine import Side, Game
+from . import engine
 
 
 class Piece:
@@ -23,11 +22,13 @@ class Piece:
 	specs: mathematics.arrays
 
 
-	def __init__(self, side: Side,
-		square: geometry.Square | None = None,
+	def __init__(self, board: engine.Board,
+		color: geometry.Color | None = None,
+		index: geometry.Index | None = None,
 	) -> None:
-		self.side = side
-		self.square = square
+		self.board = board
+		self.color = color
+		self.index = index
 
 		self.moved = False  # to be set to `True` by the move executor
 
@@ -49,14 +50,6 @@ class Piece:
 	def squares(self) -> mathematics.indices:
 		return self.targets
 
-	@property
-	def color(self) -> geometry.Color:
-		return self.side.color
-
-	@property
-	def game(self) -> Game:
-		return self.side.game
-
 
 class Omni(Piece, abc.ABC):
 
@@ -64,18 +57,18 @@ class Omni(Piece, abc.ABC):
 	def targets(self) -> mathematics.indices:
 		targets = super().targets
 
-		if self.square is None:
+		if self.index is None:
 			return targets
 
 		for move in self.moves:
 			with contextlib.suppress(ValueError):
-				targets.update(self.search(self.square, move))
+				targets.update(self.search(self.index, move))
 
 		return targets
 
 
 	@abc.abstractmethod
-	def search(self, square: geometry.Square,
+	def search(self, square: geometry.Index,
 		move: mathematics.array,
 	) -> typing.Generator[algebra.Move]:
 		...
@@ -83,7 +76,7 @@ class Omni(Piece, abc.ABC):
 
 class Melee(Omni):
 
-	def search(self, square: geometry.Square,
+	def search(self, square: geometry.Index,
 		move: mathematics.array,
 	) -> typing.Generator[algebra.Move]:
 		if step := algebra.Move(square := square + move, self): yield step
@@ -92,7 +85,7 @@ class Melee(Omni):
 
 class Ranged(Omni):
 
-	def search(self, square: geometry.Square,
+	def search(self, square: geometry.Index,
 		move: mathematics.array,
 	) -> typing.Generator[algebra.Move]:
 		while step := algebra.Move(square := square + move, self): yield step
@@ -167,12 +160,12 @@ class Pawn(Piece):
 	def targets(self) -> mathematics.indices:
 		targets = super().targets
 
-		if self.square is None:
+		if self.index is None:
 			return targets
 
 		Δ = self.forward; ᐊ, ᐅ = tuple(geometry.Compass.files)
 
-		try: square = self.square + Δ
+		try: square = self.index + Δ
 		except ValueError: return targets
 
 		with contextlib.suppress(ValueError):
