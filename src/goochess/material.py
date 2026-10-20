@@ -32,7 +32,7 @@ class Piece:
 		self.moved = False  # to be set to `True` by the move executor
 
 	def __repr__(self) -> str:
-		return (self.white if self.color else self.black).strip()
+		return self.white if self.color else self.black
 
 	def __hash__(self) -> int:
 		return id(self)

@@ -10,11 +10,10 @@ from . import material
 class Board(list[material.Piece | None]):
 
 	def __init__(self, forsyth_edwards: str, /):
-		ranks = forsyth_edwards.split("/")
-		board = [notation.rank(r) for r in ranks]
+		super().__init__([material.Piece.from_symbol(piece) if piece != "-" else None for piece in notation.board(forsyth_edwards)])
 
 	def __repr__(self) -> str:
-		...
+		return str(notation.serial("".join(map(self.piece, geometry.Square))))
 
 	def __setitem__(self, key: geometry.Square, value: material.Piece | None):
 		if value is not None:
@@ -27,6 +26,13 @@ class Board(list[material.Piece | None]):
 			piece.square = None
 
 		super().__setitem__(key, None)
+
+
+	def piece(self, square: geometry.Square, /) -> str:
+		if (piece := self[square]) is None:
+			return "-"
+
+		return repr(piece)
 
 
 class Side(mathematics.collection[material.Piece]):
