@@ -24,7 +24,7 @@ class MaterialSetup:
 	def place[T: Piece](board: Board, kind: type[T], index: Index,
 		color: Color,
 	) -> T:
-		piece = kind(board, color = color)
+		piece = kind(color)
 		board[index] = piece
 
 		return piece
@@ -43,12 +43,12 @@ class TestPiece(MaterialSetup):
 	canonical = (Pawn, Queen, Rook, Knight, Bishop, King)
 	invalid_symbols = ("", "-", "X", "PP", "1")
 
-	def test_defaults(self) -> None:
-		board = self.board()
-		piece = Piece(board)
-		assert piece.board is board
-		assert piece.color is None
+	@pytest.mark.parametrize("color", MaterialSetup.colors)
+	def test_initial_state(self, color) -> None:
+		piece = Piece(color)
+		assert piece.color is color
 		assert piece.index is None
+		assert not hasattr(piece, "board")
 		assert not piece.moved
 		assert piece.value == 0
 		assert repr(piece) == "-"
@@ -57,24 +57,24 @@ class TestPiece(MaterialSetup):
 	@pytest.mark.parametrize("kind", canonical)
 	@pytest.mark.parametrize("color", MaterialSetup.colors)
 	def test_fromnotation(self, kind, color) -> None:
-		board = self.board()
 		symbol = kind.white if color is Color.WHITE else kind.black
-		piece = Piece.fromnotation(symbol, board)
+		piece = Piece.fromnotation(symbol)
 		assert type(piece) is kind
 		assert piece.color is color
-		assert piece.board is board
+		assert not hasattr(piece, "board")
 		assert piece.index is None
+		assert not piece.moved
+		assert piece.targets == indices()
 		assert repr(piece) == symbol
 
 	@pytest.mark.parametrize("symbol", invalid_symbols)
 	def test_unknown_symbol(self, symbol) -> None:
 		with pytest.raises(KeyError):
-			Piece.fromnotation(symbol, self.board())
+			Piece.fromnotation(symbol)
 
 	def test_identity_and_hash(self) -> None:
-		board = self.board()
-		first = Pawn(board, color = Color.WHITE)
-		second = Pawn(board, color = Color.WHITE)
+		first = Pawn(Color.WHITE)
+		second = Pawn(Color.WHITE)
 		assert first == first
 		assert first != second
 		assert len({first, second}) == 2
@@ -83,9 +83,24 @@ class TestPiece(MaterialSetup):
 	@pytest.mark.parametrize("kind", MaterialSetup.kinds)
 	@pytest.mark.parametrize("color", MaterialSetup.colors)
 	def test_unplaced_has_no_targets(self, kind, color) -> None:
-		piece = kind(self.board(), color = color)
+		piece = kind(color)
 		assert piece.index is None
 		assert piece.targets == piece.squares == indices()
+
+	def test_piece_lifecycles_are_independent(self) -> None:
+		board = self.board()
+		first = Piece.fromnotation("P")
+		second = Piece.fromnotation("P")
+		board[Index.A2] = first
+		first.moved = True
+		assert second.index is None
+		assert not hasattr(second, "board")
+		assert not second.moved
+		board[Index.H2] = second
+		del board[Index.A2]
+		assert first.index is None
+		assert second.index is Index.H2
+		assert not second.moved
 
 	@pytest.mark.parametrize("kind", MaterialSetup.kinds)
 	@pytest.mark.parametrize("color", MaterialSetup.colors)

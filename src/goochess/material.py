@@ -14,6 +14,11 @@ if typing.TYPE_CHECKING: from . import engine
 
 class Piece:
 
+	board: engine.Board
+
+	color: geometry.Color
+	index: geometry.Index | None = None
+
 	value: int =  0
 	white: str = "-"
 	black: str = "-"
@@ -22,15 +27,9 @@ class Piece:
 	specs: mathematics.arrays
 
 
-	def __init__(self, board: engine.Board,
-		color: geometry.Color | None = None,
-		index: geometry.Index | None = None,
-	) -> None:
-		self.board = board
+	def __init__(self, color: geometry.Color, /) -> None:
 		self.color = color
-		self.index = index
-
-		self.moved = False  # to be set to `True` by the move executor
+		self.moved = False
 
 	def __repr__(self) -> str:
 		return self.white if self.color else self.black
@@ -43,10 +42,10 @@ class Piece:
 
 
 	@staticmethod
-	def fromnotation(notation: str, /, board: engine.Board) -> Piece:
+	def fromnotation(notation: str, /) -> Piece:
 		cls = Roster[notation.upper()].value
 
-		return cls(board, color = geometry.Color.WHITE if notation.isupper() else geometry.Color.BLACK)
+		return cls(geometry.Color.WHITE if notation.isupper() else geometry.Color.BLACK)
 
 
 	@property

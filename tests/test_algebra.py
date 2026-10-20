@@ -38,7 +38,7 @@ class AlgebraSetup:
 		color: Color,
 	) -> T:
 		side = game.white if color is Color.WHITE else game.black
-		piece = kind(game, color = color)
+		piece = kind(color)
 		game[square] = piece
 		side.add(piece)
 
@@ -71,7 +71,7 @@ class TestMove(AlgebraSetup):
 		assert bool(move)
 
 	def test_requires_placed_piece(self) -> None:
-		piece = Pawn(self.board(), color = Color.WHITE)
+		piece = Pawn(Color.WHITE)
 
 		with pytest.raises(ValueError, match = "valid index"):
 			Move(Index.E3, piece)

@@ -3,7 +3,6 @@ from __future__ import annotations
 
 import pytest
 
-from goochess import notation
 from goochess.engine import Board, Game
 from goochess.geometry import Color, Index
 from goochess.material import Bishop, King, Knight, Pawn, Queen, Rook
@@ -24,6 +23,8 @@ class EngineSetup:
 class TestBoard(EngineSetup):
 
 	indices = (Index.A8, Index.B8, Index.H1)
+	symbol_keys = (0, Index.B8, 63)
+	symbols = "-PNBRQKpnbrqk"
 	replacements = (None, Knight)
 	asymmetric_pieces = {
 		Index.A8: (Rook, Color.BLACK),
@@ -41,17 +42,15 @@ class TestBoard(EngineSetup):
 	}
 
 	@pytest.mark.parametrize("placement, flat", EngineSetup.positions)
-	def test_placement_and_serial(self, placement, flat) -> None:
+	def test_placement_round_trip(self, placement, flat) -> None:
 		board = Board(placement)
 		assert len(board) == 64
 		assert repr(board) == placement
-		assert type(board.serial) is notation.serial
-		assert board.serial[:] == flat
 		assert tuple("-" if piece is None else repr(piece) for piece in board) == tuple(flat)
 
 		for index, symbol in zip(Index, flat, strict = True):
 			piece = board[index]
-			assert board.piece(index) == symbol
+			assert board.get(index) == symbol
 
 			if symbol == "-":
 				assert piece is None
@@ -75,7 +74,9 @@ class TestBoard(EngineSetup):
 	def test_assignment_rebinds_piece(self, index) -> None:
 		previous = Board(self.empty)
 		board = Board(self.empty)
-		piece = Knight(board = previous, color = Color.WHITE, index = Index.D4)
+		piece = Knight(Color.WHITE)
+		previous[Index.D4] = piece
+		del previous[Index.D4]
 		board[index] = piece
 		assert board[index] is piece
 		assert piece.board is board
@@ -86,9 +87,9 @@ class TestBoard(EngineSetup):
 	@pytest.mark.parametrize("kind", replacements)
 	def test_replacement_clears_outgoing_index(self, index, kind) -> None:
 		board = Board(self.empty)
-		outgoing = Pawn(board = board, color = Color.BLACK)
+		outgoing = Pawn(Color.BLACK)
 		board[index] = outgoing
-		incoming = None if kind is None else kind(board = board, color = Color.WHITE)
+		incoming = None if kind is None else kind(Color.WHITE)
 		board[index] = incoming
 		assert board[index] is incoming
 		assert outgoing.index is None
@@ -102,7 +103,7 @@ class TestBoard(EngineSetup):
 	@pytest.mark.parametrize("index", indices)
 	def test_deletion_clears_index_without_shrinking_board(self, index) -> None:
 		board = Board(self.empty)
-		piece = Rook(board = board, color = Color.WHITE)
+		piece = Rook(Color.WHITE)
 		board[index] = piece
 		del board[index]
 		assert board[index] is None
@@ -113,13 +114,42 @@ class TestBoard(EngineSetup):
 	@pytest.mark.parametrize("index", indices)
 	def test_self_assignment_preserves_binding(self, index) -> None:
 		board = Board(self.empty)
-		piece = Bishop(board = board, color = Color.BLACK)
+		piece = Bishop(Color.BLACK)
 		board[index] = piece
 		board[index] = piece
 		assert board[index] is piece
 		assert piece.index is index
 		assert piece.board is board
 		assert len(board) == 64
+
+	@pytest.mark.parametrize("key", symbol_keys)
+	@pytest.mark.parametrize("symbol", symbols)
+	def test_symbol_assignment(self, key, symbol) -> None:
+		board = Board(self.empty)
+		outgoing = Pawn(Color.BLACK)
+		board[key] = outgoing
+		board.set(key, symbol)
+		assert board.get(key) == symbol
+		assert outgoing.index is None
+		assert outgoing.board is board
+		assert len(board) == 64
+		piece = board[key]
+
+		if symbol == "-":
+			assert piece is None
+
+		else:
+			assert piece is not None
+			assert piece.index is Index(key)
+			assert piece.board is board
+
+	def test_notation_tracks_mutation(self) -> None:
+		board = Board(self.empty)
+		board.set(Index.A8, "r")
+		board[Index.H1] = King(Color.WHITE)
+		assert repr(board) == "r7/8/8/8/8/8/8/7K"
+		del board[Index.A8]
+		assert repr(board) == "8/8/8/8/8/8/8/7K"
 
 
 class TestSide(EngineSetup):
@@ -139,8 +169,8 @@ class TestSide(EngineSetup):
 	def test_distinct_same_color_pieces(self, color) -> None:
 		game = Game(self.empty)
 		side = game.white if color is Color.WHITE else game.black
-		first = Pawn(board = game, color = color)
-		second = Pawn(board = game, color = color)
+		first = Pawn(color)
+		second = Pawn(color)
 		side.add(first)
 		side.add(second)
 		assert first is not second

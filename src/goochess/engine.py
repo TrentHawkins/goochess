@@ -12,16 +12,15 @@ class Board(list[material.Piece | None]):
 	def __init__(self, forsyth_edwards: str, /):
 		super().__init__([None] * len(geometry.Index))
 
-		for square, piece in enumerate(notation.serial(forsyth_edwards)):
-			index = geometry.Index(square)
-
-			if piece != "-":
-				self[index] = material.Piece.fromnotation(piece, self)
+		for item in enumerate(notation.serial(forsyth_edwards)):
+			self.set(*item)
 
 	def __repr__(self) -> str:
-		return str(self.serial)
+		return str(notation.serial("".join(map(self.get, geometry.Index))))
 
-	def __setitem__(self, key: geometry.Index, value: material.Piece | None):
+	def __setitem__(self, key: int, value: material.Piece | None):
+		key = geometry.Index(key)
+
 		if (piece := self[key]) is not None:
 			piece.index = None
 
@@ -31,20 +30,18 @@ class Board(list[material.Piece | None]):
 
 		super().__setitem__(key, value)
 
-	def __delitem__(self, key: geometry.Index):
+	def __delitem__(self, key: int):
 		self[key] = None
 
 
-	@property
-	def serial(self) -> notation.serial:
-		return notation.serial("".join(map(self.piece, geometry.Index)))
-
-
-	def piece(self, square: geometry.Index, /) -> str:
-		if (piece := self[square]) is None:
+	def get(self, key: int, /) -> str:
+		if (piece := self[key]) is None:
 			return "-"
 
 		return repr(piece)
+
+	def set(self, key: int, value: str, /):
+		self[key] = material.Piece.fromnotation(value) if value != "-" else None
 
 
 class Side(mathematics.collection[material.Piece]):
