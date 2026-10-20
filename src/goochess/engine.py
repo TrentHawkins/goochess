@@ -1,35 +1,37 @@
 from __future__ import annotations
 
 
-from .mathematics import collection
-from .geometry import Square, Color
-from .material import Piece
+from . import notation
+from . import mathematics
+from . import geometry
+from . import material
 
 
-class Board(list[Piece | None]):
+class Board(list[material.Piece | None]):
 
 	def __init__(self, forsyth_edwards: str, /):
-		...
+		ranks = forsyth_edwards.split("/")
+		board = [notation.rank(r) for r in ranks]
 
 	def __repr__(self) -> str:
 		...
 
-	def __setitem__(self, key: Square, value: Piece | None):
+	def __setitem__(self, key: geometry.Square, value: material.Piece | None):
 		if value is not None:
 			value.square = key
 
 		super().__setitem__(key, value)
 
-	def __delitem__(self, key: Square):
+	def __delitem__(self, key: geometry.Square):
 		if (piece := self[key]) is not None:
 			piece.square = None
 
 		super().__setitem__(key, None)
 
 
-class Side(collection[Piece]):
+class Side(mathematics.collection[material.Piece]):
 
-	def __init__(self, *pieces: Piece,
+	def __init__(self, *pieces: material.Piece,
 		game: Game,
 	):
 		super().__init__(*pieces)
@@ -38,8 +40,8 @@ class Side(collection[Piece]):
 
 
 	@property
-	def color(self) -> Color:
-		return Color.WHITE if self is self.game.white else Color.BLACK
+	def color(self) -> geometry.Color:
+		return geometry.Color.WHITE if self is self.game.white else geometry.Color.BLACK
 
 	@property
 	def other(self) -> Side:
