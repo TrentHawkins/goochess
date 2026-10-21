@@ -3,7 +3,7 @@ from __future__ import annotations
 
 import pytest
 
-from goochess.engine import Board, Game
+from goochess.engine import Board, Game, Side
 from goochess.geometry import Color, Index
 from goochess.material import Bishop, King, Knight, Pawn, Queen, Rook
 
@@ -155,6 +155,14 @@ class TestBoard(EngineSetup):
 class TestSide(EngineSetup):
 
 	colors = (Color.WHITE, Color.BLACK)
+	counts = (0, 1, 2)
+
+	@pytest.mark.parametrize("count", counts)
+	def test_construction_without_game(self, count) -> None:
+		pieces = tuple(Pawn(Color.WHITE) for _ in range(count))
+		side = Side(*pieces)
+		assert set(side) == set(pieces)
+		assert not hasattr(side, "game")
 
 	def test_game_color_and_other_side(self) -> None:
 		game = Game(self.empty)

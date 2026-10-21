@@ -2,7 +2,6 @@ from __future__ import annotations
 
 
 from . import notation
-from . import mathematics
 from . import geometry
 from . import material
 
@@ -44,14 +43,14 @@ class Board(list[material.Piece | None]):
 		self[key] = material.Piece.fromnotation(value) if value != "-" else None
 
 
-class Side(mathematics.collection[material.Piece]):
+class Side(set[material.Piece]):
 
-	def __init__(self, *pieces: material.Piece,
-		game: Game,
-	):
-		super().__init__(*pieces)
+	game: Game
+	king: material.King
 
-		self.game = game
+
+	def __init__(self, *pieces: material.Piece):
+		super().__init__(pieces)
 
 
 	@property
@@ -66,11 +65,14 @@ class Side(mathematics.collection[material.Piece]):
 class Game(Board):
 
 	def __init__(self, forsyth_edwards: str, /):
-		self.white = Side(game = self)
-		self.black = Side(game = self)
+		self.white = Side(); self.white.game = self
+		self.black = Side(); self.black.game = self
 
 		super().__init__(forsyth_edwards)
 
 		for piece in self:
 			if piece is not None:
-				(self.white if piece.color else self.black).add(piece)
+				(side := self.white if piece.color else self.black).add(piece)
+
+				if isinstance(piece, material.King):
+					side.king = piece

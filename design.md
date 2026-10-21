@@ -2,7 +2,7 @@
 
 This is the working reference for Goochess design discussions: what we have chosen, why we chose it, what the code currently implements, and what still needs a decision. It records the model we are building together rather than prescribing the rest of the implementation.
 
-Jump to [decisions](#decisions-and-retained-baseline), [open questions](#open-decisions), or [implementation gaps](#known-implementation-gaps-at-the-start-of-this-record).
+Jump to [decisions](#decisions-and-retained-baseline), [open questions](#open-decisions), or [implementation gaps](#current-implementation-gaps).
 
 ## Reading and maintaining this record
 
@@ -112,7 +112,7 @@ Removing a piece clears its `index` while retaining its board context. An unplac
 - [ ] Construct every piece with a side and derive all context from it.
 - [ ] Require board and optional position arguments in the piece constructor.
 
-This construction boundary was settled in `081a665`. Whether further game/side access should be derived or assigned belongs to O01 and O03.
+This construction boundary was settled in `081a665`. Whether pieces need further game/side access remains open in O01. Binding a side to its game is settled separately in D16.
 
 ### D07. Board assignment owns the basic occupancy binding
 
@@ -137,15 +137,15 @@ Each side holds the distinct pieces active for its color. Captured pieces do not
 
 A union, difference, or copy of a roster is an ordinary set of pieces; it is not another participating side. The side is identified by its role as `game.white` or `game.black`, with color and the opposing side derived from that role.
 
-The plain-set change is present in the current working code. `Game` currently fills its two rosters after placement construction; mutation-time synchronization remains open. Switching bases also requires adapting the set initializer, tracked in the implementation gaps below.
+`Side` uses built-in `set`, retaining its variadic piece interface by passing the collected pieces as one iterable to the set initializer. Its game binding is described in D16. `Game` currently fills its two rosters after placement construction; mutation-time synchronization remains open.
 
 ### D09. Each valid game side has a dedicated king reference
 
-**Status: Agreed target; binding and validation pending.**
+**Status: Agreed; initial binding implemented, validation and later maintenance pending.**
 
 The scope is standard chess, and each side of a valid playable `Game` must have exactly one king. `Side.king` refers to the same king object contained in its roster; its position remains `king.index`.
 
-The current annotation does not assign or validate that reference. Choosing the update and validation surfaces is O01/O02. Lower-level `Board` construction can still represent partial positions; that need not weaken the intended valid-`Game` invariant.
+`Game.__init__` assigns each encountered king to its side during the initial roster scan. This establishes the reference for a normally populated position; it does not validate exactly one king. Missing kings leave the reference unset, and duplicate kings overwrite it. Choosing mutation-time updates and the validation boundary remains O01/O02. Lower-level `Board` construction can still represent partial positions; that need not weaken the intended valid-`Game` invariant.
 
 ### D10. Movement search uses generators and boundary exceptions
 
@@ -218,13 +218,27 @@ Python source and tests use hard tabs, spaces around `=` including defaults/keyw
 
 Use one test module per source module, grouping tests in classes by the tested type. Put reusable supporting data/helpers at class level, without unnecessary `ClassVar` annotations. Tests should describe the selected contract rather than preserve every abandoned implementation. Pyright uses basic checking, matching the project's intended strictness.
 
+### D16. Game binds its sides after construction
+
+**Status: Agreed and implemented. Resolves O03's side-ownership question.**
+
+`Side(*pieces)` initializes a roster without requiring a game argument. Its `game` annotation declares the reference that the owner will supply, following the same late-binding principle as `Piece.board`.
+
+`Game` creates both `white` and `black`, then assigns itself to both sides' `game` references before board initialization. Both installed side identities and owner references therefore exist before placement parsing can use them. `Side.color` and `Side.other` are meaningful once the side has been installed and bound; a standalone side can hold pieces but has no game context yet.
+
+- [x] The owning game binds its two sides after constructing them.
+- [ ] Require `game` in the side constructor.
+- [ ] Introduce descriptors or a generic owner-binding framework for this assignment.
+
+This binds ownership only. The separate initial roster scan also registers kings as described in D09. Mutation-time roster/king synchronization and validation remain O01/O02, and no game/side references are added to pieces.
+
 ## Open decisions
 
 ### O01. Which mutation surface maintains game-level consistency?
 
 **Status: Open; next design discussion. Related: D06–D09.**
 
-`Board.__setitem__` already handles square occupancy and piece location. We need a single clear responsibility for adding/removing active roster membership, binding the king reference, and coordinating game context.
+`Board.__setitem__` already handles square occupancy and piece location, while `Game.__init__` fills the initial rosters and king references. We need a single clear responsibility for maintaining those roster memberships and king references during subsequent changes, and for coordinating game context.
 
 - [ ] Override `Game.__setitem__` to coordinate the outgoing and incoming pieces, delegating basic occupancy binding to `Board`.
 - [ ] Give `Side.add`/removal responsibility for side-local metadata, with the game coordinating occupancy separately.
@@ -245,18 +259,6 @@ Questions to settle include replacement, capture, promotion, setup edits, and cl
 The first option is the current recommendation. An individual square write may be one intermediate step of construction or a move, so rejecting every temporary absence is likely to interfere with ordinary mutation. Missing and duplicate kings both need consideration at the completed-position boundary. An ordinary king move retains the same `Side.king` object; changing its position is different from replacing the king during setup editing.
 
 Existing tests construct empty or partial `Game` objects. They document the prototype, not acceptance of kingless playable games. Once enforcement is implemented, use `Board` for occupancy-only tests and complete positions where game semantics are needed. Exactly one king is only one validity check; it does not establish full position legality.
-
-### O03. How are game and side references bound?
-
-**Status: Open. Related: O01.**
-
-- [ ] Keep the explicit `Side(..., game = game)` constructor argument.
-- [ ] Construct sides and assign their `game` reference when `Game` installs them as white/black, analogous to piece placement.
-- [ ] Introduce a broader owner-binding surface if a concrete need appears.
-
-Indirect binding is possible without a descriptor or other class machinery: the owning game can assign the reference. Both sides and their owner references must exist before parsing invokes any overridden game assignment that uses them. Current color/other properties also depend on the installed white/black identities.
-
-Pieces presently store `board`, not separate `game` and `side` references. Whether those additional accessors should be derived or stored is unresolved. A plain `Board` is not necessarily a `Game`, so a piece's board reference alone does not universally establish a side.
 
 ### O04. How are castling rights represented and updated?
 
@@ -355,14 +357,22 @@ Basic moves, captures, and rushes stay available to piece search. Castling will 
 
 The existing promotion compositor is available; it is not proof that all classification must occur during candidate generation. Target-square aggregation intentionally collapses choices, so it cannot alone enumerate every promotion option. SAN disambiguation and actual check/checkmate detection remain deferred.
 
-## Known implementation gaps at the start of this record
+## Resolved follow-ups
+
+### O03. How are game and side references bound?
+
+**Status: Side ownership resolved in D16; identifier retained for history.**
+
+`Game` installs and binds its two sides; `Side` no longer takes a game constructor argument. No extra binding machinery is needed.
+
+Pieces still store `board`, not separate `game` and `side` references. Whether those additional accessors should be derived or stored remains part of O01. A plain `Board` is not necessarily a `Game`, so a piece's board reference alone does not universally establish a side.
+
+## Current implementation gaps
 
 These are observations, not authorization to fix unrelated code whenever this file is edited.
 
-- `Side` now subclasses built-in `set`, but still calls `super().__init__(*pieces)`. The built-in initializer takes one iterable: the intended forwarding is `super().__init__(pieces)`. Empty construction happens to work; nonempty construction does not follow the intended API.
-- `Side.king` is only an annotation. No reference assignment or exactly-one-king validation exists yet.
-- Side membership is assembled once in `Game.__init__`; subsequent board writes do not synchronize rosters.
-- `Side.game` currently uses explicit constructor binding; whether to change this remains open in O03.
+- King references are assigned during the initial `Game` roster scan, but exactly-one-king validation is not implemented.
+- Side membership and king references are assembled once in `Game.__init__`; subsequent board writes do not synchronize them.
 - No castling-rights state, castling move, `Game.ghost` slot, ghost expiry, move executor, or king-safety query exists yet.
 - En passant tests currently place `Ghost` in board occupancy manually. That is prototype coverage, not closure of O05/O06.
 - Existing empty/partial `Game` fixtures will need review when D09's invariant is enforced; occupancy-only `Board` fixtures remain useful.
@@ -384,3 +394,4 @@ These commits explain retained choices. They are navigation aids, not a requirem
 | `169bf45` | Direct FEN board order |
 | `1c1ec3f`, `081a665` | Piece-symbol construction, then color-only construction and placement-time binding |
 | Working discussion, 2026-10-21 | Plain-set Side, required king reference, curated castling eligibility, one Game ghost; ownership and occupancy choices remain open |
+| Follow-up implementation, 2026-10-21 | D16 settles indirect side ownership binding; the plain-set constructor forwarding is also corrected. King/roster synchronization and ghost occupancy remain open. |
