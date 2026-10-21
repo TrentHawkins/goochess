@@ -7,26 +7,8 @@ import pickle
 
 import pytest
 
-from goochess.geometry import Color, Compass, Index
+from goochess.geometry import Compass, Index
 from goochess.mathematics import array, arrays, indices
-
-
-class TestColor:
-
-	cases = ((Color.WHITE, 1, True), (Color.BLACK, -1, False))
-	invalid_values = (-2, 0, 2)
-
-	@pytest.mark.parametrize("color, value, white", cases)
-	def test_numeric_value_and_truth(self, color, value, white) -> None:
-		assert int(color) == value
-		assert Color(value) is color
-		assert bool(color) is white
-		assert color * 3 == value * 3
-
-	@pytest.mark.parametrize("value", invalid_values)
-	def test_invalid_value(self, value) -> None:
-		with pytest.raises(ValueError):
-			Color(value)
 
 
 class TestIndex: # pylint: disable = no-member
@@ -74,7 +56,6 @@ class TestIndex: # pylint: disable = no-member
 		assert member.file == file.lower()
 		assert repr(member) == member.name.lower()
 		assert bool(member) is white
-		assert member.color is (Color.WHITE if white else Color.BLACK)
 		assert Index.from_sequence(components) is member
 
 	@pytest.mark.parametrize("operation, left, right, expected", translations)

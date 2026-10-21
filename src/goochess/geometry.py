@@ -21,16 +21,6 @@ class Compass(mathematics.arrays):
 	)
 
 
-class Color(int, enum.Enum):
-
-	WHITE =  1
-	BLACK = -1
-
-
-	def __bool__(self) -> bool:
-		return self == Color.WHITE
-
-
 class Index(mathematics.index[2, 8], enum.Enum):
 
 #	A        : B        : C        : D        : E        : F        : G        : H
@@ -60,7 +50,3 @@ class Index(mathematics.index[2, 8], enum.Enum):
 	@property
 	def file(self) -> str:
 		return self.name[0].lower()
-
-	@property
-	def color(self) -> Color:
-		return Color.WHITE if self else Color.BLACK
