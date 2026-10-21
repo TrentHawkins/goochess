@@ -14,9 +14,7 @@ if typing.TYPE_CHECKING: from . import engine
 
 class Piece:
 
-	board: engine.Board
-
-	color: geometry.Color
+	side: engine.Side
 	index: geometry.Index | None = None
 
 	value: int =  0
@@ -27,12 +25,12 @@ class Piece:
 	specs: mathematics.arrays
 
 
-	def __init__(self, color: geometry.Color, /) -> None:
-		self.color = color
+	def __init__(self, side: engine.Side, /) -> None:
+		self.side = side
 		self.moved = False
 
 	def __repr__(self) -> str:
-		return self.white if self.color else self.black
+		return self.white if self.side else self.black
 
 	def __hash__(self) -> int:
 		return id(self)
@@ -42,11 +40,16 @@ class Piece:
 
 
 	@staticmethod
-	def fromnotation(notation: str, /) -> Piece:
+	def fromnotation(notation: str, board: engine.Board, /) -> Piece:
 		cls = Roster[notation.upper()].value
+		side = board.white if notation.isupper() else board.black
 
-		return cls(geometry.Color.WHITE if notation.isupper() else geometry.Color.BLACK)
+		return cls(side)
 
+
+	@property
+	def board(self) -> engine.Board:
+		return self.side.board
 
 	@property
 	def targets(self) -> mathematics.indices:
@@ -159,17 +162,13 @@ class Pawn(Piece):
 
 
 	@property
-	def forward(self) -> mathematics.array:
-		return geometry.Compass.north if self.color else geometry.Compass.south
-
-	@property
 	def targets(self) -> mathematics.indices:
 		targets = super().targets
 
 		if self.index is None:
 			return targets
 
-		Δ = self.forward; ᐊ, ᐅ = tuple(geometry.Compass.files)
+		Δ = self.side.forward; ᐊ, ᐅ = tuple(geometry.Compass.files)
 
 		try: square = self.index + Δ
 		except ValueError: return targets
