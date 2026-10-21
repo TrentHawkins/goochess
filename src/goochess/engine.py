@@ -1,35 +1,52 @@
 from __future__ import annotations
 
 
-from .mathematics import collection
-from .geometry import Index, Color
-from .material import Piece
+from . import notation
+from . import mathematics
+from . import geometry
+from . import material
 
 
-class Board(list[Piece | None]):
+class Board(list[material.Piece | None]):
 
 	def __init__(self, forsyth_edwards: str, /):
-		...
+		super().__init__([None] * len(geometry.Index))
+
+		for item in enumerate(notation.serial(forsyth_edwards)):
+			self.set(*item)
 
 	def __repr__(self) -> str:
-		...
+		return str(notation.serial("".join(map(self.get, geometry.Index))))
 
-	def __setitem__(self, key: Index, value: Piece | None):
-		if value is not None:
-			value.index = key
+	def __setitem__(self, key: int, value: material.Piece | None):
+		key = geometry.Index(key)
 
-		super().__setitem__(key, value)
-
-	def __delitem__(self, key: Index):
 		if (piece := self[key]) is not None:
 			piece.index = None
 
-		super().__setitem__(key, None)
+		if value is not None:
+			value.index = key
+			value.board = self
+
+		super().__setitem__(key, value)
+
+	def __delitem__(self, key: int):
+		self[key] = None
 
 
-class Side(collection[Piece]):
+	def get(self, key: int, /) -> str:
+		if (piece := self[key]) is None:
+			return "-"
 
-	def __init__(self, *pieces: Piece,
+		return repr(piece)
+
+	def set(self, key: int, value: str, /):
+		self[key] = material.Piece.fromnotation(value) if value != "-" else None
+
+
+class Side(mathematics.collection[material.Piece]):
+
+	def __init__(self, *pieces: material.Piece,
 		game: Game,
 	):
 		super().__init__(*pieces)
@@ -38,8 +55,12 @@ class Side(collection[Piece]):
 
 
 	@property
-	def color(self) -> Color:
-		return Color.WHITE if self is self.game.white else Color.BLACK
+	def color(self) -> geometry.Color:
+		return geometry.Color.WHITE if self is self.game.white else geometry.Color.BLACK
+
+	@property
+	def other(self) -> Side:
+		return self.game.black if self is self.game.white else self.game.white
 
 
 class Game(Board):
@@ -52,4 +73,4 @@ class Game(Board):
 
 		for piece in self:
 			if piece is not None:
-				piece.side.add(piece)
+				(self.white if piece.color else self.black).add(piece)
