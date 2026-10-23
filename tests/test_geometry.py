@@ -38,9 +38,9 @@ class TestIndex: # pylint: disable = no-member
 		assert tuple(member.name for member in self.members) == self.fen_names
 		assert tuple(int(member) for member in self.members) == tuple(range(64))
 		assert (int(Index.A8), int(Index.H8), int(Index.A7), int(Index.A1), int(Index.H1)) == (0, 7, 8, 56, 63)
-		assert not Index.A1
-		assert Index.A8
-		assert Index.H1
+		assert Index.A1
+		assert not Index.A8
+		assert not Index.H1
 
 	def test_collection(self) -> None:
 		assert indices(*self.members) == set(self.members)
@@ -49,13 +49,13 @@ class TestIndex: # pylint: disable = no-member
 	def test_coordinates_and_notation(self, member) -> None:
 		file, rank = member.name
 		components = (ord(file) - ord("A"), 8 - int(rank))
-		white = (ord(file) - ord("A") + int(rank) - 1) % 2 == 1
+		black = (ord(file) - ord("A") + int(rank) - 1) % 2 == 0
 		assert member.array == components
 		assert (member[0], member[1]) == components
 		assert member.rank == int(rank)
 		assert member.file == file.lower()
 		assert repr(member) == member.name.lower()
-		assert bool(member) is white
+		assert bool(member) is black
 		assert Index.from_sequence(components) is member
 
 	@pytest.mark.parametrize("operation, left, right, expected", translations)

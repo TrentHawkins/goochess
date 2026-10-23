@@ -25,7 +25,7 @@ class Move(mathematics.index[2, 8]):
 		super().__init__()
 
 		self.piece = piece
-		self.other = self.piece.board[self.target]
+		self.other = self.piece.game[self.target]
 
 		self.source = source
 
@@ -35,7 +35,7 @@ class Move(mathematics.index[2, 8]):
 		return piece + self.action + str(self.target)
 
 	def __bool__(self) -> bool:
-		return self.piece.board[self.target] is None
+		return self.piece.game[self.target] is None
 
 
 	@property
@@ -49,7 +49,7 @@ class Capt(Move):
 
 
 	def __bool__(self) -> bool:
-		return (other := self.piece.board[self.target]) is not None and other.color != self.piece.color
+		return (other := self.piece.game[self.target]) is not None and other.color != self.piece.color
 
 
 class Spec(Move):
@@ -60,7 +60,7 @@ class Spec(Move):
 class Rush(Spec):
 
 	def __bool__(self) -> bool:
-		return super().__bool__() and not self.piece.moved and self.piece.board[self.middle] is None
+		return super().__bool__() and not self.piece.moved and self.piece.game[self.middle] is None
 
 
 	@property
@@ -101,7 +101,7 @@ class PromotionCapt(Promotion, Capt): ...
 class EnPassant(Capt):
 
 	def __bool__(self) -> bool:
-		other = self.piece.board[self.target]
+		other = self.piece.game[self.target]
 
 		return super().__bool__() and \
 			isinstance(self.piece, material.Pawn ) and \

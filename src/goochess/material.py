@@ -15,7 +15,7 @@ if typing.TYPE_CHECKING: from . import engine
 class Piece:
 
 	index: geometry.Index | None = None
-	board: engine.Board
+	game: engine.Game
 
 	value: int =  0
 	white: str = "-"
@@ -45,6 +45,10 @@ class Piece:
 
 		return cls(notation.islower())
 
+
+	@property
+	def side(self) -> engine.Side:
+		return self.game.side[self.color]
 
 	@property
 	def targets(self) -> mathematics.indices:
