@@ -14,8 +14,8 @@ if typing.TYPE_CHECKING: from . import engine
 
 class Piece:
 
-	side: engine.Side
 	index: geometry.Index | None = None
+	board: engine.Board
 
 	value: int =  0
 	white: str = "-"
@@ -25,12 +25,12 @@ class Piece:
 	specs: mathematics.arrays
 
 
-	def __init__(self, side: engine.Side, /) -> None:
-		self.side = side
+	def __init__(self, color: bool, /) -> None:
+		self.color = color
 		self.moved = False
 
 	def __repr__(self) -> str:
-		return self.white if self.side else self.black
+		return self.black if self.color else self.white
 
 	def __hash__(self) -> int:
 		return id(self)
@@ -40,16 +40,11 @@ class Piece:
 
 
 	@staticmethod
-	def fromnotation(notation: str, board: engine.Board, /) -> Piece:
+	def fromnotation(notation: str, /) -> Piece:
 		cls = Roster[notation.upper()].value
-		side = board.white if notation.isupper() else board.black
 
-		return cls(side)
+		return cls(notation.islower())
 
-
-	@property
-	def board(self) -> engine.Board:
-		return self.side.board
 
 	@property
 	def targets(self) -> mathematics.indices:
@@ -168,7 +163,7 @@ class Pawn(Piece):
 		if self.index is None:
 			return targets
 
-		Δ = self.side.forward; ᐊ, ᐅ = tuple(geometry.Compass.files)
+		Δ = geometry.Compass.south if self.color else geometry.Compass.north; ᐊ, ᐅ = tuple(geometry.Compass.files)
 
 		try: square = self.index + Δ
 		except ValueError: return targets
@@ -198,5 +193,4 @@ class Roster(enum.Enum):
 
 class Ghost(Piece):
 
-	white = "P"  # "♙"
-	black = "p"  # "♟"
+	...

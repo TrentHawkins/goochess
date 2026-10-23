@@ -10,7 +10,7 @@ from fractions import Fraction
 
 import pytest
 
-from goochess.mathematics import array, arrays, collection, fraction, index, indices
+from goochess.mathematics import array, arrays, fraction, index, indices
 
 
 class TestArray:
@@ -493,95 +493,6 @@ class TestFraction:
 			assert type(result) is type(value)
 
 
-class TestCollection:
-
-	class Derived(collection[int]):
-		...
-
-	collection_types = (collection, Derived)
-	items = (0, 1, 2)
-	other = (2, 3)
-	operations = (
-		(operator.or_, "union", {0, 1, 2, 3}),
-		(operator.and_, "intersection", {2}),
-		(operator.sub, "difference", {0, 1}),
-		(operator.xor, "symmetric_difference", {0, 1, 3}),
-	)
-	commutative = (operator.or_, operator.and_, operator.xor)
-	in_place = ((operator.ior, {0, 1, 2, 3}), (operator.iand, {2}), (operator.isub, {0, 1}), (operator.ixor, {0, 1, 3}))
-	operand_types = (set, tuple, iter)
-	copy_functions = (copy.copy, copy.deepcopy)
-	pickle_protocols = tuple(range(pickle.HIGHEST_PROTOCOL + 1))
-
-	@pytest.mark.parametrize("collection_type", collection_types)
-	def test_construction_and_set_laws(self, collection_type) -> None:
-		left = collection_type(*self.items, *self.items)
-		right = collection_type(*self.other)
-		empty = collection_type()
-		assert left == set(self.items)
-		assert left | empty == left & left == left
-		assert left - left == left ^ left == empty
-		assert left | right == right | left
-		assert left & right == right & left
-		assert left ^ right == (left - right) | (right - left)
-		assert (left - right) | (left & right) == left
-
-	@pytest.mark.parametrize("collection_type", collection_types)
-	@pytest.mark.parametrize("operation, method, expected", operations)
-	def test_operations(self, collection_type, operation, method, expected) -> None:
-		value = collection_type(*self.items)
-
-		for result in (operation(value, self.other), getattr(value, method)(self.other)):
-			assert result == expected
-			assert type(result) is collection_type
-
-		assert value == set(self.items)
-
-	@pytest.mark.parametrize("collection_type", collection_types)
-	@pytest.mark.parametrize("operation", commutative)
-	def test_reflected_operations(self, collection_type, operation) -> None:
-		value = collection_type(*self.items)
-		result = operation(self.other, value)
-		assert result == operation(set(self.items), set(self.other))
-		assert type(result) is collection_type
-
-	def test_difference_preserves_source_type(self) -> None:
-		result = set(self.other) - self.Derived(*self.items)
-		assert result == {3}
-		assert type(result) is set
-
-	@pytest.mark.parametrize("collection_type", collection_types)
-	@pytest.mark.parametrize("operation, expected", in_place)
-	@pytest.mark.parametrize("operand_type", operand_types)
-	def test_in_place_operations(self, collection_type, operation, expected, operand_type) -> None:
-		value = collection_type(*self.items)
-		result = operation(value, operand_type(self.other))
-		assert result == expected
-		assert result is value
-
-	@pytest.mark.parametrize("collection_type", collection_types)
-	def test_multiple_operands(self, collection_type) -> None:
-		value = collection_type(*self.items)
-		assert value.union(self.other, (3, 4)) == {0, 1, 2, 3, 4}
-		assert value.intersection(self.other, (2, 4)) == {2}
-		assert value.difference(self.other, (4,)) == {0, 1}
-
-	@pytest.mark.parametrize("collection_type", collection_types)
-	def test_serialization(self, collection_type) -> None:
-		value = collection_type(*self.items)
-
-		for copier in (collection_type.copy, *self.copy_functions):
-			result = copier(value)
-			assert result == value
-			assert type(result) is collection_type
-			assert result is not value
-
-		for protocol in self.pickle_protocols:
-			result = pickle.loads(pickle.dumps(value, protocol = protocol))
-			assert result == value
-			assert type(result) is collection_type
-
-
 class TestArrays:
 
 	class Derived(arrays):
@@ -748,8 +659,8 @@ class TestIndices:
 	expected = {Board((0, 1)), Board((1, 1)), Board((1, 2)), Board((2, 2)), Board((3, 2))}
 	invalid_steps = (array(1), array(-2, 0))
 	set_operations = TestArrays.set_operations
-	copy_functions = TestCollection.copy_functions
-	pickle_protocols = TestCollection.pickle_protocols
+	copy_functions = (copy.copy, copy.deepcopy)
+	pickle_protocols = tuple(range(pickle.HIGHEST_PROTOCOL + 1))
 
 	@pytest.mark.parametrize("collection_type", collection_types)
 	def test_pairwise_translation(self, collection_type) -> None:
