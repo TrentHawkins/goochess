@@ -10,10 +10,17 @@ from . import material
 class Board(list[material.Piece | None]):
 
 	def __init__(self, forsyth_edwards: str, /):
+		self.white = Side(); self.white.board = self
+		self.black = Side(); self.black.board = self
+
 		super().__init__([None] * len(geometry.Index))
 
 		for item in enumerate(notation.serial(forsyth_edwards)):
 			self.set(*item)
+
+		for piece in self:
+			if isinstance(piece, material.King):
+				piece.side.king = piece
 
 	def __repr__(self) -> str:
 		return str(notation.serial("".join(map(self.get, geometry.Index))))
@@ -22,11 +29,12 @@ class Board(list[material.Piece | None]):
 		key = geometry.Index(key)
 
 		if (piece := self[key]) is not None:
+			piece.side.discard(piece)
 			piece.index = None
 
 		if value is not None:
 			value.index = key
-			value.board = self
+			value.side.add(value)
 
 		super().__setitem__(key, value)
 
@@ -41,36 +49,31 @@ class Board(list[material.Piece | None]):
 		return repr(piece)
 
 	def set(self, key: int, value: str, /):
-		self[key] = material.Piece.fromnotation(value) if value != "-" else None
+		self[key] = material.Piece.fromnotation(value, self) if value != "-" else None
 
 
-class Side(mathematics.collection[material.Piece]):
+class Side(set[material.Piece]):
 
-	def __init__(self, *pieces: material.Piece,
-		game: Game,
-	):
-		super().__init__(*pieces)
-
-		self.game = game
+	board: Board
+	king: material.King
 
 
-	@property
-	def color(self) -> geometry.Color:
-		return geometry.Color.WHITE if self is self.game.white else geometry.Color.BLACK
+	def __init__(self, *pieces: material.Piece):
+		super().__init__(pieces)
+
+
+	def __bool__(self) -> bool:
+		return self is self.board.white
 
 	@property
 	def other(self) -> Side:
-		return self.game.black if self is self.game.white else self.game.white
+		return self.board.black if self else self.board.white
+
+	@property
+	def forward(self) -> mathematics.array:
+		return geometry.Compass.north if self else geometry.Compass.south
 
 
 class Game(Board):
 
-	def __init__(self, forsyth_edwards: str, /):
-		self.white = Side(game = self)
-		self.black = Side(game = self)
-
-		super().__init__(forsyth_edwards)
-
-		for piece in self:
-			if piece is not None:
-				(self.white if piece.color else self.black).add(piece)
+	...

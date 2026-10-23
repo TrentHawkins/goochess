@@ -49,7 +49,7 @@ class Capt(Move):
 
 
 	def __bool__(self) -> bool:
-		return (other := self.piece.board[self.target]) is not None and other.color != self.piece.color
+		return (other := self.piece.board[self.target]) is not None and other.side is not self.piece.side
 
 
 class Spec(Move):
@@ -86,7 +86,7 @@ class Promotion(Spec):
 
 	def __bool__(self) -> bool:
 		return super().__bool__() and \
-			isinstance(self.piece, material.Pawn ) and self.source.rank == (7 if self.piece.color else 2)
+			isinstance(self.piece, material.Pawn ) and self.source.rank == (7 if self.piece.side else 2)
 
 
 	@functools.cached_property
@@ -105,7 +105,7 @@ class EnPassant(Capt):
 
 		return super().__bool__() and \
 			isinstance(self.piece, material.Pawn ) and \
-			isinstance(     other, material.Ghost) and self.source.rank == (5 if self.piece.color else 4)
+			isinstance(     other, material.Ghost) and self.source.rank == (5 if self.piece.side else 4)
 
 
 class Check(Move):

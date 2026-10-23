@@ -26,12 +26,26 @@ Run checks with the virtual environment's tools:
 `goochess` is the importable package; `src` is its source directory. Use relative imports within the package, such as `from . import mathematics`. Tests and other callers use the package name:
 
 ```python
-from goochess.geometry import Square
-from goochess.mathematics import vector
+from goochess.geometry import Index
+from goochess.mathematics import array
 
-Square.A1 + vector((1, 1))  # Square.B2
+Index.A1 + array(1, -1)  # Index.B2
 ```
 
-Board coordinates are `(rank, file)`, starting at `(0, 0)` for `A1`.
+Board coordinates are `(file, row_from_top)`, starting at `(0, 0)` for `A8`, matching FEN placement order.
 
-Tests live in `tests/test_mathematics.py` and `tests/test_geometry.py`. The `graphics` directory holds the project's artwork.
+`Board` owns the white and black sides. Construct pieces with their actual side, then place them on the board:
+
+```python
+from goochess.engine import Board
+from goochess.geometry import Index
+from goochess.material import Pawn
+
+board = Board("8/8/8/8/8/8/8/8")
+pawn = Pawn(board.white)
+board[Index.E2] = pawn
+```
+
+Placement maintains the side's active roster and the piece's index. A piece derives its board from its side. `Game` currently inherits board behavior as an extension point for later game rules.
+
+Tests live in `tests`, with one test file per source module. The `graphics` directory holds the project's artwork.
