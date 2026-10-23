@@ -4,7 +4,7 @@ from __future__ import annotations
 import pytest
 
 from goochess.algebra import Capt, Move, Rush
-from goochess.engine import Board, Side
+from goochess.engine import Game
 from goochess.geometry import Index
 from goochess.material import Bishop, Ghost, King, Knight, Officer, Pawn, Piece, Queen, Rook, Roster
 from goochess.mathematics import indices
@@ -12,23 +12,18 @@ from goochess.mathematics import indices
 
 class MaterialSetup:
 
-	whites = (True, False)
+	colors = (False, True)
 	kinds = (Pawn, Knight, Bishop, Rook, Queen, King, Ghost)
 	empty = "8/8/8/8/8/8/8/8"
 
 	@staticmethod
-	def board() -> Board:
-		return Board(MaterialSetup.empty)
+	def game() -> Game:
+		return Game(MaterialSetup.empty)
 
 	@staticmethod
-	def place[T: Piece](board: Board, kind: type[T], index: Index,
-		side: Side | bool,
-	) -> T:
-		if isinstance(side, bool):
-			side = board.white if side else board.black
-
-		piece = kind(side)
-		board[index] = piece
+	def place[T: Piece](game: Game, kind: type[T], index: Index, color: bool) -> T:
+		piece = kind(color)
+		game[index] = piece
 
 		return piece
 
@@ -42,31 +37,25 @@ class TestPiece(MaterialSetup):
 	canonical = (Pawn, Queen, Rook, Knight, Bishop, King)
 	invalid_symbols = ("", "-", "X", "PP", "1")
 
-	@pytest.mark.parametrize("white", MaterialSetup.whites)
-	def test_initial_state(self, white) -> None:
-		board = self.board()
-		side = board.white if white else board.black
-		piece = Piece(side)
-		assert piece.side is side
+	@pytest.mark.parametrize("color", MaterialSetup.colors)
+	def test_initial_state(self, color) -> None:
+		piece = Piece(color)
+		assert piece.color is color
 		assert piece.index is None
-		assert piece.board is board
-		assert piece not in side
+		assert not hasattr(piece, "game")
 		assert not piece.moved
 		assert piece.value == 0
 		assert repr(piece) == "-"
 		assert piece.targets == piece.squares == indices()
 
 	@pytest.mark.parametrize("kind", canonical)
-	@pytest.mark.parametrize("white", MaterialSetup.whites)
-	def test_fromnotation(self, kind, white) -> None:
-		board = self.board()
-		side = board.white if white else board.black
-		symbol = kind.white if white else kind.black
-		piece = Piece.fromnotation(symbol, board)
+	@pytest.mark.parametrize("color", MaterialSetup.colors)
+	def test_fromnotation(self, kind, color) -> None:
+		symbol = kind.black if color else kind.white
+		piece = Piece.fromnotation(symbol)
 		assert type(piece) is kind
-		assert piece.side is side
-		assert piece.board is board
-		assert piece not in side
+		assert piece.color is color
+		assert not hasattr(piece, "game")
 		assert piece.index is None
 		assert not piece.moved
 		assert piece.targets == indices()
@@ -74,67 +63,62 @@ class TestPiece(MaterialSetup):
 
 	@pytest.mark.parametrize("symbol", invalid_symbols)
 	def test_unknown_symbol(self, symbol) -> None:
-		board = self.board()
-
 		with pytest.raises(KeyError):
-			Piece.fromnotation(symbol, board)
+			Piece.fromnotation(symbol)
 
-	def test_board_is_derived_and_read_only(self) -> None:
-		board = self.board()
-		piece = Pawn(board.white)
-		assert piece.board is piece.side.board is board
+	def test_side_is_derived_and_read_only(self) -> None:
+		game = self.game()
+		piece = self.place(game, Pawn, Index.E2, False)
+		assert piece.game is game
+		assert piece.side is game.side[piece.color] is game.white
 
 		with pytest.raises(AttributeError):
-			setattr(piece, "board", self.board())
+			setattr(piece, "side", game.black)
 
 	def test_identity_and_hash(self) -> None:
-		side = self.board().white
-		first = Pawn(side)
-		second = Pawn(side)
+		first = Pawn(False)
+		second = Pawn(False)
 		assert first == first
 		assert first != second
 		assert len({first, second}) == 2
 		assert {first: "first", second: "second"}[first] == "first"
 
 	@pytest.mark.parametrize("kind", MaterialSetup.kinds)
-	@pytest.mark.parametrize("white", MaterialSetup.whites)
-	def test_unplaced_has_no_targets(self, kind, white) -> None:
-		board = self.board()
-		side = board.white if white else board.black
-		piece = kind(side)
+	@pytest.mark.parametrize("color", MaterialSetup.colors)
+	def test_unplaced_has_no_targets(self, kind, color) -> None:
+		piece = kind(color)
 		assert piece.index is None
-		assert piece.board is board
-		assert piece not in side
+		assert not hasattr(piece, "game")
 		assert piece.targets == piece.squares == indices()
 
 	def test_piece_lifecycles_are_independent(self) -> None:
-		board = self.board()
-		first = Piece.fromnotation("P", board)
-		second = Piece.fromnotation("P", board)
-		board[Index.A2] = first
+		game = self.game()
+		first = Piece.fromnotation("P")
+		second = Piece.fromnotation("P")
+		game[Index.A2] = first
 		first.moved = True
 		assert second.index is None
-		assert second.board is board
-		assert second not in board.white
+		assert not hasattr(second, "game")
+		assert second not in game.white
 		assert not second.moved
-		board[Index.H2] = second
-		del board[Index.A2]
+		game[Index.H2] = second
+		del game[Index.A2]
 		assert first.index is None
-		assert first.side is board.white
-		assert first.board is board
-		assert first not in board.white
+		assert first.side is game.white
+		assert first.game is game
+		assert first not in game.white
 		assert second.index is Index.H2
 		assert not second.moved
 
 	@pytest.mark.parametrize("kind", MaterialSetup.kinds)
-	@pytest.mark.parametrize("white", MaterialSetup.whites)
-	def test_removed_has_no_targets(self, kind, white) -> None:
-		board = self.board()
-		piece = self.place(board, kind, Index.D4, white)
-		del board[Index.D4]
+	@pytest.mark.parametrize("color", MaterialSetup.colors)
+	def test_removed_has_no_targets(self, kind, color) -> None:
+		game = self.game()
+		piece = self.place(game, kind, Index.D4, color)
+		del game[Index.D4]
 		assert piece.index is None
-		assert piece.side is (board.white if white else board.black)
-		assert piece.board is board
+		assert piece.side is game.side[color]
+		assert piece.game is game
 		assert piece not in piece.side
 		assert piece.targets == piece.squares == indices()
 
@@ -184,28 +168,28 @@ class TestMelee(MaterialSetup):
 	)
 
 	@pytest.mark.parametrize("kind", kinds)
-	@pytest.mark.parametrize("white", MaterialSetup.whites)
-	def test_empty_board(self, kind, white) -> None:
-		board = self.board()
-		piece = self.place(board, kind, Index.D4, white)
+	@pytest.mark.parametrize("color", MaterialSetup.colors)
+	def test_empty_board(self, kind, color) -> None:
+		game = self.game()
+		piece = self.place(game, kind, Index.D4, color)
 		assert self.targets(piece) == {index: Move for index in self.center[kind]}
 		assert piece.index is Index.D4
-		assert board[Index.D4] is piece  # pylint: disable = invalid-sequence-index
+		assert game[Index.D4] is piece  # pylint: disable = invalid-sequence-index
 
 	@pytest.mark.parametrize("kind, source, expected", corners)
-	@pytest.mark.parametrize("white", MaterialSetup.whites)
-	def test_corner_clipping(self, kind, source, expected, white) -> None:
-		piece = self.place(self.board(), kind, source, white)
+	@pytest.mark.parametrize("color", MaterialSetup.colors)
+	def test_corner_clipping(self, kind, source, expected, color) -> None:
+		piece = self.place(self.game(), kind, source, color)
 		assert self.targets(piece) == {index: Move for index in expected}
 
 	@pytest.mark.parametrize("kind", kinds)
-	@pytest.mark.parametrize("white", MaterialSetup.whites)
+	@pytest.mark.parametrize("color", MaterialSetup.colors)
 	@pytest.mark.parametrize("friendly", (True, False))
-	def test_occupied_destination(self, kind, white, friendly) -> None:
-		board = self.board()
-		piece = self.place(board, kind, Index.D4, white)
+	def test_occupied_destination(self, kind, color, friendly) -> None:
+		game = self.game()
+		piece = self.place(game, kind, Index.D4, color)
 		target = self.blockers[kind]
-		self.place(board, Pawn, target, piece.side if friendly else piece.side.other)
+		self.place(game, Pawn, target, piece.color if friendly else not piece.color)
 		expected = {index: Move for index in self.center[kind]}
 
 		if friendly:
@@ -216,11 +200,11 @@ class TestMelee(MaterialSetup):
 
 		assert self.targets(piece) == expected
 
-	@pytest.mark.parametrize("white", MaterialSetup.whites)
-	def test_knight_jumps_over_occupied_square(self, white) -> None:
-		board = self.board()
-		piece = self.place(board, Knight, Index.D4, white)
-		self.place(board, Pawn, Index.E4, white)
+	@pytest.mark.parametrize("color", MaterialSetup.colors)
+	def test_knight_jumps_over_occupied_square(self, color) -> None:
+		game = self.game()
+		piece = self.place(game, Knight, Index.D4, color)
+		self.place(game, Pawn, Index.E4, color)
 		assert self.targets(piece) == {index: Move for index in self.center[Knight]}
 
 
@@ -252,26 +236,26 @@ class TestRanged(MaterialSetup):
 	)
 
 	@pytest.mark.parametrize("kind", (Rook, Bishop, Queen))
-	@pytest.mark.parametrize("white", MaterialSetup.whites)
-	def test_empty_board(self, kind, white) -> None:
-		piece = self.place(self.board(), kind, Index.D4, white)
+	@pytest.mark.parametrize("color", MaterialSetup.colors)
+	def test_empty_board(self, kind, color) -> None:
+		piece = self.place(self.game(), kind, Index.D4, color)
 		assert self.targets(piece) == {index: Move for index in self.center[kind]}
 
 	@pytest.mark.parametrize("kind, source, expected", corners)
-	@pytest.mark.parametrize("white", MaterialSetup.whites)
-	def test_corner_clipping(self, kind, source, expected, white) -> None:
-		piece = self.place(self.board(), kind, source, white)
+	@pytest.mark.parametrize("color", MaterialSetup.colors)
+	def test_corner_clipping(self, kind, source, expected, color) -> None:
+		piece = self.place(self.game(), kind, source, color)
 		assert self.targets(piece) == {index: Move for index in expected}
 
 	@pytest.mark.parametrize("kind, line", lines)
-	@pytest.mark.parametrize("white", MaterialSetup.whites)
+	@pytest.mark.parametrize("color", MaterialSetup.colors)
 	@pytest.mark.parametrize("friendly", (True, False))
 	@pytest.mark.parametrize("distance", (0, 1))
-	def test_stops_at_first_occupied_square(self, kind, line, white, friendly, distance) -> None:
-		board = self.board()
-		piece = self.place(board, kind, Index.D4, white)
+	def test_stops_at_first_occupied_square(self, kind, line, color, friendly, distance) -> None:
+		game = self.game()
+		piece = self.place(game, kind, Index.D4, color)
 		target = line[distance]
-		self.place(board, Pawn, target, piece.side if friendly else piece.side.other)
+		self.place(game, Pawn, target, piece.color if friendly else not piece.color)
 		expected = {index: Move for index in self.center[kind] - set(line[distance + 1:])}
 
 		if friendly:
@@ -286,56 +270,56 @@ class TestRanged(MaterialSetup):
 class TestPawn(MaterialSetup):
 
 	cases = (
-		(True, Index.E2, Index.E3, Index.E4, (Index.D3, Index.F3)),
-		(False, Index.E7, Index.E6, Index.E5, (Index.D6, Index.F6)),
+		(False, Index.E2, Index.E3, Index.E4, (Index.D3, Index.F3)),
+		(True, Index.E7, Index.E6, Index.E5, (Index.D6, Index.F6)),
 	)
 	edges = (
-		(True, Index.A2, Index.A3, Index.A4, Index.B3),
-		(True, Index.H2, Index.H3, Index.H4, Index.G3),
-		(False, Index.A7, Index.A6, Index.A5, Index.B6),
-		(False, Index.H7, Index.H6, Index.H5, Index.G6),
+		(False, Index.A2, Index.A3, Index.A4, Index.B3),
+		(False, Index.H2, Index.H3, Index.H4, Index.G3),
+		(True, Index.A7, Index.A6, Index.A5, Index.B6),
+		(True, Index.H7, Index.H6, Index.H5, Index.G6),
 	)
 	penultimate = (
-		(True, Index.E7, Index.E8, Index.D8),
-		(False, Index.E2, Index.E1, Index.D1),
+		(False, Index.E7, Index.E8, Index.D8),
+		(True, Index.E2, Index.E1, Index.D1),
 	)
-	terminal = ((True, Index.A8), (False, Index.A1))
+	terminal = ((False, Index.A8), (True, Index.A1))
 
-	@pytest.mark.parametrize("white, source, single, double, diagonals", cases)
-	def test_forward_moves(self, white, source, single, double, diagonals) -> None:
-		pawn = self.place(self.board(), Pawn, source, white)
+	@pytest.mark.parametrize("color, source, single, double, diagonals", cases)
+	def test_forward_moves(self, color, source, single, double, diagonals) -> None:
+		pawn = self.place(self.game(), Pawn, source, color)
 		assert self.targets(pawn) == {single: Move, double: Rush}
 
-	@pytest.mark.parametrize("white, source, single, double, diagonals", cases)
-	def test_moved_pawn_has_no_double_step(self, white, source, single, double, diagonals) -> None:
-		pawn = self.place(self.board(), Pawn, source, white)
+	@pytest.mark.parametrize("color, source, single, double, diagonals", cases)
+	def test_moved_pawn_has_no_double_step(self, color, source, single, double, diagonals) -> None:
+		pawn = self.place(self.game(), Pawn, source, color)
 		pawn.moved = True
 		assert self.targets(pawn) == {single: Move}
 
-	@pytest.mark.parametrize("white, source, single, double, diagonals", cases)
+	@pytest.mark.parametrize("color, source, single, double, diagonals", cases)
 	@pytest.mark.parametrize("friendly", (True, False))
-	def test_occupied_forward_square_blocks_both_steps(self, white, source, single, double, diagonals, friendly) -> None:
-		board = self.board()
-		pawn = self.place(board, Pawn, source, white)
-		self.place(board, Pawn, single, pawn.side if friendly else pawn.side.other)
+	def test_occupied_forward_square_blocks_both_steps(self, color, source, single, double, diagonals, friendly) -> None:
+		game = self.game()
+		pawn = self.place(game, Pawn, source, color)
+		self.place(game, Pawn, single, pawn.color if friendly else not pawn.color)
 		assert pawn.targets == indices()
 
-	@pytest.mark.parametrize("white, source, single, double, diagonals", cases)
+	@pytest.mark.parametrize("color, source, single, double, diagonals", cases)
 	@pytest.mark.parametrize("friendly", (True, False))
-	def test_occupied_double_destination_preserves_single_step(self, white, source, single, double, diagonals, friendly) -> None:
-		board = self.board()
-		pawn = self.place(board, Pawn, source, white)
-		self.place(board, Pawn, double, pawn.side if friendly else pawn.side.other)
+	def test_occupied_double_destination_preserves_single_step(self, color, source, single, double, diagonals, friendly) -> None:
+		game = self.game()
+		pawn = self.place(game, Pawn, source, color)
+		self.place(game, Pawn, double, pawn.color if friendly else not pawn.color)
 		assert self.targets(pawn) == {single: Move}
 
-	@pytest.mark.parametrize("white, source, single, double, diagonals", cases)
+	@pytest.mark.parametrize("color, source, single, double, diagonals", cases)
 	@pytest.mark.parametrize("friendly", (True, False))
 	@pytest.mark.parametrize("direction", (0, 1))
-	def test_diagonal_capture(self, white, source, single, double, diagonals, friendly, direction) -> None:
-		board = self.board()
-		pawn = self.place(board, Pawn, source, white)
+	def test_diagonal_capture(self, color, source, single, double, diagonals, friendly, direction) -> None:
+		game = self.game()
+		pawn = self.place(game, Pawn, source, color)
 		target = diagonals[direction]
-		self.place(board, Pawn, target, pawn.side if friendly else pawn.side.other)
+		self.place(game, Pawn, target, pawn.color if friendly else not pawn.color)
 		expected = {single: Move, double: Rush}
 
 		if not friendly:
@@ -343,21 +327,21 @@ class TestPawn(MaterialSetup):
 
 		assert self.targets(pawn) == expected
 
-	@pytest.mark.parametrize("white, source, single, double, capture", edges)
-	def test_edge_keeps_inward_capture(self, white, source, single, double, capture) -> None:
-		board = self.board()
-		pawn = self.place(board, Pawn, source, white)
-		self.place(board, Pawn, capture, pawn.side.other)
+	@pytest.mark.parametrize("color, source, single, double, capture", edges)
+	def test_edge_keeps_inward_capture(self, color, source, single, double, capture) -> None:
+		game = self.game()
+		pawn = self.place(game, Pawn, source, color)
+		self.place(game, Pawn, capture, not pawn.color)
 		assert self.targets(pawn) == {single: Move, double: Rush, capture: Capt}
 
-	@pytest.mark.parametrize("white, source, single, capture", penultimate)
-	def test_final_step_keeps_capture_after_double_step_leaves_board(self, white, source, single, capture) -> None:
-		board = self.board()
-		pawn = self.place(board, Pawn, source, white)
-		self.place(board, Pawn, capture, pawn.side.other)
+	@pytest.mark.parametrize("color, source, single, capture", penultimate)
+	def test_final_step_keeps_capture_after_double_step_leaves_board(self, color, source, single, capture) -> None:
+		game = self.game()
+		pawn = self.place(game, Pawn, source, color)
+		self.place(game, Pawn, capture, not pawn.color)
 		assert self.targets(pawn) == {single: Move, capture: Capt}
 
-	@pytest.mark.parametrize("white, source", terminal)
-	def test_terminal_rank_has_no_targets(self, white, source) -> None:
-		pawn = self.place(self.board(), Pawn, source, white)
+	@pytest.mark.parametrize("color, source", terminal)
+	def test_terminal_rank_has_no_targets(self, color, source) -> None:
+		pawn = self.place(self.game(), Pawn, source, color)
 		assert pawn.targets == indices()

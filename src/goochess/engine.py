@@ -27,7 +27,6 @@ class Board(list[material.Piece | None]):
 
 		if value is not None:
 			value.index = key
-			value.board = self
 
 		super().__setitem__(key, value)
 
@@ -61,7 +60,7 @@ class Side(set[material.Piece]):
 
 
 	def __bool__(self) -> bool:
-		return self is self.game.side[True]  # white
+		return self is self.game.black
 
 	@property
 	def other(self) -> Side:
@@ -80,16 +79,26 @@ class Game(Board):
 
 		for piece in self:
 			if isinstance(piece, material.King):
-				self.side[piece.color].king = piece
+				piece.side.king = piece
 
 
 	def __setitem__(self, key: int, value: material.Piece | None):
 		key = geometry.Index(key)
 
 		if (piece := self[key]) is not None:
-			self.side[piece.color].discard(piece)
+			piece.side.discard(piece)
 
 		if value is not None:
-			self.side[value.color].add(value)
+			value.game = self
+			value.side.add(value)
 
 		super().__setitem__(key, value)
+
+
+	@property
+	def white(self) -> Side:
+		return self.side[False]  # white
+
+	@property
+	def black(self) -> Side:
+		return self.side[True]  # black
