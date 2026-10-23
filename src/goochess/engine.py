@@ -1,8 +1,9 @@
 from __future__ import annotations
 
 
-from . import notation
+from . import structs
 from . import mathematics
+from . import notation
 from . import geometry
 from . import material
 
@@ -10,17 +11,10 @@ from . import material
 class Board(list[material.Piece | None]):
 
 	def __init__(self, forsyth_edwards: str, /):
-		self.white = Side(); self.white.board = self
-		self.black = Side(); self.black.board = self
-
 		super().__init__([None] * len(geometry.Index))
 
 		for item in enumerate(notation.serial(forsyth_edwards)):
 			self.set(*item)
-
-		for piece in self:
-			if isinstance(piece, material.King):
-				piece.side.king = piece
 
 	def __repr__(self) -> str:
 		return str(notation.serial("".join(map(self.get, geometry.Index))))
@@ -29,12 +23,11 @@ class Board(list[material.Piece | None]):
 		key = geometry.Index(key)
 
 		if (piece := self[key]) is not None:
-			piece.side.discard(piece)
 			piece.index = None
 
 		if value is not None:
 			value.index = key
-			value.side.add(value)
+			value.board = self
 
 		super().__setitem__(key, value)
 
@@ -49,7 +42,7 @@ class Board(list[material.Piece | None]):
 		return repr(piece)
 
 	def set(self, key: int, value: str, /):
-		self[geometry.Index(key)] = material.Piece.fromnotation(value, self) if value != "-" else None
+		self[geometry.Index(key)] = material.Piece.fromnotation(value) if value != "-" else None
 
 	def empty(self, key: int, /) -> bool:
 		return (piece := self[geometry.Index(key)]) is None or isinstance(piece, material.Ghost)
@@ -57,26 +50,46 @@ class Board(list[material.Piece | None]):
 
 class Side(set[material.Piece]):
 
-	board: Board
+	game: Game
 	king: material.King
 
 
-	def __init__(self, *pieces: material.Piece):
+	def __init__(self, game: Game, /, *pieces: material.Piece):
+		self.game = game
+
 		super().__init__(pieces)
 
 
 	def __bool__(self) -> bool:
-		return self is self.board.white
+		return self is self.game.side[True]  # white
 
 	@property
 	def other(self) -> Side:
-		return self.board.black if self else self.board.white
-
-	@property
-	def forward(self) -> mathematics.array:
-		return geometry.Compass.north if self else geometry.Compass.south
+		return self.game.side[not self]
 
 
 class Game(Board):
 
-	...
+	def __init__(self, forsyth_edwards: str, /):
+		self.side = structs.switch(
+			Side(self),  # white
+			Side(self),  # black
+		)
+
+		super().__init__(forsyth_edwards)
+
+		for piece in self:
+			if isinstance(piece, material.King):
+				self.side[piece.color].king = piece
+
+
+	def __setitem__(self, key: int, value: material.Piece | None):
+		key = geometry.Index(key)
+
+		if (piece := self[key]) is not None:
+			self.side[piece.color].discard(piece)
+
+		if value is not None:
+			self.side[value.color].add(value)
+
+		super().__setitem__(key, value)
