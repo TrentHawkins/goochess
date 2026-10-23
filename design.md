@@ -25,8 +25,8 @@ The historical starting point is `develop` at `7fb69e20e4a0df819a4adc37039c78548
 | `rank`, `board`, `serial` | Placement notation and its decoded representations | [notation.py](src/goochess/notation.py), [notation tests](tests/test_notation.py) |
 | `Piece` and its subclasses | Piece identity, location/context references, and movement patterns | [material.py](src/goochess/material.py), [material tests](tests/test_material.py) |
 | `Move`, `Capt`, and related classes | Move targets, move records, validation predicates, and move notation | [algebra.py](src/goochess/algebra.py), [algebra tests](tests/test_algebra.py) |
-| `Board` and `Side` | Square occupancy, participating rosters, allegiance/orientation, and placement import/export | [engine.py](src/goochess/engine.py), [engine tests](tests/test_engine.py) |
-| `Game` | Empty Board subclass reserved for later temporal game context | [engine.py](src/goochess/engine.py) |
+| `Board` and `Side` | Complete current-position description, including occupancy, participants, and rule context; currently implements placement, rosters, and allegiance/orientation | [engine.py](src/goochess/engine.py), [engine tests](tests/test_engine.py) |
+| `Game` | Progression, history, and traversal between positions; currently an empty `Board` subclass | [engine.py](src/goochess/engine.py) |
 
 ## Decisions and retained baseline
 
@@ -34,7 +34,11 @@ The historical starting point is `develop` at `7fb69e20e4a0df819a4adc37039c78548
 
 **Status: Agreed direction; execution and game-tree search are not implemented.**
 
-The current scope is standard chess. `Board` represents a position through mutable square occupancy and owns its two sides. `Game` is currently an empty subclass reserved for later temporal game context; a plain board remains usable independently. A move describes a transition around one moving piece and its destination, rather than requiring a newly constructed board for every candidate.
+The current scope is standard chess. `Board` is intended to describe the complete current position: mutable square occupancy, its two sides, the active side, castling rights, en passant availability, and relevant position counters. Those facts belong to the position even when it was imported without a move history. `Game` owns runtime progression, history, and traversal between positions. The execution/reversal API is still open in O08; this responsibility split does not prescribe where each execution helper lives.
+
+The present `Board` implementation covers placement and participating sides only, and `Game` is still an empty subclass. The broader state description is an agreed direction, not an implemented full-FEN or legal-position model. A plain board remains usable independently. Pieces derive their context through `Piece.board`; current-position queries should not require a separate reference to game history or progression machinery.
+
+A move describes a transition around one moving piece and its destination, rather than requiring a newly constructed board for every candidate.
 
 That compact move model must still accommodate effects involving other pieces: captures, the rook in castling, promotion, and en passant. It does not imply that every transition changes only two board slots. Execution, reversal, and game-tree traversal remain open in O08.
 
@@ -145,9 +149,9 @@ A union, difference, or copy of a roster is an ordinary set of pieces; it is not
 
 **Status: Agreed; initial binding implemented, validation and later maintenance pending.**
 
-The scope is standard chess, and each side of a valid playable `Game` must have exactly one king. `Side.king` refers to the same king object contained in its roster; its position remains `king.index`.
+The scope is standard chess, and each side of a valid playable position must have exactly one king. `Side.king` refers to the same king object contained in its roster; its position remains `king.index`.
 
-`Board.__init__` assigns each encountered king to its side during the post-parsing king scan. This establishes the reference for a normally populated position; it does not validate exactly one king. Missing kings leave the reference unset, and duplicate kings overwrite it. Choosing mutation-time updates and the validation boundary remains O01/O02. Lower-level `Board` construction can still represent partial positions; that need not weaken the intended valid-`Game` invariant.
+`Board.__init__` assigns each encountered king to its side during the post-parsing king scan. This establishes the reference for a normally populated position; it does not validate exactly one king. Missing kings leave the reference unset, and duplicate kings overwrite it. Choosing mutation-time updates and the validation boundary remains O01/O02. Current `Board` construction can still represent partial positions; that need not weaken the intended completed-position invariant.
 
 ### D10. Movement search uses generators and boundary exceptions
 
@@ -258,7 +262,7 @@ Each `Board`, including a plain board, owns actual white and black `Side` object
 
 This deliberately replaces color-only piece construction and an occupancy-only board with no participants. Unplaced pieces still have no active square or automatic roster membership, but pieces constructed with a board's sides already have affiliation and board context. A foreign-side assignment guard was initially added, then explicitly deferred; no transfer or rebinding operation replaces it. `geometry.Color` and `Index.color` are removed; square-shade truth remains geometric parity.
 
-`Game` is now an empty `Board` subclass reserved for later temporal state and game rules. This fusion adds no king-count or nonempty-roster validation. Later king-reference maintenance, castling rights, ghost lifecycle, and attack detection remain unimplemented.
+`Game` is currently an empty `Board` subclass. The later responsibility clarification in D01 assigns the complete current-position description to `Board`, with progression and history in `Game`; it does not undo board-owned sides or require a separate piece-to-game reference. This fusion adds no king-count or nonempty-roster validation. Later king-reference maintenance, castling rights, ghost lifecycle, and attack detection remain unimplemented.
 
 ## Open decisions
 
@@ -282,13 +286,13 @@ The remaining question is how king references follow later setup replacement or 
 
 **Status: Invariant agreed; validation boundary open. Related: D09.**
 
-- [ ] Validate each complete `Game` after construction and maintain the reference through controlled mutations.
+- [ ] Validate each completed position after construction and maintain the reference through controlled mutations.
 - [ ] Provide a distinct completion/validation step for position editing.
-- [ ] Require every individual game assignment to preserve the king-presence/reference invariant.
+- [ ] Require every individual board assignment to preserve the king-presence/reference invariant.
 
 The first option is the current recommendation. An individual square write may be one intermediate step of construction or a move, so rejecting every temporary absence is likely to interfere with ordinary mutation. Missing and duplicate kings both need consideration at the completed-position boundary. An ordinary king move retains the same `Side.king` object; changing its position is different from replacing the king during setup editing.
 
-Tests use empty or partial `Board` objects for occupancy and movement, and a complete position for the current `Game` inheritance check. `Game` still inherits the board's permissive construction until its validation boundary is implemented. Exactly one king is only one validity check; it does not establish full position legality.
+Tests use empty or partial `Board` objects for occupancy and movement, and a complete position for the current `Game` inheritance check. Both currently use permissive construction; the agreed complete-state responsibility does not itself select or implement a validation boundary. Exactly one king is only one validity check; it does not establish full position legality.
 
 ### O04. How are castling rights represented and updated?
 
@@ -308,13 +312,14 @@ A false rights flag can skip further checks. A true flag still requires position
 
 ### O05. How does the single ghost interact with occupancy and captures?
 
-**Status: One game-level reference agreed; representation open and deferred until the side/king/castling choices above are settled.**
+**Status: One board-level reference agreed; representation and occupancy semantics are under active discussion.**
 
-- [x] One optional `Game.ghost` reference.
+- [x] One optional `Board.ghost` reference as part of the current-position description.
+- [ ] One optional `Game.ghost` reference, the earlier proposal superseded by D01's state/progression boundary.
 - [ ] Independently stored live ghost references on both sides.
-- [ ] Store side ghosts and rotate a second authoritative game reference between them.
+- [ ] Store side ghosts and rotate a second authoritative reference between them.
 
-The slot is agreed but does not yet exist in code. Any side-level convenience view could be derived from it; such a property has not been required. The opportunity is limited to the opponent's immediate reply. [FIDE, articles 3.7.3.1–2](https://handbook.fide.com/chapter/e012023)
+The slot is agreed but does not yet exist in code. En passant availability belongs to the current position, so the original game-owned proposal has been revised: `Board` owns the information, while `Game` coordinates its creation, expiry, replacement, and restoration as play advances or reverses. Any side-level convenience view could be derived from it; such a property has not been required. The opportunity is limited to the opponent's immediate reply. [FIDE, articles 3.7.3.1–2](https://handbook.fide.com/chapter/e012023)
 
 The physical representation is a different, still open decision:
 
@@ -329,7 +334,7 @@ Expiry, creation on a committed rush, restoration during undo, and initializatio
 
 ### O06. What represents an empty square?
 
-**Status: Reopened; discuss together with O05 after the preceding ownership choices.**
+**Status: Reopened; under active discussion together with O05.**
 
 The current implementation uses `None`. The earlier decision to keep it is being reconsidered explicitly; it should not be treated as permanent merely because current code/tests use it.
 
@@ -354,9 +359,9 @@ The current recommendation is the smallest direct query that serves king safety 
 
 ### O08. Where do execution, simulation, and history live?
 
-**Status: Deferred design; required before complete king-safety filtering.**
+**Status: Game coordination agreed; execution/reversal API deferred and required before complete king-safety filtering.**
 
-We have selected mutable occupancy and compact move records, but not the execution/reversal API. It must preserve or restore occupancy, piece positions, roster membership, king references, relevant movement history, castling rights, the ghost, and turn state when those features exist.
+`Game` is agreed to coordinate progression, history, and traversal of positions described by `Board` (D01). We have selected mutable occupancy and compact move records, but not the execution/reversal API. Coordination by `Game` does not yet decide whether execution helpers belong to moves, the game, or a separate operation record. The API must preserve or restore occupancy, piece positions, roster membership, king references, relevant movement history, castling rights, the board-owned ghost, and turn state when those features exist.
 
 - [ ] Move-owned execution/reversal coordinated with the game.
 - [ ] Game-owned application/reversal of move records.
@@ -366,11 +371,11 @@ Do not treat `Board.__setitem__` alone as that API. Do not assume a destination-
 
 ### O09. Where do full FEN and validation belong?
 
-**Status: Placement layering settled; remaining scope deferred.**
+**Status: Current-position ownership agreed; placement layering implemented, full-FEN API and validation deferred.**
 
-`Board` consumes/exports the placement field. The chosen `Game` layer is where the remaining game context will belong, but the complete notation object/API is not settled. Castling rights, active color, the en passant target, and counters cannot be reconstructed from occupancy alone.
+`Board` currently consumes/exports only the placement field. Its intended complete current-position description also owns castling rights, the active side, en passant availability, and relevant counters. These cannot be reconstructed from occupancy alone. `Game` is responsible for advancing and restoring that state, not for being its sole storage location. The complete notation object/API and the representations of the additional fields are not settled.
 
-- [ ] Complete `notation.game` to parse/format the remaining fields and wire it to `Game`.
+- [ ] Complete `notation.game` to parse/format the remaining fields and wire it to the board's current-position state.
 - [ ] Use another small explicit full-FEN representation if the current placeholder proves unsuitable.
 
 Rank widths, total dimensions, accepted symbols, malformed input behavior, and the relationship between setup validation and playable-game validation need deliberate coverage when implemented. Full FEN import cannot truthfully reconstruct every piece's complete movement history; use the fields that actually exist rather than inventing provenance.
@@ -418,7 +423,7 @@ Pieces now store their actual `side`, and `board` is a read-only property derive
 
 Board parsing resolves symbol case to an actual side at piece creation. Plain boards now own participants too; unplaced pieces retain their affiliation and derived board context without joining an active roster until placement. `Side.forward` provides explicit direction. Side identity establishes allegiance, and side truth denotes white or black independently of roster size. Set equality and membership retain their ordinary meanings.
 
-`geometry.Color` and `Index.color` are removed. An index's square-shade truth remains geometric parity, independent of either participant. Game-specific temporal state and the remaining king, castling, ghost, and attack decisions stay open in their existing entries.
+`geometry.Color` and `Index.color` are removed. An index's square-shade truth remains geometric parity, independent of either participant. D01 later clarifies that `Board` owns current-position rule context and `Game` coordinates progression/history. Representations and APIs for the remaining king, castling, ghost, and attack decisions stay open in their existing entries.
 
 ## Current implementation gaps
 
@@ -427,7 +432,8 @@ These are observations, not authorization to fix unrelated code whenever this fi
 - King references are assigned during the initial `Board` king scan, but exactly-one-king validation is not implemented.
 - `Board.__setitem__` synchronizes active side membership and piece indices. King references are still bound only during initialization; later replacement or removal does not maintain them.
 - Cross-board assignment validation is explicitly deferred; no ownership transfer or side-rebinding operation is implemented.
-- No castling-rights state, castling move, `Game.ghost` slot, ghost expiry, move executor, or king-safety query exists yet.
+- The complete-state responsibility for `Board` is agreed but not implemented: active-side state, castling rights, relevant counters, and the optional `Board.ghost` slot still need their representations and APIs.
+- No castling move, ghost expiry, move executor, or king-safety query exists yet. `Game` remains an empty subclass; its agreed progression/history role has no implementation yet.
 - En passant tests currently place `Ghost` in board occupancy manually. That is prototype coverage, not closure of O05/O06.
 
 ## Selected history anchors
@@ -445,7 +451,8 @@ These commits explain retained choices. They are navigation aids, not a requirem
 | `7c4b24a` | Finite promotion compositor and partial material/algebra separation |
 | `169bf45` | Direct FEN board order |
 | `1c1ec3f`, `081a665` | Piece-symbol construction, then color-only construction and placement-time binding |
-| Working discussion, 2026-10-21 | Plain-set Side, required king reference, curated castling eligibility, one Game ghost; ownership was subsequently settled in D18, while ghost occupancy remains open |
+| Working discussion, 2026-10-21 | Plain-set Side, required king reference, curated castling eligibility, and an initial Game-owned ghost proposal; side ownership was subsequently settled in D18, and ghost ownership later revised to Board while its occupancy semantics remain open |
 | Follow-up implementation, 2026-10-21 | D16 settles indirect side ownership binding and corrects plain-set constructor forwarding; the fusion later moves ownership from Game to Board |
 | Mapping prototype, 2026-10-21 | D17 evaluates color-keyed participants and intrinsic side color, then is superseded by D18; key validation before roster mutation is retained |
 | Side-ownership fusion, 2026-10-21 | D18 gives Board actual sides, binds pieces to Side, derives board/direction from affiliation, and removes Color and Index.color; the initial foreign-side guard is subsequently deferred, and Side truth now denotes its white/black role |
+| State/progression clarification, 2026-10-21 | D01 assigns complete current-position information to Board and progression/history to Game; O05 consequently moves the agreed ghost slot from Game to Board, without settling its representation or implementing the broader state model |
