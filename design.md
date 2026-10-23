@@ -20,6 +20,7 @@ The historical starting point is `develop` at `7fb69e20e4a0df819a4adc37039c78548
 
 | Component | Responsibility | References |
 | --- | --- | --- |
+| `pair`, `seq`, `switch`, `collection` | Reusable tuple aliases, parity-based pair selection, and set operations preserving the concrete collection type | [structs.py](src/goochess/structs.py), [structure tests](tests/test_structs.py) |
 | `array`, `index`, mathematical collections, `fraction` | Reusable mathematics without chess knowledge | [mathematics.py](src/goochess/mathematics.py), [mathematics tests](tests/test_mathematics.py) |
 | `Index`, `Compass` | Standard chess board geometry and directions | [geometry.py](src/goochess/geometry.py), [geometry tests](tests/test_geometry.py) |
 | `rank`, `board`, `serial` | Placement notation and its decoded representations | [notation.py](src/goochess/notation.py), [notation tests](tests/test_notation.py) |
@@ -69,7 +70,11 @@ The current `indices.__mul__` is also strict: an invalid pair aborts the product
 
 **Status: Baseline, with agreed refinements.**
 
-`collection` provides set operations that preserve its concrete collection class. Its construction and reconstruction convention is variadic items. `arrays` and `indices` build on that mathematical contract.
+`structs.collection` provides set operations that preserve its concrete collection class. Its construction and reconstruction convention is variadic items. `mathematics.arrays` and `mathematics.indices` build on that reusable container contract.
+
+The `structs` module also owns the `pair[T]` and `seq[T]` tuple aliases, formerly `mathematics.pair` and `mathematics.sequence`. Its `switch(false, true)` stores two values in that order: integer lookup selects the first value for even indices and the second for odd indices, so boolean lookup selects the corresponding named constructor argument. Iteration retains the underlying pair order.
+
+The former `mathematics.collection`, `mathematics.pair`, and `mathematics.sequence` import paths are no longer provided. Existing pickles of plain `mathematics.collection` instances require a compatibility alias at the old module path before loading; the `arrays` and `indices` class paths remain unchanged.
 
 `arrays` multiplication forms pairwise displacement sums for iterable operands and scales for integer operands, including negative integers. Positive powers form sums of repeated choices. Results are sets of resulting displacements, so they do not preserve path multiplicity or ordering. Nonpositive powers are currently unsupported.
 
@@ -137,7 +142,7 @@ These operations are low-level position changes, not complete legal moves. They 
 Each side holds its distinct active pieces. Captured pieces retain their affiliation but do not remain members of that active roster. A fixed list of original piece identities is unnecessary and fits custom positions poorly. Material difference can be reported without inventing a capture history for an imported position.
 
 - [x] Plain `set[Piece]` as the side's container base.
-- [ ] `mathematics.collection[Piece]` preserving `Side` as an operation result.
+- [ ] `structs.collection[Piece]` preserving `Side` as an operation result.
 - [ ] A positional list encoding each piece's original identity.
 - [ ] Use the captured-piece collection as the side's main roster.
 
