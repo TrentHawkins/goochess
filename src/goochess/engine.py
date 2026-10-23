@@ -43,13 +43,16 @@ class Board(list[material.Piece | None]):
 
 
 	def get(self, key: int, /) -> str:
-		if (piece := self[key]) is None:
+		if (piece := self[geometry.Index(key)]) is None:
 			return "-"
 
 		return repr(piece)
 
 	def set(self, key: int, value: str, /):
-		self[key] = material.Piece.fromnotation(value, self) if value != "-" else None
+		self[geometry.Index(key)] = material.Piece.fromnotation(value, self) if value != "-" else None
+
+	def empty(self, key: int, /) -> bool:
+		return (piece := self[geometry.Index(key)]) is None or isinstance(piece, material.Ghost)
 
 
 class Side(set[material.Piece]):

@@ -34,6 +34,8 @@ Index.A1 + array(1, -1)  # Index.B2
 
 Board coordinates are `(file, row_from_top)`, starting at `(0, 0)` for `A8`, matching FEN placement order.
 
+`goochess.structs` provides the reusable `pair` and `seq` tuple aliases, the two-value `switch`, and the subclass-preserving set `collection`. `goochess.mathematics` builds its mathematical types on these structures, including the `arrays` and `indices` collections.
+
 `Board` owns the white and black sides. Construct pieces with their actual side, then place them on the board:
 
 ```python

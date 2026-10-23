@@ -198,5 +198,4 @@ class Roster(enum.Enum):
 
 class Ghost(Piece):
 
-	white = "P"  # "♙"
-	black = "p"  # "♟"
+	...
