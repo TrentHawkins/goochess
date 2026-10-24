@@ -32,15 +32,6 @@ class Board(list[material.Piece | None]):
 		self[key] = None
 
 
-	def get(self, key: int, /) -> str:
-		if (piece := self[geometry.Index(key)]) is None:
-			return "-"
-
-		return repr(piece)
-
-	def set(self, key: int, value: str, /):
-		self[geometry.Index(key)] = material.Piece.fromnotation(value) if value != "-" else None
-
 	@contextlib.contextmanager
 	def binding(self, key: geometry.Index,
 		value: material.Piece | None,
@@ -54,6 +45,16 @@ class Board(list[material.Piece | None]):
 			value.index = key
 
 
+	def get(self, key: int, /) -> str:
+		if (piece := self[geometry.Index(key)]) is None:
+			return "-"
+
+		return repr(piece)
+
+	def set(self, key: int, value: str, /):
+		self[geometry.Index(key)] = material.Piece.fromnotation(value) if value != "-" else None
+
+
 class Side(set[material.Piece]):
 
 	position: Position
@@ -65,9 +66,9 @@ class Side(set[material.Piece]):
 
 		super().__init__(pieces)
 
-
 	def __bool__(self) -> bool:
 		return self is self.position.black
+
 
 	@property
 	def other(self) -> Side:
