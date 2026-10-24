@@ -5,7 +5,6 @@ import enum
 
 from . import mathematics
 
-
 class Compass(mathematics.arrays):
 
 	north = mathematics.array( 0, -1)
