@@ -22,12 +22,6 @@ class Board(list[material.Piece | None]):
 	def __repr__(self) -> str:
 		return str(notation.serial("".join(map(self.get, geometry.Index))))
 
-	def __setitem__(self, key: int, value: material.Piece | None):
-		key = geometry.Index(key)
-
-		with self.binding(key, value):
-			super().__setitem__(key, value)
-
 	def __delitem__(self, key: int):
 		self[key] = None
 
@@ -95,11 +89,12 @@ class Position(Board):
 	) -> typing.Generator:
 		if (piece := self[key]) is not None:
 			piece.side.discard(piece)
+			piece.index = None
 
-		with super().binding(key, value):
-			yield
+		yield
 
 		if value is not None:
+			value.index = key
 			value.position = self
 			value.side.add(value)
 
