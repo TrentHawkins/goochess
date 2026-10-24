@@ -7,9 +7,9 @@ import numbers
 import operator
 import typing
 
+from . import structs
 
-type pair[T] = tuple[T, T]
-type sequence[T] = tuple[T, ...]
+
 type operation[T] = typing.Callable[[T, T], T]
 type comparison[T] = typing.Callable[[T, T], bool]
 type mutation[*T] = typing.Callable[[str, *T], None]
@@ -20,31 +20,31 @@ class array(tuple[int, ...]):
 	def __new__(cls, *components: int) -> typing.Self:
 		return super().__new__(cls, components)
 
-	def __getnewargs__(self) -> sequence[int]:
+	def __getnewargs__(self) -> structs.seq[int]:
 		return tuple(self)
 
 	def __bool__(self) -> bool:
 		return any(self)
 
-	def __add__(self, other: int | sequence[int], /) -> typing.Self: return self.operate(other, operator.add, 0)
-	def __sub__(self, other: int | sequence[int], /) -> typing.Self: return self.operate(other, operator.sub, 0)
-	def __mul__(self, other: int | sequence[int], /) -> typing.Self: return self.operate(other, operator.mul, 1)
+	def __add__(self, other: int | structs.seq[int], /) -> typing.Self: return self.operate(other, operator.add, 0)
+	def __sub__(self, other: int | structs.seq[int], /) -> typing.Self: return self.operate(other, operator.sub, 0)
+	def __mul__(self, other: int | structs.seq[int], /) -> typing.Self: return self.operate(other, operator.mul, 1)
 
-	def __matmul__(self, other: int | sequence[int], /) -> int:
+	def __matmul__(self, other: int | structs.seq[int], /) -> int:
 		return sum(self * other)
 
-	def __radd__(self, other: int | sequence[int], /) -> typing.Self: return  self + other
-	def __rsub__(self, other: int | sequence[int], /) -> typing.Self: return -self + other
-	def __rmul__(self, other: int | sequence[int], /) -> typing.Self: return  self * other
+	def __radd__(self, other: int | structs.seq[int], /) -> typing.Self: return  self + other
+	def __rsub__(self, other: int | structs.seq[int], /) -> typing.Self: return -self + other
+	def __rmul__(self, other: int | structs.seq[int], /) -> typing.Self: return  self * other
 
-	def __rmatmul__(self, other: int | sequence[int], /) -> int:
+	def __rmatmul__(self, other: int | structs.seq[int], /) -> int:
 		return self @ other
 
-	def __iadd__(self, other: int | sequence[int], /) -> typing.Self: return self + other
-	def __isub__(self, other: int | sequence[int], /) -> typing.Self: return self - other
-	def __imul__(self, other: int | sequence[int], /) -> typing.Self: return self * other
+	def __iadd__(self, other: int | structs.seq[int], /) -> typing.Self: return self + other
+	def __isub__(self, other: int | structs.seq[int], /) -> typing.Self: return self - other
+	def __imul__(self, other: int | structs.seq[int], /) -> typing.Self: return self * other
 
-	def __imatmul__(self, other: int | sequence[int], /) -> int:
+	def __imatmul__(self, other: int | structs.seq[int], /) -> int:
 		return self @ other
 
 	def __pos__(self) -> typing.Self: cls = type(self); return cls(*self)
@@ -54,7 +54,7 @@ class array(tuple[int, ...]):
 		return self @ self
 
 
-	def operate(self, other: int | sequence[int], /,
+	def operate(self, other: int | structs.seq[int], /,
 		operator: operation[int],
 		identity: int,
 	) -> typing.Self:
@@ -80,7 +80,7 @@ class array(tuple[int, ...]):
 
 class index(int):
 
-	registry: dict[tuple[type[index], pair[int]], type[index]] = {}
+	registry: dict[tuple[type[index], structs.pair[int]], type[index]] = {}
 
 	dimension: int
 	base: int
@@ -89,7 +89,7 @@ class index(int):
 	upper: int
 
 
-	def __new__(cls, x: int | sequence[int]) -> typing.Self:
+	def __new__(cls, x: int | structs.seq[int]) -> typing.Self:
 		if isinstance(x, int):
 			if not cls.lower <= x < cls.upper:
 				raise ValueError(f"{cls.__name__} {x} out of bound [{cls.lower}, {cls.upper})")
@@ -98,7 +98,7 @@ class index(int):
 
 		return cls.from_sequence(x)
 
-	def __class_getitem__(cls, item: pair[int], /) -> type[index]:
+	def __class_getitem__(cls, item: structs.pair[int], /) -> type[index]:
 		dimension, base = item
 
 		if (key := (cls, item)) in cls.registry:
@@ -115,7 +115,7 @@ class index(int):
 
 	def __reduce__(self) -> str | tuple:
 		cls: type[index] = type(self)
-		items: list[pair[int]] = []
+		items: list[structs.pair[int]] = []
 
 		while specialization := next((key for key, value in cls.registry.items() if value is cls), None):
 			cls, item = specialization
@@ -158,23 +158,23 @@ class index(int):
 
 		return components
 
-	def __add__(self, other: sequence[int], /) -> typing.Self:
+	def __add__(self, other: structs.seq[int], /) -> typing.Self:
 		cls = type(self)
 
 		return cls.from_sequence(self.array + other)
 
-	def __radd__(self, other: sequence[int], /) -> typing.Self: return self + other
-	def __iadd__(self, other: sequence[int], /) -> typing.Self: return self + other
+	def __radd__(self, other: structs.seq[int], /) -> typing.Self: return self + other
+	def __iadd__(self, other: structs.seq[int], /) -> typing.Self: return self + other
 
 	@typing.overload
 	def __sub__(self, other: int, /) -> array:
 		...
 
 	@typing.overload
-	def __sub__(self, other: sequence[int], /) -> typing.Self:
+	def __sub__(self, other: structs.seq[int], /) -> typing.Self:
 		...
 
-	def __sub__(self, other: int | sequence[int], /) -> array | typing.Self:
+	def __sub__(self, other: int | structs.seq[int], /) -> array | typing.Self:
 		cls = type(self)
 
 		if isinstance(other, int):
@@ -187,20 +187,20 @@ class index(int):
 		...
 
 	@typing.overload
-	def __isub__(self, other: sequence[int], /) -> typing.Self:
+	def __isub__(self, other: structs.seq[int], /) -> typing.Self:
 		...
 
-	def __isub__(self, other: int | sequence[int], /) -> array | typing.Self: return self.__sub__(other)
+	def __isub__(self, other: int | structs.seq[int], /) -> array | typing.Self: return self.__sub__(other)
 
 	@classmethod
-	def restore(cls, items: sequence[pair[int]], value: int, /) -> typing.Self:
+	def restore(cls, items: structs.seq[structs.pair[int]], value: int, /) -> typing.Self:
 		for item in items:
 			cls = cls[item]
 
 		return cls(value)
 
 	@classmethod
-	def from_sequence(cls, components: sequence[int], /) -> typing.Self:
+	def from_sequence(cls, components: structs.seq[int], /) -> typing.Self:
 		if len(components) != cls.dimension:
 			raise ValueError(f"components {components} do not match dimension {cls.dimension}")
 
@@ -239,6 +239,45 @@ class index(int):
 			raise ValueError(f"{self} and {other} have no integral midpoint")
 
 		return cls((int(self) + int(other)) // 2)
+
+
+class arrays(structs.collection[array]):
+
+	def __mul__(self, other: int | typing.Iterable[int] | typing.Iterable[structs.seq[int]], /) -> typing.Self:
+		cls = type(self)
+
+		if isinstance(other, int):
+			if other == 0: return cls()
+			if other == 1: return cls(*self)
+
+			return cls(*(left * other for left in self))
+
+		return cls(*(left + right for left, right in itertools.product(self, other)))
+
+	def __rmul__(self, other: int | typing.Iterable[int] | typing.Iterable[structs.seq[int]], /) -> typing.Self: return self * other
+	def __imul__(self, other: int | typing.Iterable[int] | typing.Iterable[structs.seq[int]], /) -> typing.Self: return self * other
+
+	def __pow__(self, other: int, /) -> typing.Self:
+		cls = type(self)
+
+		if other <= 0: raise NotImplementedError
+		if other == 1: return cls(*self)
+		if other == 2: return self * self
+
+		return cls(*(sum(terms, array()) for terms in itertools.product(self, repeat = other)))
+
+	def __ipow__(self, other: int, /) -> typing.Self: return self ** other
+
+
+class indices(structs.collection[index]):
+
+	def __mul__(self, other: typing.Iterable[structs.seq[int]], /) -> typing.Self:
+		cls = type(self)
+
+		return cls(*(left + right for left, right in itertools.product(self, other)))
+
+	def __rmul__(self, other: typing.Iterable[structs.seq[int]], /) -> typing.Self: return self * other
+	def __imul__(self, other: typing.Iterable[structs.seq[int]], /) -> typing.Self: return self * other
 
 
 class fraction(numbers.Number):
@@ -344,7 +383,7 @@ class fraction(numbers.Number):
 	def __ge__(self, other: object, /) -> bool: return self.compare(other, operator.ge)
 
 	@property
-	def as_integer_ratio(self, /) -> pair[int]:
+	def as_integer_ratio(self, /) -> structs.pair[int]:
 		return self.numerator, self.denominator
 
 
@@ -392,82 +431,3 @@ class fraction(numbers.Number):
 			raise AttributeError(f"'{fraction.__name__}' object attribute '{name}' is read-only")
 
 		mutator(name, *args)
-
-
-class collection[T: typing.Hashable](set[T]):
-
-	def __init__(self, *items: T) -> None:
-		super().__init__(items)
-
-	def __reduce__(self) -> tuple:
-		cls = type(self)
-
-		return cls, tuple(self), self.__getstate__()
-
-	def __or__ (self, other: typing.Iterable[T], /) -> typing.Self: return self.               union(other)
-	def __and__(self, other: typing.Iterable[T], /) -> typing.Self: return self.        intersection(other)
-	def __sub__(self, other: typing.Iterable[T], /) -> typing.Self: return self.          difference(other)
-	def __xor__(self, other: typing.Iterable[T], /) -> typing.Self: return self.symmetric_difference(other)
-
-	def __ror__ (self, other: typing.Iterable[T], /) -> typing.Self: return self | other
-	def __rand__(self, other: typing.Iterable[T], /) -> typing.Self: return self & other
-	def __rxor__(self, other: typing.Iterable[T], /) -> typing.Self: return self ^ other
-
-	def __ior__ (self, other: typing.Iterable[T], /) -> typing.Self: self.                     update(other); return self
-	def __iand__(self, other: typing.Iterable[T], /) -> typing.Self: self.        intersection_update(other); return self
-	def __isub__(self, other: typing.Iterable[T], /) -> typing.Self: self.          difference_update(other); return self
-	def __ixor__(self, other: typing.Iterable[T], /) -> typing.Self: self.symmetric_difference_update(other); return self
-
-
-	def        union(self, *others: typing.Iterable[T]) -> typing.Self: cls = type(self); return cls(*super().       union(*others))
-	def intersection(self, *others: typing.Iterable[T]) -> typing.Self: cls = type(self); return cls(*super().intersection(*others))
-	def   difference(self, *others: typing.Iterable[T]) -> typing.Self: cls = type(self); return cls(*super().  difference(*others))
-
-	def symmetric_difference(self, other : typing.Iterable[T]) -> typing.Self:
-		cls = type(self)
-
-		return cls(*super().symmetric_difference(other))
-
-	def copy(self) -> typing.Self:
-		cls = type(self)
-
-		return cls(*self)
-
-
-class arrays(collection[array]):
-
-	def __mul__(self, other: int | typing.Iterable[int] | typing.Iterable[sequence[int]], /) -> typing.Self:
-		cls = type(self)
-
-		if isinstance(other, int):
-			if other == 0: return cls()
-			if other == 1: return cls(*self)
-
-			return cls(*(left * other for left in self))
-
-		return cls(*(left + right for left, right in itertools.product(self, other)))
-
-	def __rmul__(self, other: int | typing.Iterable[int] | typing.Iterable[sequence[int]], /) -> typing.Self: return self * other
-	def __imul__(self, other: int | typing.Iterable[int] | typing.Iterable[sequence[int]], /) -> typing.Self: return self * other
-
-	def __pow__(self, other: int, /) -> typing.Self:
-		cls = type(self)
-
-		if other <= 0: raise NotImplementedError
-		if other == 1: return cls(*self)
-		if other == 2: return self * self
-
-		return cls(*(sum(terms, array()) for terms in itertools.product(self, repeat = other)))
-
-	def __ipow__(self, other: int, /) -> typing.Self: return self ** other
-
-
-class indices(collection[index]):
-
-	def __mul__(self, other: typing.Iterable[sequence[int]], /) -> typing.Self:
-		cls = type(self)
-
-		return cls(*(left + right for left, right in itertools.product(self, other)))
-
-	def __rmul__(self, other: typing.Iterable[sequence[int]], /) -> typing.Self: return self * other
-	def __imul__(self, other: typing.Iterable[sequence[int]], /) -> typing.Self: return self * other
