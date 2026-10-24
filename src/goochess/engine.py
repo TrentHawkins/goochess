@@ -1,6 +1,9 @@
 from __future__ import annotations
 
 
+import contextlib
+import typing
+
 from . import structs
 from . import mathematics
 from . import notation
@@ -22,13 +25,8 @@ class Board(list[material.Piece | None]):
 	def __setitem__(self, key: int, value: material.Piece | None):
 		key = geometry.Index(key)
 
-		if (piece := self[key]) is not None:
-			piece.index = None
-
-		if value is not None:
-			value.index = key
-
-		super().__setitem__(key, value)
+		with self.binding(key, value):
+			super().__setitem__(key, value)
 
 	def __delitem__(self, key: int):
 		self[key] = None
@@ -43,8 +41,17 @@ class Board(list[material.Piece | None]):
 	def set(self, key: int, value: str, /):
 		self[geometry.Index(key)] = material.Piece.fromnotation(value) if value != "-" else None
 
-	def empty(self, key: int, /) -> bool:
-		return (piece := self[geometry.Index(key)]) is None or isinstance(piece, material.Ghost)
+	@contextlib.contextmanager
+	def binding(self, key: geometry.Index,
+		value: material.Piece | None,
+	) -> typing.Generator:
+		if (piece := self[key]) is not None:
+			piece.index = None
+
+		yield
+
+		if value is not None:
+			value.index = key
 
 
 class Side(set[material.Piece]):
@@ -82,18 +89,19 @@ class Position(Board):
 				piece.side.king = piece
 
 
-	def __setitem__(self, key: int, value: material.Piece | None):
-		key = geometry.Index(key)
-
+	@contextlib.contextmanager
+	def binding(self, key: geometry.Index,
+		value: material.Piece | None,
+	) -> typing.Generator:
 		if (piece := self[key]) is not None:
 			piece.side.discard(piece)
+
+		with super().binding(key, value):
+			yield
 
 		if value is not None:
 			value.position = self
 			value.side.add(value)
-
-		super().__setitem__(key, value)
-
 
 	@property
 	def white(self) -> Side:

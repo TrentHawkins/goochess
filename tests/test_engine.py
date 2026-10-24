@@ -5,7 +5,7 @@ import pytest
 
 from goochess.engine import Board, Position, Side
 from goochess.geometry import Index
-from goochess.material import Bishop, Ghost, King, Knight, Pawn, Queen, Rook
+from goochess.material import Bishop, King, Knight, Pawn, Queen, Rook
 
 
 class EngineSetup:
@@ -42,7 +42,6 @@ class TestBoard(EngineSetup):
 		Index.F2: (Queen, False),
 		Index.A1: (Rook, False),
 	}
-	occupants = ((None, True), (Pawn, False), (Ghost, True))
 
 	@pytest.mark.parametrize("placement, flat", EngineSetup.positions)
 	def test_placement_round_trip(self, placement, flat) -> None:
@@ -143,14 +142,23 @@ class TestBoard(EngineSetup):
 		assert incoming.index is None
 		assert not hasattr(incoming, "position")
 
-	@pytest.mark.parametrize("kind, expected", occupants)
-	def test_empty(self, kind, expected) -> None:
+	def test_binding_wraps_placement(self) -> None:
 		board = Board(self.empty)
+		outgoing = Pawn(False)
+		incoming = Knight(True)
+		board[Index.E4] = outgoing
 
-		if kind is not None:
-			board[Index.E4] = kind(False)
+		with board.binding(Index.E4, incoming) as bound:
+			assert bound is None
+			assert board[Index.E4] is outgoing  # pylint: disable = invalid-sequence-index
+			assert outgoing.index is None
+			assert incoming.index is None
+			list.__setitem__(board, Index.E4, incoming)
 
-		assert board.empty(Index.E4) is expected
+		assert board[Index.E4] is incoming  # pylint: disable = invalid-sequence-index
+		assert outgoing.index is None
+		assert incoming.index is Index.E4
+		assert not hasattr(incoming, "position")
 
 
 class TestSide(EngineSetup):
@@ -213,6 +221,44 @@ class TestPosition(EngineSetup):
 
 	roster_positions = ((EngineSetup.empty, 0), (EngineSetup.initial, 16), (EngineSetup.asymmetric, 6))
 	king_positions = ((EngineSetup.initial, Index.E1, Index.E8), (EngineSetup.asymmetric, Index.E2, Index.E8))
+
+	def test_binding_wraps_placement_and_rosters(self) -> None:
+		position = Position(self.empty)
+		outgoing = Pawn(False)
+		incoming = Knight(True)
+		position[Index.E4] = outgoing
+
+		with position.binding(Index.E4, incoming) as bound:
+			assert bound is None
+			assert position[Index.E4] is outgoing  # pylint: disable = invalid-sequence-index
+			assert outgoing.index is None
+			assert outgoing not in position.white
+			assert incoming.index is None
+			assert not hasattr(incoming, "position")
+			list.__setitem__(position, Index.E4, incoming)
+
+		assert position[Index.E4] is incoming  # pylint: disable = invalid-sequence-index
+		assert outgoing.index is None
+		assert len(position.white) == 0
+		assert incoming.index is Index.E4
+		assert incoming.position is position
+		assert incoming.side is position.black
+		assert position.black == {incoming}
+
+	def test_binding_propagates_body_exception_without_attaching_incoming(self) -> None:
+		position = Position(self.empty)
+		incoming = Knight(True)
+
+		with pytest.raises(RuntimeError, match = "placement failed"):
+			with position.binding(Index.E4, incoming) as bound:
+				assert bound is None
+
+				raise RuntimeError("placement failed")
+
+		assert position[Index.E4] is None  # pylint: disable = invalid-sequence-index
+		assert incoming.index is None
+		assert not hasattr(incoming, "position")
+		assert len(position.white) == len(position.black) == 0
 
 	@pytest.mark.parametrize("placement, flat", EngineSetup.positions)
 	def test_placement_round_trip_and_position_binding(self, placement, flat) -> None:

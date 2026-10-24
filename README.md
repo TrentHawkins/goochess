@@ -50,6 +50,8 @@ position[Index.E2] = pawn
 
 Position placement sets the piece's index and position context and maintains the matching side's active roster. `piece.side` derives from `piece.position.side[piece.color]`; `position.white` and `position.black` are aliases for those two sides. Side truth identifies black independently of roster size, and `side.other` returns its opponent. Square truth likewise identifies a black square.
 
+`Board.__setitem__` performs placement inside its `binding` context; `Position` overrides that context to add roster and position bookkeeping while inheriting the setter.
+
 `Piece.fromnotation(symbol)` constructs an unplaced piece without position context. A plain `Board` can place and export pieces, but movement queries require placement on a `Position`. King-safety validation and the remaining position state (active color, castling rights, en passant availability, and counters) remain unfinished. A future `Game` runner will own a current position and coordinate progression and history; no `Game` class is implemented yet.
 
 Tests live in `tests`, with one test file per source module. The `graphics` directory holds the project's artwork.
