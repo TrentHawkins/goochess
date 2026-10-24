@@ -3,7 +3,7 @@ from __future__ import annotations
 
 import pytest
 
-from goochess.engine import Board, Game, Side
+from goochess.engine import Board, Position, Side
 from goochess.geometry import Index
 from goochess.material import Bishop, Ghost, King, Knight, Pawn, Queen, Rook
 
@@ -63,7 +63,7 @@ class TestBoard(EngineSetup):
 				assert piece is not None
 				assert piece.index is index
 				assert piece.color is symbol.islower()
-				assert not hasattr(piece, "game")
+				assert not hasattr(piece, "position")
 
 	def test_piece_types_and_colors(self) -> None:
 		board = Board(self.asymmetric)
@@ -86,8 +86,8 @@ class TestBoard(EngineSetup):
 		assert board[Index.E4] is incoming  # pylint: disable = invalid-sequence-index
 		assert outgoing.index is None
 		assert incoming.index is Index.E4
-		assert not hasattr(outgoing, "game")
-		assert not hasattr(incoming, "game")
+		assert not hasattr(outgoing, "position")
+		assert not hasattr(incoming, "position")
 		assert len(board) == 64
 
 	@pytest.mark.parametrize("delete", (False, True))
@@ -120,7 +120,7 @@ class TestBoard(EngineSetup):
 			assert piece is not None
 			assert piece.index is Index.E4
 			assert piece.color is symbol.islower()
-			assert not hasattr(piece, "game")
+			assert not hasattr(piece, "position")
 
 	def test_notation_tracks_mutation(self) -> None:
 		board = Board(self.empty)
@@ -141,7 +141,7 @@ class TestBoard(EngineSetup):
 
 		assert tuple(board) == before
 		assert incoming.index is None
-		assert not hasattr(incoming, "game")
+		assert not hasattr(incoming, "position")
 
 	@pytest.mark.parametrize("kind, expected", occupants)
 	def test_empty(self, kind, expected) -> None:
@@ -159,71 +159,71 @@ class TestSide(EngineSetup):
 	contexts = (("white", False, "P"), ("black", True, "p"))
 
 	@pytest.mark.parametrize("count", counts)
-	def test_construction_with_game(self, count) -> None:
-		game = Game(self.empty)
+	def test_construction_with_position(self, count) -> None:
+		position = Position(self.empty)
 		pieces = tuple(Pawn(False) for _ in range(count))
-		side = Side(game, *pieces)
+		side = Side(position, *pieces)
 		assert set(side) == set(pieces)
-		assert side.game is game
+		assert side.position is position
 
 	@pytest.mark.parametrize("side_name, color, symbol", contexts)
 	def test_empty_sides_have_distinct_roles(self, side_name, color, symbol) -> None:
-		game = Game(self.empty)
-		side = getattr(game, side_name)
-		assert len(game.white) == len(game.black) == 0
-		assert game.white == game.black
-		assert game.white is not game.black
-		assert side.game is game
+		position = Position(self.empty)
+		side = getattr(position, side_name)
+		assert len(position.white) == len(position.black) == 0
+		assert position.white == position.black
+		assert position.white is not position.black
+		assert side.position is position
 		assert bool(side) is color
-		assert side.other is game.side[not color]
+		assert side.other is position.side[not color]
 		assert side.other.other is side
 		assert repr(Pawn(color)) == symbol
 
 	@pytest.mark.parametrize("side_name, color, symbol", contexts)
 	def test_truth_is_independent_of_roster_size(self, side_name, color, symbol) -> None:
-		game = Game(self.empty)
-		side = getattr(game, side_name)
+		position = Position(self.empty)
+		side = getattr(position, side_name)
 		pawn = Pawn(color)
 		assert len(side) == 0
 		assert bool(side) is color
-		game[Index.A2] = pawn
+		position[Index.A2] = pawn
 		assert len(side) == 1
 		assert bool(side) is color
 		assert bool(side.other) is (not color)
 		assert pawn.side is side
 		assert repr(pawn) == symbol
-		del game[Index.A2]
+		del position[Index.A2]
 		assert len(side) == 0
 		assert bool(side) is color
 
 	@pytest.mark.parametrize("color", EngineSetup.colors)
 	def test_distinct_same_color_pieces(self, color) -> None:
-		game = Game(self.empty)
+		position = Position(self.empty)
 		first = Pawn(color)
 		second = Pawn(color)
-		game[Index.A2] = first
-		game[Index.H2] = second
+		position[Index.A2] = first
+		position[Index.H2] = second
 		assert first is not second
 		assert first != second
-		assert len(game.side[color]) == 2
-		assert game.side[color] == {first, second}
+		assert len(position.side[color]) == 2
+		assert position.side[color] == {first, second}
 
 
-class TestGame(EngineSetup):
+class TestPosition(EngineSetup):
 
 	roster_positions = ((EngineSetup.empty, 0), (EngineSetup.initial, 16), (EngineSetup.asymmetric, 6))
 	king_positions = ((EngineSetup.initial, Index.E1, Index.E8), (EngineSetup.asymmetric, Index.E2, Index.E8))
 
 	@pytest.mark.parametrize("placement, flat", EngineSetup.positions)
-	def test_placement_round_trip_and_game_binding(self, placement, flat) -> None:
-		game = Game(placement)
-		assert isinstance(game, Board)
-		assert len(game) == 64
-		assert repr(game) == placement
+	def test_placement_round_trip_and_position_binding(self, placement, flat) -> None:
+		position = Position(placement)
+		assert isinstance(position, Board)
+		assert len(position) == 64
+		assert repr(position) == placement
 
 		for index, symbol in zip(Index, flat, strict = True):
-			piece = game[index]
-			assert game.get(index) == symbol
+			piece = position[index]
+			assert position.get(index) == symbol
 
 			if symbol == "-":
 				assert piece is None
@@ -232,12 +232,12 @@ class TestGame(EngineSetup):
 				assert piece is not None
 				assert piece.index is index
 				assert piece.color is symbol.islower()
-				assert piece.game is game
-				assert piece.side is game.side[piece.color]
+				assert piece.position is position
+				assert piece.side is position.side[piece.color]
 
-	def test_sides_are_owned_per_game(self) -> None:
-		first = Game(self.empty)
-		second = Game(self.empty)
+	def test_sides_are_owned_per_position(self) -> None:
+		first = Position(self.empty)
+		second = Position(self.empty)
 		piece = Pawn(False)
 		first[Index.A2] = piece
 		assert first.white == {piece}
@@ -246,148 +246,148 @@ class TestGame(EngineSetup):
 		for color, side_name in zip(self.colors, self.side_names, strict = True):
 			assert getattr(first, side_name) is first.side[color]
 			assert getattr(first, side_name) is not getattr(second, side_name)
-			assert first.side[color].game is first
-			assert second.side[color].game is second
+			assert first.side[color].position is first
+			assert second.side[color].position is second
 
 	@pytest.mark.parametrize("placement, count", roster_positions)
 	def test_initial_rosters_match_active_pieces(self, placement, count) -> None:
-		game = Game(placement)
-		active = {piece for piece in game if piece is not None}
-		assert len(game.white) == len(game.black) == count
-		assert set(game.white) | set(game.black) == active
-		assert set(game.white).isdisjoint(game.black)
+		position = Position(placement)
+		active = {piece for piece in position if piece is not None}
+		assert len(position.white) == len(position.black) == count
+		assert set(position.white) | set(position.black) == active
+		assert set(position.white).isdisjoint(position.black)
 
 		for color in self.colors:
-			side = game.side[color]
+			side = position.side[color]
 			assert set(side) == {piece for piece in active if piece.color is color}
-			assert all(piece.game is game and piece.index is not None and game[piece.index] is piece for piece in side)
+			assert all(piece.position is position and piece.index is not None and position[piece.index] is piece for piece in side)
 
 	@pytest.mark.parametrize("placement, white, black", king_positions)
 	def test_initial_king_references(self, placement, white, black) -> None:
-		game = Game(placement)
-		assert game.white.king is game[white]
-		assert game.black.king is game[black]
-		assert game.white.king in game.white
-		assert game.black.king in game.black
+		position = Position(placement)
+		assert position.white.king is position[white]
+		assert position.black.king is position[black]
+		assert position.white.king in position.white
+		assert position.black.king in position.black
 
 	@pytest.mark.parametrize("color", EngineSetup.colors)
 	@pytest.mark.parametrize("index", EngineSetup.indices)
-	def test_assignment_binds_game_and_side(self, color, index) -> None:
-		game = Game(self.empty)
-		side = game.side[color]
+	def test_assignment_binds_position_and_side(self, color, index) -> None:
+		position = Position(self.empty)
+		side = position.side[color]
 		piece = Knight(color)
 		assert piece.index is None
-		assert not hasattr(piece, "game")
-		game[index] = piece
-		assert game[index] is piece
-		assert piece.game is game
+		assert not hasattr(piece, "position")
+		position[index] = piece
+		assert position[index] is piece
+		assert piece.position is position
 		assert piece.side is side
 		assert side == {piece}
 		assert len(side.other) == 0
 		assert piece.index is index
-		assert len(game) == 64
+		assert len(position) == 64
 
 	@pytest.mark.parametrize("outgoing_color", EngineSetup.colors)
 	@pytest.mark.parametrize("incoming_color", EngineSetup.colors)
 	@pytest.mark.parametrize("index", EngineSetup.indices)
 	def test_replacement_updates_rosters_and_clears_outgoing_index(self, outgoing_color, incoming_color, index) -> None:
-		game = Game(self.empty)
-		outgoing_side = game.side[outgoing_color]
-		incoming_side = game.side[incoming_color]
+		position = Position(self.empty)
+		outgoing_side = position.side[outgoing_color]
+		incoming_side = position.side[incoming_color]
 		outgoing = Pawn(outgoing_color)
 		incoming = Knight(incoming_color)
-		game[index] = outgoing
-		game[index] = incoming
-		assert game[index] is incoming
+		position[index] = outgoing
+		position[index] = incoming
+		assert position[index] is incoming
 		assert incoming_side == {incoming}
 		assert len(incoming_side.other) == 0
 		assert outgoing.index is None
 		assert outgoing.side is outgoing_side
-		assert outgoing.game is game
+		assert outgoing.position is position
 		assert incoming.index is index
-		assert incoming.game is game
-		assert len(game) == 64
+		assert incoming.position is position
+		assert len(position) == 64
 
 	@pytest.mark.parametrize("color", EngineSetup.colors)
 	@pytest.mark.parametrize("delete", (False, True))
 	@pytest.mark.parametrize("index", EngineSetup.indices)
 	def test_removal_updates_roster_without_shrinking_board(self, color, delete, index) -> None:
-		game = Game(self.empty)
-		side = game.side[color]
+		position = Position(self.empty)
+		side = position.side[color]
 		piece = Rook(color)
-		game[index] = piece
+		position[index] = piece
 
 		if delete:
-			del game[index]
+			del position[index]
 
 		else:
-			game[index] = None
+			position[index] = None
 
-		assert game[index] is None
-		assert len(game.white) == len(game.black) == 0
+		assert position[index] is None
+		assert len(position.white) == len(position.black) == 0
 		assert piece.index is None
 		assert piece.side is side
-		assert piece.game is game
-		assert len(game) == 64
+		assert piece.position is position
+		assert len(position) == 64
 
 	@pytest.mark.parametrize("color", EngineSetup.colors)
 	@pytest.mark.parametrize("index", EngineSetup.indices)
 	def test_self_assignment_preserves_binding_and_roster(self, color, index) -> None:
-		game = Game(self.empty)
-		side = game.side[color]
+		position = Position(self.empty)
+		side = position.side[color]
 		piece = Bishop(color)
-		game[index] = piece
-		game[index] = piece
-		assert game[index] is piece
+		position[index] = piece
+		position[index] = piece
+		assert position[index] is piece
 		assert side == {piece}
 		assert len(side.other) == 0
 		assert piece.index is index
-		assert piece.game is game
-		assert len(game) == 64
+		assert piece.position is position
+		assert len(position) == 64
 
 	@pytest.mark.parametrize("key", EngineSetup.symbol_keys)
 	@pytest.mark.parametrize("symbol", EngineSetup.symbols)
 	def test_symbol_assignment_updates_rosters(self, key, symbol) -> None:
-		game = Game(self.empty)
+		position = Position(self.empty)
 		outgoing = Pawn(True)
-		game[key] = outgoing
-		game.set(key, symbol)
-		assert game.get(key) == symbol
+		position[key] = outgoing
+		position.set(key, symbol)
+		assert position.get(key) == symbol
 		assert outgoing.index is None
-		assert outgoing.side is game.black
-		assert outgoing.game is game
-		assert len(game) == 64
-		piece = game[key]
+		assert outgoing.side is position.black
+		assert outgoing.position is position
+		assert len(position) == 64
+		piece = position[key]
 
 		if symbol == "-":
 			assert piece is None
-			assert len(game.white) == len(game.black) == 0
+			assert len(position.white) == len(position.black) == 0
 
 		else:
 			assert piece is not None
 			assert piece.index is Index(key)
-			assert piece.game is game
+			assert piece.position is position
 			assert piece.color is symbol.islower()
 			assert piece.side == {piece}
 			assert len(piece.side.other) == 0
 
 	@pytest.mark.parametrize("index", EngineSetup.invalid_indices)
 	def test_invalid_assignment_preserves_occupancy_and_rosters(self, index) -> None:
-		game = Game(self.empty)
+		position = Position(self.empty)
 		white = Pawn(False)
 		black = Pawn(True)
 		incoming = Knight(False)
-		game[Index.A8] = white
-		game[Index.H1] = black
-		before = tuple(game)
+		position[Index.A8] = white
+		position[Index.H1] = black
+		before = tuple(position)
 
 		with pytest.raises(ValueError):
-			game[index] = incoming
+			position[index] = incoming
 
-		assert tuple(game) == before
-		assert game.white == {white}
-		assert game.black == {black}
+		assert tuple(position) == before
+		assert position.white == {white}
+		assert position.black == {black}
 		assert white.index is Index.A8
 		assert black.index is Index.H1
 		assert incoming.index is None
-		assert not hasattr(incoming, "game")
+		assert not hasattr(incoming, "position")

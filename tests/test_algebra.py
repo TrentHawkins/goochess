@@ -6,7 +6,7 @@ import pickle
 import pytest
 
 from goochess.algebra import Capt, Check, Checkmate, EnPassant, Move, Promotion, PromotionCapt, PromotionMove, Rush
-from goochess.engine import Game
+from goochess.engine import Position
 from goochess.geometry import Index
 from goochess.material import Ghost, Knight, Officer, Pawn, Piece
 
@@ -31,15 +31,15 @@ class AlgebraSetup:
 	)
 
 	@staticmethod
-	def game() -> Game:
-		return Game("8/8/8/8/8/8/8/8")
+	def position() -> Position:
+		return Position("8/8/8/8/8/8/8/8")
 
 	@staticmethod
-	def place[T: Piece](game: Game, kind: type[T], square: Index,
+	def place[T: Piece](position: Position, kind: type[T], square: Index,
 		color: bool,
 	) -> T:
 		piece = kind(color)
-		game[square] = piece
+		position[square] = piece
 
 		return piece
 
@@ -56,7 +56,7 @@ class TestMove(AlgebraSetup):
 
 	@pytest.mark.parametrize("kind, color, source, target, notation", notations)
 	def test_source_target_and_notation(self, kind, color, source, target, notation) -> None:
-		piece = self.place(self.game(), kind, source, color)
+		piece = self.place(self.position(), kind, source, color)
 		move = Move(target, piece)
 		assert move.piece is piece
 		assert move.source is source
@@ -73,35 +73,35 @@ class TestMove(AlgebraSetup):
 
 	@pytest.mark.parametrize("target", invalid_targets)
 	def test_target_bounds(self, target) -> None:
-		piece = self.place(self.game(), Pawn, Index.E2, False)
+		piece = self.place(self.position(), Pawn, Index.E2, False)
 
 		with pytest.raises(ValueError):
 			Move(target, piece)
 
 	def test_source_is_snapshot(self) -> None:
-		game = self.game()
-		piece = self.place(game, Pawn, Index.E2, False)
+		position = self.position()
+		piece = self.place(position, Pawn, Index.E2, False)
 		move = Move(Index.E4, piece)
-		del game[Index.E2]
-		game[Index.E3] = piece
+		del position[Index.E2]
+		position[Index.E3] = piece
 		assert piece.index is Index.E3
 		assert move.source is Index.E2
 
 	def test_destination_occupancy_is_live(self) -> None:
-		game = self.game()
-		piece = self.place(game, Pawn, Index.E2, False)
+		position = self.position()
+		piece = self.place(position, Pawn, Index.E2, False)
 		move = Move(Index.E3, piece)
 		assert bool(move)
-		self.place(game, Knight, Index.E3, not piece.color)
+		self.place(position, Knight, Index.E3, not piece.color)
 		assert not move
 		assert move.other is None
-		del game[Index.E3]
+		del position[Index.E3]
 		assert bool(move)
 
 	def test_equality_and_hash_use_target(self) -> None:
-		game = self.game()
-		first = self.place(game, Pawn, Index.E2, False)
-		second = self.place(game, Knight, Index.F6, not first.color)
+		position = self.position()
+		first = self.place(position, Pawn, Index.E2, False)
+		second = self.place(position, Knight, Index.F6, not first.color)
 		move = Move(Index.E4, first)
 		capture = Capt(Index.E4, second)
 		assert move == capture == Index.E4
@@ -121,9 +121,9 @@ class TestCapt(AlgebraSetup):
 
 	@pytest.mark.parametrize("kind, color, source, target, notation", notations)
 	def test_enemy_capture_and_notation(self, kind, color, source, target, notation) -> None:
-		game = self.game()
-		piece = self.place(game, kind, source, color)
-		enemy = self.place(game, Knight, target, not piece.color)
+		position = self.position()
+		piece = self.place(position, kind, source, color)
+		enemy = self.place(position, Knight, target, not piece.color)
 		capture = Capt(target, piece)
 		assert bool(capture)
 		assert capture.piece is piece
@@ -134,18 +134,18 @@ class TestCapt(AlgebraSetup):
 
 	@pytest.mark.parametrize("color", AlgebraSetup.colors)
 	def test_requires_enemy_and_preserves_other_snapshot(self, color) -> None:
-		game = self.game()
-		piece = self.place(game, Pawn, Index.E4, color)
-		enemy = self.place(game, Knight, Index.D5, not piece.color)
+		position = self.position()
+		piece = self.place(position, Pawn, Index.E4, color)
+		enemy = self.place(position, Knight, Index.D5, not piece.color)
 		assert enemy.color is not piece.color
 		capture = Capt(Index.D5, piece)
 		assert bool(capture)
-		del game[Index.D5]
+		del position[Index.D5]
 		assert not capture
-		friendly = self.place(game, Knight, Index.D5, piece.color)
+		friendly = self.place(position, Knight, Index.D5, piece.color)
 		assert friendly.color is piece.color
 		assert not capture
-		self.place(game, Knight, Index.D5, not piece.color)
+		self.place(position, Knight, Index.D5, not piece.color)
 		assert bool(capture)
 		assert capture.other is enemy
 
@@ -163,15 +163,15 @@ class TestRush(AlgebraSetup):
 	def test_requires_unmoved_piece_and_clear_path(self, color, source, middle, target,
 		moved, middle_occupied, target_occupied,
 	) -> None:
-		game = self.game()
-		piece = self.place(game, Pawn, source, color)
+		position = self.position()
+		piece = self.place(position, Pawn, source, color)
 		piece.moved = moved
 
 		if middle_occupied:
-			self.place(game, Knight, middle, not piece.color)
+			self.place(position, Knight, middle, not piece.color)
 
 		if target_occupied:
-			self.place(game, Knight, target, not piece.color)
+			self.place(position, Knight, target, not piece.color)
 
 		rush = Rush(target, piece)
 		assert rush.middle is middle
@@ -181,7 +181,7 @@ class TestRush(AlgebraSetup):
 class TestCheck(AlgebraSetup):
 
 	def test_notation(self) -> None:
-		piece = self.place(self.game(), Knight, Index.B1, False)
+		piece = self.place(self.position(), Knight, Index.B1, False)
 		check = Check(Index.C3, piece)
 		assert repr(check) == "Nc3+"
 		assert check.source is Index.B1
@@ -192,7 +192,7 @@ class TestCheck(AlgebraSetup):
 class TestCheckmate(AlgebraSetup):
 
 	def test_notation(self) -> None:
-		piece = self.place(self.game(), Knight, Index.B1, False)
+		piece = self.place(self.position(), Knight, Index.B1, False)
 		checkmate = Checkmate(Index.C3, piece)
 		assert repr(checkmate) == "Nc3#"
 		assert checkmate.source is Index.B1
@@ -225,7 +225,7 @@ class TestPromotion(AlgebraSetup):
 
 	@pytest.mark.parametrize("color, source, target, notation", AlgebraSetup.quiet_cases)
 	def test_validity_before_selection(self, color, source, target, notation) -> None:
-		pawn = self.place(self.game(), Pawn, source, color)
+		pawn = self.place(self.position(), Pawn, source, color)
 		promotion = Promotion[Move](target, pawn)
 		assert bool(promotion)
 		assert promotion.source is source
@@ -235,7 +235,7 @@ class TestPromotion(AlgebraSetup):
 	@pytest.mark.parametrize("color, source, target, notation", AlgebraSetup.quiet_cases)
 	@pytest.mark.parametrize("choice", AlgebraSetup.choices)
 	def test_selected_choice(self, color, source, target, notation, choice) -> None:
-		pawn = self.place(self.game(), Pawn, source, color)
+		pawn = self.place(self.position(), Pawn, source, color)
 		promotion = Promotion(target, pawn)
 		promotion.to = choice
 		assert promotion.to is choice
@@ -244,30 +244,30 @@ class TestPromotion(AlgebraSetup):
 
 	@pytest.mark.parametrize("color, source, target", AlgebraSetup.other_ranks)
 	def test_requires_penultimate_source_rank(self, color, source, target) -> None:
-		pawn = self.place(self.game(), Pawn, source, color)
+		pawn = self.place(self.position(), Pawn, source, color)
 		promotion = Promotion(target, pawn)
 		assert not promotion
 		promotion.to = Officer.N
 		assert not promotion
 
 	def test_requires_pawn(self) -> None:
-		knight = self.place(self.game(), Knight, Index.C7, False)
+		knight = self.place(self.position(), Knight, Index.C7, False)
 		promotion = Promotion(Index.A8, knight)
 		assert not promotion
 
 	@pytest.mark.parametrize("color, source, target, notation", AlgebraSetup.quiet_cases)
 	@pytest.mark.parametrize("friendly", (True, False))
 	def test_requires_empty_destination(self, color, source, target, notation, friendly) -> None:
-		game = self.game()
-		pawn = self.place(game, Pawn, source, color)
-		self.place(game, Knight, target, pawn.color if friendly else not pawn.color)
+		position = self.position()
+		pawn = self.place(position, Pawn, source, color)
+		self.place(position, Knight, target, pawn.color if friendly else not pawn.color)
 		promotion = Promotion(target, pawn)
 		promotion.to = Officer.N
 		assert not promotion
 		assert repr(promotion) == notation + "=N"
 
 	def test_reading_preserves_choice(self) -> None:
-		pawn = self.place(self.game(), Pawn, Index.A7, False)
+		pawn = self.place(self.position(), Pawn, Index.A7, False)
 		promotion = Promotion(Index.A8, pawn)
 		promotion.to = Officer.N
 		assert bool(promotion)
@@ -276,7 +276,7 @@ class TestPromotion(AlgebraSetup):
 		assert promotion.to is Officer.N
 
 	def test_choice_resolves_to_officer(self) -> None:
-		pawn = self.place(self.game(), Pawn, Index.A7, False)
+		pawn = self.place(self.position(), Pawn, Index.A7, False)
 		promotion = Promotion(Index.A8, pawn)
 		promotion.to = Officer.N
 		assert promotion.to.value is Knight
@@ -292,9 +292,9 @@ class TestPromotionCapt(AlgebraSetup):
 	)
 
 	def test_choices_are_independent(self) -> None:
-		game = self.game()
-		pawn = self.place(game, Pawn, Index.B7, False)
-		self.place(game, Knight, Index.A8, not pawn.color)
+		position = self.position()
+		pawn = self.place(position, Pawn, Index.B7, False)
+		self.place(position, Knight, Index.A8, not pawn.color)
 		first = self.CapturePromotion(Index.A8, pawn)
 		second = self.CapturePromotion(Index.A8, pawn)
 		first.to = Officer.N
@@ -309,9 +309,9 @@ class TestPromotionCapt(AlgebraSetup):
 	@pytest.mark.parametrize("color, source, target, notation", AlgebraSetup.capture_cases)
 	@pytest.mark.parametrize("choice", AlgebraSetup.choices)
 	def test_capture_with_selected_choice(self, color, source, target, notation, choice) -> None:
-		game = self.game()
-		pawn = self.place(game, Pawn, source, color)
-		enemy = self.place(game, Knight, target, not pawn.color)
+		position = self.position()
+		pawn = self.place(position, Pawn, source, color)
+		enemy = self.place(position, Knight, target, not pawn.color)
 		promotion = self.CapturePromotion(target, pawn)
 		promotion.to = choice
 		assert bool(promotion)
@@ -320,22 +320,22 @@ class TestPromotionCapt(AlgebraSetup):
 
 	@pytest.mark.parametrize("color, source, target, notation", AlgebraSetup.capture_cases)
 	def test_capture_requires_enemy(self, color, source, target, notation) -> None:
-		game = self.game()
-		pawn = self.place(game, Pawn, source, color)
+		position = self.position()
+		pawn = self.place(position, Pawn, source, color)
 		promotion = self.CapturePromotion(target, pawn)
 		assert not promotion
-		self.place(game, Knight, target, pawn.color)
+		self.place(position, Knight, target, pawn.color)
 		assert not promotion
-		self.place(game, Knight, target, not pawn.color)
+		self.place(position, Knight, target, not pawn.color)
 		assert bool(promotion)
 		promotion.to = Officer.Q
 		assert repr(promotion) == notation + "=Q"
 
 	@pytest.mark.parametrize("color, source, target", illegal_ranks)
 	def test_capture_requires_penultimate_source_rank(self, color, source, target) -> None:
-		game = self.game()
-		pawn = self.place(game, Pawn, source, color)
-		self.place(game, Knight, target, not pawn.color)
+		position = self.position()
+		pawn = self.place(position, Pawn, source, color)
+		self.place(position, Knight, target, not pawn.color)
 		promotion = self.CapturePromotion(target, pawn)
 		assert not promotion
 
@@ -364,9 +364,9 @@ class TestEnPassant(AlgebraSetup):
 
 	@pytest.mark.parametrize("color, source, target", valid_moves)
 	def test_en_passant_rank(self, color, source, target) -> None:
-		game = self.game()
-		pawn = self.place(game, Pawn, source, color)
-		ghost = self.place(game, Ghost, target, not pawn.color)
+		position = self.position()
+		pawn = self.place(position, Pawn, source, color)
+		ghost = self.place(position, Ghost, target, not pawn.color)
 		capture = EnPassant(target, pawn)
 		assert bool(capture)
 		assert capture.source is source
@@ -375,18 +375,18 @@ class TestEnPassant(AlgebraSetup):
 
 	@pytest.mark.parametrize("color, source, target", other_ranks)
 	def test_requires_en_passant_rank(self, color, source, target) -> None:
-		game = self.game()
-		pawn = self.place(game, Pawn, source, color)
-		self.place(game, Ghost, target, not pawn.color)
+		position = self.position()
+		pawn = self.place(position, Pawn, source, color)
+		self.place(position, Ghost, target, not pawn.color)
 		assert not EnPassant(target, pawn)
 
 	@pytest.mark.parametrize("color, source, target", valid_moves)
 	@pytest.mark.parametrize("kind, friendly, expected", occupants)
 	def test_requires_enemy_ghost(self, color, source, target, kind, friendly, expected) -> None:
-		game = self.game()
-		pawn = self.place(game, Pawn, source, color)
+		position = self.position()
+		pawn = self.place(position, Pawn, source, color)
 
 		if kind is not None:
-			self.place(game, kind, target, pawn.color if friendly else not pawn.color)
+			self.place(position, kind, target, pawn.color if friendly else not pawn.color)
 
 		assert bool(EnPassant(target, pawn)) is expected

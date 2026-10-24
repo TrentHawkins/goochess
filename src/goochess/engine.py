@@ -49,25 +49,25 @@ class Board(list[material.Piece | None]):
 
 class Side(set[material.Piece]):
 
-	game: Game
+	position: Position
 	king: material.King
 
 
-	def __init__(self, game: Game, /, *pieces: material.Piece):
-		self.game = game
+	def __init__(self, position: Position, /, *pieces: material.Piece):
+		self.position = position
 
 		super().__init__(pieces)
 
 
 	def __bool__(self) -> bool:
-		return self is self.game.black
+		return self is self.position.black
 
 	@property
 	def other(self) -> Side:
-		return self.game.side[not self]
+		return self.position.side[not self]
 
 
-class Game(Board):
+class Position(Board):
 
 	def __init__(self, forsyth_edwards: str, /):
 		self.side = structs.switch(
@@ -89,7 +89,7 @@ class Game(Board):
 			piece.side.discard(piece)
 
 		if value is not None:
-			value.game = self
+			value.position = self
 			value.side.add(value)
 
 		super().__setitem__(key, value)
