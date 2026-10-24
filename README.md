@@ -36,20 +36,22 @@ Board coordinates are `(file, row_from_top)`, starting at `(0, 0)` for `A8`, mat
 
 `goochess.structs` provides the reusable `pair` and `seq` tuple aliases, the two-value `switch`, and the subclass-preserving set `collection`. `goochess.mathematics` builds its mathematical types on these structures, including the `arrays` and `indices` collections.
 
-`Board` handles placement and placement notation. `Game` adds white and black sides and supplies the context used by piece movement. Construct pieces with their color (`False` for white, `True` for black), then place them on a game:
+`Board` handles placement and placement notation. `Position(Board)` adds white and black sides and supplies the context used by piece movement. Construct pieces with their color (`False` for white, `True` for black), then place them on a position:
 
 ```python
-from goochess.engine import Game
+from goochess.engine import Position
 from goochess.geometry import Index
 from goochess.material import Pawn
 
-game = Game("8/8/8/8/8/8/8/8")
+position = Position("8/8/8/8/8/8/8/8")
 pawn = Pawn(False)
-game[Index.E2] = pawn
+position[Index.E2] = pawn
 ```
 
-Game placement sets the piece's index and game context and maintains the matching side's active roster. `piece.side` derives from `piece.game.side[piece.color]`; `game.white` and `game.black` are aliases for those two sides. Side truth identifies black independently of roster size, and `side.other` returns its opponent. Square truth likewise identifies a black square.
+Position placement sets the piece's index and position context and maintains the matching side's active roster. `piece.side` derives from `piece.position.side[piece.color]`; `position.white` and `position.black` are aliases for those two sides. Side truth identifies black independently of roster size, and `side.other` returns its opponent. Square truth likewise identifies a black square.
 
-`Piece.fromnotation(symbol)` constructs an unplaced piece without game context. A plain `Board` can place and export pieces, but movement queries require placement on a `Game`. King-safety validation and complete game rules remain unfinished.
+`Board.__setitem__` performs placement inside its `binding` context; `Position` overrides that context to add roster and position bookkeeping while inheriting the setter.
+
+`Piece.fromnotation(symbol)` constructs an unplaced piece without position context. A plain `Board` can place and export pieces, but movement queries require placement on a `Position`. King-safety validation and the remaining position state (active color, castling rights, en passant availability, and counters) remain unfinished. A future `Game` runner will own a current position and coordinate progression and history; no `Game` class is implemented yet.
 
 Tests live in `tests`, with one test file per source module. The `graphics` directory holds the project's artwork.

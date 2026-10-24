@@ -14,7 +14,7 @@ Jump to [decisions](#decisions-and-retained-baseline), [open questions](#open-de
 - When we change a decision, update its existing entry and retain a short explanation of the superseded choice. Keep the identifiers stable so later discussions can refer to them.
 - An experimental edit, a passing test, or an assistant recommendation does not by itself settle a design question. Record disagreements between the intended model and the implementation explicitly.
 
-The historical starting point is `develop` at `7fb69e20e4a0df819a4adc37039c785483d37a03`. Earlier code is a source of inspiration, not the specification for this framework. The initial record was reviewed on 2026-10-21 against `50f5c06` and the working changes to `Side` on the `side` branch. The color/context revision on 2026-10-23 supersedes D18's board-owned participant fusion and the earlier complete-state ownership proposal. The mathematical framework already present at `develop` is retained as baseline context; this record does not reconstruct its earlier development.
+The historical starting point is `develop` at `7fb69e20e4a0df819a4adc37039c785483d37a03`. Earlier code is a source of inspiration, not the specification for this framework. The initial record was reviewed on 2026-10-21 against `50f5c06` and the working changes to `Side` on the `side` branch. The color/context revision on 2026-10-23 supersedes D18's board-owned participant fusion. The state/progression revision on 2026-10-24 renames that rule context to `Position` and reserves `Game` for a future runner, while retaining intrinsic boolean color. The mathematical framework already present at `develop` is retained as baseline context; this record does not reconstruct its earlier development.
 
 ## Responsibility map
 
@@ -27,7 +27,8 @@ The historical starting point is `develop` at `7fb69e20e4a0df819a4adc37039c78548
 | `Piece` and its subclasses | Piece identity, location/context references, and movement patterns | [material.py](src/goochess/material.py), [material tests](tests/test_material.py) |
 | `Move`, `Capt`, and related classes | Move targets, move records, validation predicates, and move notation | [algebra.py](src/goochess/algebra.py), [algebra tests](tests/test_algebra.py) |
 | `Board` | Square occupancy, piece locations, and placement notation without participant ownership | [engine.py](src/goochess/engine.py), [engine tests](tests/test_engine.py) |
-| `Game` and `Side` | Game context, color-selected participants, active rosters, and initial king references; broader rules and progression remain unfinished | [engine.py](src/goochess/engine.py), [engine tests](tests/test_engine.py) |
+| `Position(Board)` and `Side` | Current-position context, color-selected participants, active rosters, and initial king references; remaining rule-state fields are planned | [engine.py](src/goochess/engine.py), [engine tests](tests/test_engine.py) |
+| Future `Game` | Own a current position and coordinate progression, history, and reversal; no runner class is implemented | D01, O08 |
 
 ## Decisions and retained baseline
 
@@ -35,9 +36,9 @@ The historical starting point is `develop` at `7fb69e20e4a0df819a4adc37039c78548
 
 **Status: Agreed direction; execution and game-tree search are not implemented.**
 
-The current scope is standard chess. `Board` handles mutable square occupancy and placement notation. `Game` extends it with participating sides and the context needed by piece and move queries. A piece stores its intrinsic boolean color and receives a `game` reference when placed on a game; its `side` is derived from that game's color-selected pair. A plain board remains usable for placement and export, but it does not supply full movement context.
+The current scope is standard chess. `Board` handles mutable square occupancy and placement notation. `Position(Board)` extends it with participating sides and the context needed by piece and move queries. A piece stores its intrinsic boolean color and receives a `position` reference when placed on a position; its `side` is derived from that position's color-selected pair. A plain board remains usable for placement and export, but it does not supply full movement context.
 
-This revises the earlier proposal that `Board` describe the complete rule state and `Game` only its progression. Game context is now deliberately available to pieces for future king safety, castling, and en passant checks. Full-FEN fields, complete legality, progression, and history remain unfinished; their representations and execution/reversal API are still open in O05/O07–O09. Context access does not require implementing every shared rule inside a piece.
+The 2026-10-24 revision renames the former `Game` state class to `Position`. The intended complete current state belongs to `Position`, including the active color, castling rights, en passant availability, and relevant counters; those fields are not implemented yet. A future `Game` runner will own a current position through composition and coordinate progression and history; no runner class exists yet. This restores the distinction between state and progression while retaining `Board` as the occupancy foundation and the boolean color model from 2026-10-23. Full-FEN fields, complete legality, and the execution/reversal API remain open in O05/O07–O09. Context access does not require implementing every shared rule inside a piece.
 
 A move describes a transition around one moving piece and its destination, rather than requiring a newly constructed board for every candidate.
 
@@ -113,13 +114,13 @@ The coordinate encoding was settled in `169bf45`; the current `Index` name super
 
 Distinct piece instances remain distinct even when their type, color, and position-related attributes agree. Equality and hashing use object identity, allowing a side to contain multiple otherwise identical pawns, rooks, or promoted pieces.
 
-`Piece(color)` and `Piece.fromnotation(symbol)` construct an unplaced piece. Color is a boolean: `False` means white and `True` means black, matching white's even and black's odd turn indices when counting from zero. Symbol case supplies color without requiring an owner. Its `index` is initially `None`, and its `game` reference is not bound until game placement. `Roster` resolves canonical FEN symbols to piece classes, while `Officer` enumerates promotion choices.
+`Piece(color)` and `Piece.fromnotation(symbol)` construct an unplaced piece. Color is a boolean: `False` means white and `True` means black, matching white's even and black's odd turn indices when counting from zero. Symbol case supplies color without requiring an owner. Its `index` is initially `None`, and its `position` reference is not bound until position placement. `Roster` resolves canonical FEN symbols to piece classes, while `Officer` enumerates promotion choices.
 
-`Piece.side` is a read-only view of `piece.game.side[piece.color]`; there is no separate stored side or board reference. Game removal clears the index and active roster membership while retaining color and the existing game context. Unplaced or removed pieces produce no movement targets. A plain board can hold and export pieces without binding game context; placed movement queries require a game.
+`Piece.side` is a read-only view of `piece.position.side[piece.color]`; there is no separate stored side or board reference. Position removal clears the index and active roster membership while retaining color and the existing position context. Unplaced or removed pieces produce no movement targets. A plain board can hold and export pieces without binding position context; placed movement queries require a position.
 
-- [x] Color-only construction, followed by placement-time game binding.
+- [x] Color-only construction, followed by placement-time position binding.
 - [ ] Construct every piece with a side and derive context from it, the superseded D18 model.
-- [ ] Require game and optional position arguments in the piece constructor.
+- [ ] Require owner context and an optional square in the piece constructor.
 
 Color is intended to remain stable after construction so roster selection stays consistent. It remains an ordinary writable attribute; enforcement is explicitly deferred. Absence of a piece from the board is separate from the representation of an empty board slot in O06.
 
@@ -127,9 +128,11 @@ Color is intended to remain stable after construction so roster selection stays 
 
 **Status: Agreed and implemented for pointwise assignment.**
 
-`Board` is the occupancy source of truth. Its present backend is a 64-slot list of `Piece | None`. Assigning a piece through `Board.__setitem__` sets its concrete `Index`; replacement clears the outgoing piece's index. Deletion empties a slot without shrinking the board. The base setter neither binds a game reference nor maintains participant rosters.
+`Board` is the occupancy source of truth. Its present backend is a 64-slot list of `Piece | None`. Assigning a piece through `Board.__setitem__` sets its concrete `Index`; replacement clears the outgoing piece's index. Deletion empties a slot without shrinking the board. The base setter neither binds a position reference nor maintains participant rosters.
 
-`Game.__setitem__` extends this boundary to bind the incoming piece's `game` reference and synchronize the color-selected active rosters. Keys are normalized to `Index` before mutation. Cross-board assignment validation is explicitly deferred; assignment is not a coordinated transfer between games.
+`Board.__setitem__` normalizes the key to `Index`, then performs the slot replacement inside `self.binding(key, value)`. The context uses a bare `yield`, exposing `None` as its bound value. `Board.binding` clears the outgoing piece's index before replacement and assigns the incoming index afterward. `Position.binding` wraps that context to remove the outgoing piece from its roster before replacement, then bind the incoming piece's `position` reference and add it to the color-selected roster afterward. `Position` inherits the setter unchanged.
+
+Attachment after `yield` runs on successful completion. This context provides assignment bookkeeping, not rollback or atomicity; its body can observe an intermediate state before binding finishes. Cross-board assignment validation is explicitly deferred; assignment is not a coordinated transfer between positions.
 
 `Board.get` translates a slot to a piece symbol or `-`; `Board.set` translates a symbol and delegates to normal assignment. Placement construction uses those same surfaces. `Board.__repr__` returns the FEN placement field, not a full game FEN.
 
@@ -146,17 +149,17 @@ Each side holds its distinct active pieces. Captured pieces retain their affilia
 - [ ] A positional list encoding each piece's original identity.
 - [ ] Use the captured-piece collection as the side's main roster.
 
-A union, difference, or copy of a roster is an ordinary set of pieces; it is not another participating side. `game.side` contains white then black, with `game.white` and `game.black` as aliases. `bool(side)` is true for the installed black side and false for white. `other` resolves `game.side[not self]`. This truth is independent of roster size, including during empty or partial game construction; use `len(side)` to inspect roster emptiness. Set equality and membership retain their ordinary meanings; participant role uses identity rather than set equality.
+A union, difference, or copy of a roster is an ordinary set of pieces; it is not another participating side. `position.side` contains white then black, with `position.white` and `position.black` as aliases. `bool(side)` is true for the installed black side and false for white. `other` resolves `position.side[not self]`. This truth is independent of roster size, including during empty or partial position construction; use `len(side)` to inspect roster emptiness. Set equality and membership retain their ordinary meanings; participant role uses identity rather than set equality.
 
-`Side(game, *pieces)` stores its game and passes the collected pieces as one iterable to the set initializer. `Game.__setitem__` updates roster membership during placement parsing and subsequent assignments. Pawn direction uses piece color directly; `Side.forward` is no longer an API. The set choice is being reconsidered against indexed lists in O11; no replacement has been selected.
+`Side(position, *pieces)` stores its position and passes the collected pieces as one iterable to the set initializer. `Position.binding` updates roster membership during placement parsing and subsequent assignments through the inherited setter. Pawn direction uses piece color directly; `Side.forward` is no longer an API. The set choice is being reconsidered against indexed lists in O11; no replacement has been selected.
 
-### D09. Each valid game side has a dedicated king reference
+### D09. Each valid position side has a dedicated king reference
 
 **Status: Agreed; initial binding implemented, validation and later maintenance pending.**
 
 The scope is standard chess, and each side of a valid playable position must have exactly one king. `Side.king` refers to the same king object contained in its roster; its position remains `king.index`.
 
-`Game.__init__` assigns each encountered king to its color-selected side during the post-parsing king scan. This establishes the reference for a normally populated position; it does not validate exactly one king. Missing kings leave the reference unset, and duplicate kings overwrite it. Choosing mutation-time updates and the validation boundary remains O01/O02. Plain boards and current games can still represent partial positions; that need not weaken the intended playable-game invariant.
+`Position.__init__` assigns each encountered king to its color-selected side during the post-parsing king scan. This establishes the reference for a normally populated position; it does not validate exactly one king. Missing kings leave the reference unset, and duplicate kings overwrite it. Choosing mutation-time updates and the validation boundary remains O01/O02. Plain boards and current positions can still represent partial setups; that need not weaken the intended playable-position invariant.
 
 ### D10. Movement search uses generators and boundary exceptions
 
@@ -191,7 +194,7 @@ Arithmetic on a contextual move is not a promise that a new move can be reconstr
 
 **Status: Agreed direction; specialized behavior remains incomplete.**
 
-`Move` and `Capt` validate meaningfully different occupancy conditions. `Rush` remains an explicit special move because executing a double advance will create temporary game state. Castling is also expected to be explicit. Moving all move classification out of piece search was considered, then narrowed to this partial separation.
+`Move` and `Capt` validate meaningfully different occupancy conditions. `Rush` remains an explicit special move because executing a double advance will create temporary position state. Castling is also expected to be explicit. Moving all move classification out of piece search was considered, then narrowed to this partial separation.
 
 Promotion augments either an ordinary move or capture rather than replacing that distinction. The current `Promotion[Move]` and `Promotion[Capt]` select finite named classes, not freshly synthesized runtime classes. Each promotion instance owns its selected officer and its queen-first choice cycle. This implementation is retained as prototype context, not a requirement to emit all variants during square search.
 
@@ -207,11 +210,11 @@ Promotion augments either an ordinary move or capture rather than replacing that
 | `notation.board` | Tuple of expanded rank objects | Constructor accepts placement text or rank objects; `str` joins compressed ranks with `/` |
 | `notation.serial` | Flat expanded board string | Constructor normalizes placement text or an already flat string; `str` uses rank/board conversion to emit placement text |
 
-`Board` uses the flat representation to enumerate squares and delegates formatting back through these notation objects. Symbol-to-piece conversion belongs to the material/board boundary, not to the rank codec. `Piece.fromnotation(symbol)` resolves the type and boolean color without requiring a board or game. Normal assignment then supplies the location; a game's assignment additionally binds context and roster membership.
+`Board` uses the flat representation to enumerate squares and delegates formatting back through these notation objects. Symbol-to-piece conversion belongs to the material/board boundary, not to the rank codec. `Piece.fromnotation(symbol)` resolves the type and boolean color without requiring a board or position. Normal assignment then supplies the location; a position's assignment additionally binds context and roster membership.
 
-`Game` installs its side pair before placement parsing invokes the overridden setter. Plain boards require no sides. The current APIs intentionally avoid requiring callers to assemble a second collection of `from_fen`/`from_flat` factories.
+`Position` installs its side pair before placement parsing invokes the inherited setter and overridden binding context. Plain boards require no sides. The current APIs intentionally avoid requiring callers to assemble a second collection of `from_fen`/`from_flat` factories.
 
-Only the placement field is currently supported by `Board`. `notation.game` is a placeholder. Runtime shape/symbol validation and the remaining game fields are O09. The direct placement order follows [FEN, section 16.1.3.1](https://www.saremba.de/chessgml/standards/pgn/pgn-complete.htm).
+Only the placement field is currently supported by `Board`. `notation.game` is a placeholder. Runtime shape/symbol validation and the remaining position fields are O09. The direct placement order follows [FEN, section 16.1.3.1](https://www.saremba.de/chessgml/standards/pgn/pgn-complete.htm).
 
 ### D14. Package and import boundaries
 
@@ -231,25 +234,25 @@ Python source and tests use hard tabs, spaces around `=` including defaults/keyw
 
 Use one test module per source module, grouping tests in classes by the tested type. Put reusable supporting data/helpers at class level, without unnecessary `ClassVar` annotations. Tests should describe the selected contract rather than preserve every abandoned implementation. Pyright uses basic checking, matching the project's intended strictness.
 
-### D16. A game supplies its sides' owner context
+### D16. A position supplies its sides' owner context
 
 **Status: Agreed and implemented. Resolves O03's side-ownership question.**
 
-`Side(game, *pieces)` receives and stores its owning game during construction. `Game` creates both sides and installs the `side` pair before placement parsing begins. Role-based truth and opponent lookup require installation in that pair, not merely the presence of the owner reference.
+`Side(position, *pieces)` receives and stores its owning position during construction. `Position` creates both sides and installs the `side` pair before placement parsing begins. Role-based truth and opponent lookup require installation in that pair, not merely the presence of the owner reference.
 
-- [x] Require the owning game in the side constructor.
+- [x] Require the owning position in the side constructor.
 - [ ] Bind the owner indirectly after side construction, the earlier selected approach.
 - [ ] Introduce descriptors or a generic owner-binding framework for this assignment.
 
-This replaces the earlier indirect `Side.game` binding and its later `Side.board` version in D18. The separate game king scan registers initial references as described in D09. Roster synchronization and pending king-reference maintenance are tracked in O01; validation remains O02.
+This retains the constructor binding introduced on 2026-10-23, now named `Side.position`, after the earlier indirect `Side.game` binding and its later `Side.board` version in D18. The separate position king scan registers initial references as described in D09. Roster synchronization and pending king-reference maintenance are tracked in O01; validation remains O02.
 
-### D17. A game indexes its sides by color
+### D17. A position indexes its sides by color
 
 **Status: Revised and implemented with boolean color and a side pair.**
 
-`Game.side` is a `structs.switch` containing the actual white and black participants in that order. `False` selects white and `True` selects black. The `white` and `black` properties are derived aliases. A piece's intrinsic `color` selects its participant through its bound `game`; `Side.other` selects the opposing participant with `not self`.
+`Position.side` is a `structs.switch` containing the actual white and black participants in that order. `False` selects white and `True` selects black. The `white` and `black` properties are derived aliases. A piece's intrinsic `color` selects its participant through its bound `position`; `Side.other` selects the opposing participant with `not self`.
 
-The earlier prototype used `Game.sides`, a separate `Color` enum, and a stored `Side.color`; D18 then moved ownership into `Board`. Neither intermediate API is current. The 2026-10-23 model restores game-owned participants without restoring the enum or storing duplicate side color.
+The earlier prototype used `Game.sides`, a separate `Color` enum, and a stored `Side.color`; D18 then moved ownership into `Board`. Neither intermediate API is current. The 2026-10-23 model restored game-owned participants without restoring the enum or storing duplicate side color; the 2026-10-24 rename now places those participants on `Position`.
 
 ### D18. Board-owned sides carry affiliation and direction
 
@@ -257,23 +260,23 @@ The earlier prototype used `Game.sides`, a separate `Color` enum, and a stored `
 
 This intermediate design gave every board its own participants, stored a piece's actual side, and derived board context and pawn direction from that affiliation. White was true and black was false. It removed the separate `Color` enum and `Index.color`.
 
-The current model separates intrinsic boolean piece color from participating sides again: black is true, `Game` owns the sides, `Piece.game` is bound during game placement, and `Piece.side` is derived. Plain boards handle placement without participant context. `Color` and `Index.color` remain removed. The old fusion and the subsequent complete-state ownership proposal are history rather than current contracts; remaining king, castling, ghost, and attack decisions stay open in their existing entries.
+The current model separates intrinsic boolean piece color from participating sides again: black is true, `Position` owns the sides, `Piece.position` is bound during position placement, and `Piece.side` is derived. Plain boards handle placement without participant context. `Color` and `Index.color` remain removed. The old fusion is history; the state/progression boundary is now explicit in D01. Remaining king, castling, ghost, and attack decisions stay open in their existing entries.
 
 ## Open decisions
 
 ### O01. Which mutation surface maintains position consistency?
 
-**Status: Board assignment maintains occupancy/location; Game assignment adds context/rosters. King-reference maintenance remains open. Related: D06–D09, D16/D17.**
+**Status: Board assignment maintains occupancy/location; Position assignment adds context/rosters. King-reference maintenance remains open. Related: D06–D09, D16/D17.**
 
-`Board.__setitem__` coordinates square occupancy and piece indices. `Game.__setitem__` additionally binds the incoming game reference and updates the color-selected active rosters. Construction uses the same assignment surface, so game rosters are populated before the final scan that registers kings.
+`Board.__setitem__` coordinates slot replacement through an overridable binding context. `Board.binding` maintains piece indices; `Position.binding` nests it and additionally maintains position context and the color-selected active rosters. Construction uses the same assignment surface, so position rosters are populated before the final scan that registers kings.
 
-- [x] Keep basic occupancy and location handling in `Board.__setitem__`.
-- [x] Restrict game binding and roster coordination to a `Game.__setitem__` override.
+- [x] Keep key normalization and slot replacement in `Board.__setitem__`, with location handling in `Board.binding`.
+- [x] Restrict position binding and roster coordination to a `Position.binding` override that nests the base context.
 - [ ] Add side-local bookkeeping helpers if later king or rights handling needs them.
 
 Giving a side further local bookkeeping remains a possible refinement, not a selected requirement. A helper must not initiate the same placement again or recurse into the board setter. Direct set mutation is not a position operation.
 
-The setters handle ordinary placement, replacement, deletion, and self-assignment. Index normalization happens before roster mutation, preserving state when an index is rejected. Game placement binds the incoming context, but cross-game validation and coordinated transfer remain explicitly deferred. The post-construction game scan registers kings until their later update seam is chosen. These behaviors have dedicated engine tests.
+The inherited setter and binding contexts handle ordinary placement, replacement, deletion, and self-assignment. Index normalization happens before roster mutation, preserving state when an index is rejected. Position placement binds the incoming context, but cross-position validation and coordinated transfer remain explicitly deferred. The contexts expose no bound value beyond `None`, and their bodies do not promise a fully synchronized position; post-body attachment occurs only on success, without rollback on failure. The post-construction position scan registers kings until their later update seam is chosen. These behaviors have dedicated engine tests.
 
 The remaining question is how king references follow later setup replacement or removal, and how complete moves coordinate multiple square writes. Coordinate edits must not accidentally consume historical castling rights as though a legal move had been played; O04/O08 need an explicit boundary. The pointwise setter does not replace a move executor.
 
@@ -287,7 +290,7 @@ The remaining question is how king references follow later setup replacement or 
 
 The first option is the current recommendation. An individual square write may be one intermediate step of construction or a move, so rejecting every temporary absence is likely to interfere with ordinary mutation. Missing and duplicate kings both need consideration at the completed-position boundary. An ordinary king move retains the same `Side.king` object; changing its position is different from replacing the king during setup editing.
 
-Tests use empty or partial boards for occupancy and games for contextual movement and rosters. Both currently permit partial positions; the ownership split does not select or implement a validation boundary. Exactly one king is only one validity check; it does not establish full position legality.
+Tests use empty or partial boards for occupancy and positions for contextual movement and rosters. Both currently permit partial positions; the ownership split does not select or implement a validation boundary. Exactly one king is only one validity check; it does not establish full position legality.
 
 ### O04. How are castling rights represented and updated?
 
@@ -307,22 +310,23 @@ A false rights flag can skip further checks. A true flag still requires position
 
 ### O05. How does the single ghost interact with occupancy and captures?
 
-**Status: One shared reference agreed; exact owner, representation, and occupancy semantics need review under the revised context model.**
+**Status: One shared reference in current-position context agreed; final API, representation, and occupancy semantics remain open.**
 
 - [x] One optional shared ghost reference rather than separate authoritative side references.
-- [ ] Put that reference on `Game`, the current context for piece rules.
-- [ ] Put that reference on `Board`, the earlier selection under the superseded complete-state model.
+- [x] Current-position context on `Position`, consistent with D01's state/progression boundary.
+- [ ] Put that reference on the future `Game` runner rather than in the position it runs.
+- [ ] Put that reference on plain `Board`, the earlier selection when that class was intended to hold complete state.
 - [ ] Independently stored live ghost references on both sides.
 - [ ] Store side ghosts and rotate a second authoritative reference between them.
 
-No authoritative ghost slot exists in code. The earlier choice of `Board.ghost` relied on D01's now-superseded complete-state boundary; the revised model supplies rule context through `Piece.game`. This makes game-level access available without selecting or implementing the final ghost API. Any side-level convenience view could be derived rather than stored independently. The opportunity is limited to the opponent's immediate reply. [FIDE, articles 3.7.3.1–2](https://handbook.fide.com/chapter/e012023)
+No authoritative ghost slot exists in code. En passant availability belongs to the complete current position, now named `Position`; the earlier owner names tracked the evolving state boundary. This identifies the owning context without finalizing a field name, the representation, or the lifecycle API. Any side-level convenience view could be derived rather than stored independently. The opportunity is limited to the opponent's immediate reply. [FIDE, articles 3.7.3.1–2](https://handbook.fide.com/chapter/e012023)
 
 The physical representation is a different, still open decision:
 
 - [ ] Keep the ghost outside occupancy as metadata describing the passed square and actual rushed pawn. This was the assistant's recommendation, not an accepted choice.
 - [ ] Keep a ghost in the occupancy model, with explicit semantics distinguishing transparent/empty behavior from en passant capturability.
 
-The second option must account for ordinary moves, sliding rays, blockers, ordinary captures, attacks, side membership, and placement export. `Board.empty` currently considers `None` and `Ghost` empty, but move validation does not yet use it. The inherited ghost symbol is `-`, so placement export hides it. These are experiments rather than closure of the representation choice. Conversely, separate metadata requires `EnPassant` to consult that metadata instead of inheriting ordinary occupied-target validation unchanged.
+The second option must account for ordinary moves, sliding rays, blockers, ordinary captures, attacks, side membership, and placement export. The experimental `Board.empty` helper considered both `None` and `Ghost` empty, but was removed without being adopted by move validation. No replacement helper or ghost-transparency policy has been selected. The inherited ghost symbol is `-`, so placement export hides it. These are experiments rather than closure of the representation choice. Conversely, separate metadata requires `EnPassant` to consult that metadata instead of inheriting ordinary occupied-target validation unchanged.
 
 Execution must identify the actual pawn victim, which occupies a different square from the destination. The current `other` snapshot points to the manually placed ghost in the prototype, not automatically to that pawn. The fields or references connecting the two remain open.
 
@@ -337,7 +341,7 @@ The current implementation uses `None`. The earlier decision to keep it is being
 - [ ] Retain `None` as the representation of an ordinary empty square.
 - [ ] Introduce an `Empty(Piece)` or another explicit empty-square value with a deliberate shared occupancy protocol.
 
-An explicit empty object can make selected operations uniform, but it does not by itself make a ghost transparent to rays yet selectively capturable by a pawn. Missing occupancy, geometric attacks, and en passant eligibility still need distinct meanings. An empty-object alternative must explain whether it has a color or game context, whether it enters a roster, and how it serializes. A shared empty singleton cannot carry a distinct position for every board slot.
+An explicit empty object can make selected operations uniform, but it does not by itself make a ghost transparent to rays yet selectively capturable by a pawn. Missing occupancy, geometric attacks, and en passant eligibility still need distinct meanings. An empty-object alternative must explain whether it has a color or position context, whether it enters a roster, and how it serializes. A shared empty singleton cannot carry a distinct position for every board slot.
 
 The unplaced-piece convention `piece.index is None` in D06 is a separate question; changing empty board slots need not change it.
 
@@ -347,7 +351,7 @@ The unplaced-piece convention `piece.index is None` in D06 is a separate questio
 
 Attacks cannot be defined as the opponent's fully legal destinations: pinned pieces still attack, and pawn forward moves differ from pawn diagonal attacks. Validating each side through the other's legal moves would also create a circular definition. [FIDE, articles 3.1.3 and 3.9](https://handbook.fide.com/chapter/e012023)
 
-- [ ] A direct piece/side `attacks(square)` predicate or corresponding game query.
+- [ ] A direct piece/side `attacks(square)` predicate or corresponding position query.
 - [ ] A generated collection of attacked squares, independent of legal-move filtering.
 - [ ] Cached attack information with explicit invalidation, only if later justified.
 
@@ -357,7 +361,7 @@ The current recommendation is the smallest direct query that serves king safety 
 
 **Status: Game coordination agreed; execution/reversal API deferred and required before complete king-safety filtering.**
 
-`Game` supplies rule context as well as the intended coordination of progression, history, and traversal (D01). We have selected mutable occupancy and compact move records, but not the execution/reversal API. Coordination by `Game` does not yet decide whether execution helpers belong to moves, the game, or a separate operation record. The API must preserve or restore occupancy, piece positions, roster membership, king references, relevant movement history, castling rights, en passant availability, and turn state when those features exist.
+`Position` supplies rule context. A future `Game` runner will own a current position and coordinate progression, history, and traversal (D01); no runner is implemented yet. We have selected mutable occupancy and compact move records, but not the execution/reversal API. Coordination by `Game` does not yet decide whether execution helpers belong to moves, the position, the runner, or a separate operation record. The API must preserve or restore occupancy, piece positions, roster membership, king references, relevant movement history, castling rights, en passant availability, and turn state when those features exist.
 
 - [ ] Move-owned execution/reversal coordinated with the game.
 - [ ] Game-owned application/reversal of move records.
@@ -369,9 +373,9 @@ Do not treat `Board.__setitem__` alone as that API. Do not assume a destination-
 
 **Status: Placement layering implemented; full-FEN API, remaining state fields, and validation deferred.**
 
-`Board` consumes/exports only the placement field. `Game` adds participants and supplies rule context. Castling rights, the active side, en passant availability, and relevant counters cannot be reconstructed from placement alone. The earlier proposal to put all those fields on `Board` has been superseded; their concrete representations and full-FEN API remain unsettled under the revised split.
+`Board` consumes/exports only the placement field. `Position` adds participants and supplies rule context. Castling rights, the active side, en passant availability, and relevant counters belong to the complete current position and cannot be reconstructed from placement alone. Their concrete representations and full-FEN API remain unsettled; those fields are not yet implemented.
 
-- [ ] Complete `notation.game` to parse/format the remaining fields and wire them into game context.
+- [ ] Complete `notation.game` to parse/format the remaining fields and wire them into position context.
 - [ ] Use another small explicit full-FEN representation if the current placeholder proves unsuitable.
 
 Rank widths, total dimensions, accepted symbols, malformed input behavior, and the relationship between setup validation and playable-game validation need deliberate coverage when implemented. Full FEN import cannot truthfully reconstruct every piece's complete movement history; use the fields that actually exist rather than inventing provenance.
@@ -402,23 +406,23 @@ No new need for stable slots has been established by the roster setter alone. Ke
 
 ## Resolved follow-ups
 
-### O03. How are game and side references bound?
+### O03. How are position and side references bound?
 
 **Status: Ownership resolved in D06/D16/D17; identifier retained for history.**
 
-`Game` constructs each `Side` with itself as owner and installs both participants before parsing placement. Placing a piece on the game binds `piece.game`; its read-only `side` property selects the corresponding participant by intrinsic boolean color. A piece stores neither a second side reference nor a board reference.
+`Position` constructs each `Side` with itself as owner and installs both participants before parsing placement. Placing a piece on the position binds `piece.position`; its read-only `side` property selects the corresponding participant by intrinsic boolean color. A piece stores neither a second side reference nor a board reference.
 
-Plain boards do not bind game context or own sides. This revises the indirect owner binding and the later board-owned fusion, without introducing a descriptor or generic binding framework.
+Plain boards do not bind position context or own sides. This revises the indirect owner binding and the later board-owned fusion, without introducing a descriptor or generic binding framework.
 
 ### O12. Should participant ownership and color become one entity?
 
-**Status: The D18 fusion is superseded; boolean color and game-owned participants are selected.**
+**Status: The D18 fusion is superseded; boolean color and position-owned participants are selected.**
 
-- [x] Store intrinsic boolean piece color and derive its participant from game context.
+- [x] Store intrinsic boolean piece color and derive its participant from position context.
 - [ ] Let pieces refer directly to board-owned sides and derive allegiance and orientation from those participants, the former D18 model.
 - [ ] Restore a separate `Color` enum.
 
-Symbol parsing supplies color without needing an owner. Game placement binds context and adds the piece to its active roster. Black is true for piece color, installed side identity, and square shade; the meanings remain distinct. Pawn direction and capture allegiance use piece color directly, while `piece.side.other` exposes the opposing participant. Set equality and membership retain their ordinary meanings.
+Symbol parsing supplies color without needing an owner. Position placement binds context and adds the piece to its active roster. Black is true for piece color, installed side identity, and square shade; the meanings remain distinct. Pawn direction and capture allegiance use piece color directly, while `piece.side.other` exposes the opposing participant. Set equality and membership retain their ordinary meanings.
 
 `geometry.Color` and `Index.color` remain removed. No color immutability enforcement is requested. Representations and APIs for the remaining king, castling, ghost, and attack decisions stay open in their existing entries.
 
@@ -426,11 +430,11 @@ Symbol parsing supplies color without needing an owner. Game placement binds con
 
 These are observations, not authorization to fix unrelated code whenever this file is edited.
 
-- King references are assigned during the initial `Game` king scan, but exactly-one-king validation is not implemented.
-- `Board.__setitem__` maintains occupancy and piece indices; `Game.__setitem__` adds game binding and active roster synchronization. Later king replacement or removal does not maintain king references.
-- Cross-board assignment validation and coordinated transfer between games are explicitly deferred.
-- Active-side state, castling rights, relevant counters, and an authoritative ghost reference still need concrete representations and APIs under the revised game-context model.
-- No castling move, ghost expiry, move executor, or king-safety query exists yet. `Game` owns participants and supplies piece context, but progression/history remains unimplemented.
+- King references are assigned during the initial `Position` king scan, but exactly-one-king validation is not implemented.
+- `Board.__setitem__` performs slot replacement within `Board.binding`; `Position.binding` extends index bookkeeping with position binding and active roster synchronization. Later king replacement or removal does not maintain king references. The contexts do not provide rollback or a complete-position invariant inside their bodies.
+- Cross-board assignment validation and coordinated transfer between positions are explicitly deferred.
+- Active-side state, castling rights, relevant counters, and an authoritative ghost reference still need concrete representations and APIs on `Position`.
+- No castling move, ghost expiry, move executor, or king-safety query exists yet. `Position` owns participants and supplies piece context; the future `Game` runner and progression/history remain unimplemented.
 - En passant tests currently place `Ghost` in board occupancy manually. That is prototype coverage, not closure of O05/O06.
 - Color remains writable by explicit choice; changing a registered piece's color would leave its current roster stale.
 
@@ -455,3 +459,5 @@ These commits explain retained choices. They are navigation aids, not a requirem
 | Side-ownership fusion, 2026-10-21 | D18 gives Board actual sides, binds pieces to Side, derives board/direction from affiliation, and removes Color and Index.color; the initial foreign-side guard is subsequently deferred, and Side truth now denotes its white/black role |
 | State/progression clarification, 2026-10-21 | D01 assigns complete current-position information to Board and progression/history to Game; O05 consequently moves the agreed ghost slot from Game to Board, without settling its representation or implementing the broader state model |
 | Boolean color and game context, 2026-10-23 | Intrinsic piece color returns as a boolean with black true, matching zero-based turn parity and square truth. Game owns sides again, Piece.game is bound on game placement, Piece.side is derived, and Board retains placement/notation without participants. This supersedes D18 and the prior complete-state Board boundary; remaining ghost ownership and rule-state APIs need review |
+| State/progression naming, 2026-10-24 | The former Game state class becomes Position(Board), Piece.position and Side.position supply current-state context, and a future Game runner is reserved for composition, progression, and history. Intrinsic boolean color is unchanged; remaining position fields and the runner are not yet implemented |
+| Assignment binding context, 2026-10-24 | Board keeps the sole setter and exposes binding as a context manager; Position nests that context for roster/context bookkeeping. The unused Board.empty experiment is removed without settling ghost occupancy semantics |

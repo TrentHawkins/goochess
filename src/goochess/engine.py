@@ -1,6 +1,9 @@
 from __future__ import annotations
 
 
+import contextlib
+import typing
+
 from . import structs
 from . import mathematics
 from . import notation
@@ -22,16 +25,24 @@ class Board(list[material.Piece | None]):
 	def __setitem__(self, key: int, value: material.Piece | None):
 		key = geometry.Index(key)
 
-		if (piece := self[key]) is not None:
-			piece.index = None
-
-		if value is not None:
-			value.index = key
-
-		super().__setitem__(key, value)
+		with self.binding(key, value):
+			super().__setitem__(key, value)
 
 	def __delitem__(self, key: int):
 		self[key] = None
+
+
+	@contextlib.contextmanager
+	def binding(self, key: geometry.Index,
+		value: material.Piece | None,
+	) -> typing.Generator:
+		if (piece := self[key]) is not None:
+			piece.index = None
+
+		yield
+
+		if value is not None:
+			value.index = key
 
 
 	def get(self, key: int, /) -> str:
@@ -43,31 +54,28 @@ class Board(list[material.Piece | None]):
 	def set(self, key: int, value: str, /):
 		self[geometry.Index(key)] = material.Piece.fromnotation(value) if value != "-" else None
 
-	def empty(self, key: int, /) -> bool:
-		return (piece := self[geometry.Index(key)]) is None or isinstance(piece, material.Ghost)
-
 
 class Side(set[material.Piece]):
 
-	game: Game
+	position: Position
 	king: material.King
 
 
-	def __init__(self, game: Game, /, *pieces: material.Piece):
-		self.game = game
+	def __init__(self, position: Position, /, *pieces: material.Piece):
+		self.position = position
 
 		super().__init__(pieces)
 
-
 	def __bool__(self) -> bool:
-		return self is self.game.black
+		return self is self.position.black
+
 
 	@property
 	def other(self) -> Side:
-		return self.game.side[not self]
+		return self.position.side[not self]
 
 
-class Game(Board):
+class Position(Board):
 
 	def __init__(self, forsyth_edwards: str, /):
 		self.side = structs.switch(
@@ -82,18 +90,19 @@ class Game(Board):
 				piece.side.king = piece
 
 
-	def __setitem__(self, key: int, value: material.Piece | None):
-		key = geometry.Index(key)
-
+	@contextlib.contextmanager
+	def binding(self, key: geometry.Index,
+		value: material.Piece | None,
+	) -> typing.Generator:
 		if (piece := self[key]) is not None:
 			piece.side.discard(piece)
 
+		with super().binding(key, value):
+			yield
+
 		if value is not None:
-			value.game = self
+			value.position = self
 			value.side.add(value)
-
-		super().__setitem__(key, value)
-
 
 	@property
 	def white(self) -> Side:
