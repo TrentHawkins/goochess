@@ -130,7 +130,9 @@ Color is intended to remain stable after construction so roster selection stays 
 
 `Board` is the occupancy source of truth. Its present backend is a 64-slot list of `Piece | None`. Assigning a piece through `Board.__setitem__` sets its concrete `Index`; replacement clears the outgoing piece's index. Deletion empties a slot without shrinking the board. The base setter neither binds a position reference nor maintains participant rosters.
 
-`Position.__setitem__` extends this boundary to bind the incoming piece's `position` reference and synchronize the color-selected active rosters. Keys are normalized to `Index` before mutation. Cross-board assignment validation is explicitly deferred; assignment is not a coordinated transfer between positions.
+`Board.__setitem__` normalizes the key to `Index`, then performs the slot replacement inside `self.binding(key, value)`. The context uses a bare `yield`, exposing `None` as its bound value. `Board.binding` clears the outgoing piece's index before replacement and assigns the incoming index afterward. `Position.binding` wraps that context to remove the outgoing piece from its roster before replacement, then bind the incoming piece's `position` reference and add it to the color-selected roster afterward. `Position` inherits the setter unchanged.
+
+Attachment after `yield` runs on successful completion. This context provides assignment bookkeeping, not rollback or atomicity; its body can observe an intermediate state before binding finishes. Cross-board assignment validation is explicitly deferred; assignment is not a coordinated transfer between positions.
 
 `Board.get` translates a slot to a piece symbol or `-`; `Board.set` translates a symbol and delegates to normal assignment. Placement construction uses those same surfaces. `Board.__repr__` returns the FEN placement field, not a full game FEN.
 
@@ -149,7 +151,7 @@ Each side holds its distinct active pieces. Captured pieces retain their affilia
 
 A union, difference, or copy of a roster is an ordinary set of pieces; it is not another participating side. `position.side` contains white then black, with `position.white` and `position.black` as aliases. `bool(side)` is true for the installed black side and false for white. `other` resolves `position.side[not self]`. This truth is independent of roster size, including during empty or partial position construction; use `len(side)` to inspect roster emptiness. Set equality and membership retain their ordinary meanings; participant role uses identity rather than set equality.
 
-`Side(position, *pieces)` stores its position and passes the collected pieces as one iterable to the set initializer. `Position.__setitem__` updates roster membership during placement parsing and subsequent assignments. Pawn direction uses piece color directly; `Side.forward` is no longer an API. The set choice is being reconsidered against indexed lists in O11; no replacement has been selected.
+`Side(position, *pieces)` stores its position and passes the collected pieces as one iterable to the set initializer. `Position.binding` updates roster membership during placement parsing and subsequent assignments through the inherited setter. Pawn direction uses piece color directly; `Side.forward` is no longer an API. The set choice is being reconsidered against indexed lists in O11; no replacement has been selected.
 
 ### D09. Each valid position side has a dedicated king reference
 
@@ -210,7 +212,7 @@ Promotion augments either an ordinary move or capture rather than replacing that
 
 `Board` uses the flat representation to enumerate squares and delegates formatting back through these notation objects. Symbol-to-piece conversion belongs to the material/board boundary, not to the rank codec. `Piece.fromnotation(symbol)` resolves the type and boolean color without requiring a board or position. Normal assignment then supplies the location; a position's assignment additionally binds context and roster membership.
 
-`Position` installs its side pair before placement parsing invokes the overridden setter. Plain boards require no sides. The current APIs intentionally avoid requiring callers to assemble a second collection of `from_fen`/`from_flat` factories.
+`Position` installs its side pair before placement parsing invokes the inherited setter and overridden binding context. Plain boards require no sides. The current APIs intentionally avoid requiring callers to assemble a second collection of `from_fen`/`from_flat` factories.
 
 Only the placement field is currently supported by `Board`. `notation.game` is a placeholder. Runtime shape/symbol validation and the remaining position fields are O09. The direct placement order follows [FEN, section 16.1.3.1](https://www.saremba.de/chessgml/standards/pgn/pgn-complete.htm).
 
@@ -266,15 +268,15 @@ The current model separates intrinsic boolean piece color from participating sid
 
 **Status: Board assignment maintains occupancy/location; Position assignment adds context/rosters. King-reference maintenance remains open. Related: D06–D09, D16/D17.**
 
-`Board.__setitem__` coordinates square occupancy and piece indices. `Position.__setitem__` additionally binds the incoming position reference and updates the color-selected active rosters. Construction uses the same assignment surface, so position rosters are populated before the final scan that registers kings.
+`Board.__setitem__` coordinates slot replacement through an overridable binding context. `Board.binding` maintains piece indices; `Position.binding` nests it and additionally maintains position context and the color-selected active rosters. Construction uses the same assignment surface, so position rosters are populated before the final scan that registers kings.
 
-- [x] Keep basic occupancy and location handling in `Board.__setitem__`.
-- [x] Restrict position binding and roster coordination to a `Position.__setitem__` override.
+- [x] Keep key normalization and slot replacement in `Board.__setitem__`, with location handling in `Board.binding`.
+- [x] Restrict position binding and roster coordination to a `Position.binding` override that nests the base context.
 - [ ] Add side-local bookkeeping helpers if later king or rights handling needs them.
 
 Giving a side further local bookkeeping remains a possible refinement, not a selected requirement. A helper must not initiate the same placement again or recurse into the board setter. Direct set mutation is not a position operation.
 
-The setters handle ordinary placement, replacement, deletion, and self-assignment. Index normalization happens before roster mutation, preserving state when an index is rejected. Position placement binds the incoming context, but cross-position validation and coordinated transfer remain explicitly deferred. The post-construction position scan registers kings until their later update seam is chosen. These behaviors have dedicated engine tests.
+The inherited setter and binding contexts handle ordinary placement, replacement, deletion, and self-assignment. Index normalization happens before roster mutation, preserving state when an index is rejected. Position placement binds the incoming context, but cross-position validation and coordinated transfer remain explicitly deferred. The contexts expose no bound value beyond `None`, and their bodies do not promise a fully synchronized position; post-body attachment occurs only on success, without rollback on failure. The post-construction position scan registers kings until their later update seam is chosen. These behaviors have dedicated engine tests.
 
 The remaining question is how king references follow later setup replacement or removal, and how complete moves coordinate multiple square writes. Coordinate edits must not accidentally consume historical castling rights as though a legal move had been played; O04/O08 need an explicit boundary. The pointwise setter does not replace a move executor.
 
@@ -324,7 +326,7 @@ The physical representation is a different, still open decision:
 - [ ] Keep the ghost outside occupancy as metadata describing the passed square and actual rushed pawn. This was the assistant's recommendation, not an accepted choice.
 - [ ] Keep a ghost in the occupancy model, with explicit semantics distinguishing transparent/empty behavior from en passant capturability.
 
-The second option must account for ordinary moves, sliding rays, blockers, ordinary captures, attacks, side membership, and placement export. `Board.empty` currently considers `None` and `Ghost` empty, but move validation does not yet use it. The inherited ghost symbol is `-`, so placement export hides it. These are experiments rather than closure of the representation choice. Conversely, separate metadata requires `EnPassant` to consult that metadata instead of inheriting ordinary occupied-target validation unchanged.
+The second option must account for ordinary moves, sliding rays, blockers, ordinary captures, attacks, side membership, and placement export. The experimental `Board.empty` helper considered both `None` and `Ghost` empty, but was removed without being adopted by move validation. No replacement helper or ghost-transparency policy has been selected. The inherited ghost symbol is `-`, so placement export hides it. These are experiments rather than closure of the representation choice. Conversely, separate metadata requires `EnPassant` to consult that metadata instead of inheriting ordinary occupied-target validation unchanged.
 
 Execution must identify the actual pawn victim, which occupies a different square from the destination. The current `other` snapshot points to the manually placed ghost in the prototype, not automatically to that pawn. The fields or references connecting the two remain open.
 
@@ -429,7 +431,7 @@ Symbol parsing supplies color without needing an owner. Position placement binds
 These are observations, not authorization to fix unrelated code whenever this file is edited.
 
 - King references are assigned during the initial `Position` king scan, but exactly-one-king validation is not implemented.
-- `Board.__setitem__` maintains occupancy and piece indices; `Position.__setitem__` adds position binding and active roster synchronization. Later king replacement or removal does not maintain king references.
+- `Board.__setitem__` performs slot replacement within `Board.binding`; `Position.binding` extends index bookkeeping with position binding and active roster synchronization. Later king replacement or removal does not maintain king references. The contexts do not provide rollback or a complete-position invariant inside their bodies.
 - Cross-board assignment validation and coordinated transfer between positions are explicitly deferred.
 - Active-side state, castling rights, relevant counters, and an authoritative ghost reference still need concrete representations and APIs on `Position`.
 - No castling move, ghost expiry, move executor, or king-safety query exists yet. `Position` owns participants and supplies piece context; the future `Game` runner and progression/history remain unimplemented.
@@ -458,3 +460,4 @@ These commits explain retained choices. They are navigation aids, not a requirem
 | State/progression clarification, 2026-10-21 | D01 assigns complete current-position information to Board and progression/history to Game; O05 consequently moves the agreed ghost slot from Game to Board, without settling its representation or implementing the broader state model |
 | Boolean color and game context, 2026-10-23 | Intrinsic piece color returns as a boolean with black true, matching zero-based turn parity and square truth. Game owns sides again, Piece.game is bound on game placement, Piece.side is derived, and Board retains placement/notation without participants. This supersedes D18 and the prior complete-state Board boundary; remaining ghost ownership and rule-state APIs need review |
 | State/progression naming, 2026-10-24 | The former Game state class becomes Position(Board), Piece.position and Side.position supply current-state context, and a future Game runner is reserved for composition, progression, and history. Intrinsic boolean color is unchanged; remaining position fields and the runner are not yet implemented |
+| Assignment binding context, 2026-10-24 | Board keeps the sole setter and exposes binding as a context manager; Position nests that context for roster/context bookkeeping. The unused Board.empty experiment is removed without settling ghost occupancy semantics |
