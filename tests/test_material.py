@@ -13,7 +13,7 @@ from goochess.structs import collection
 class MaterialSetup:
 
 	colors = (False, True)
-	kinds = (Pawn, Knight, Bishop, Rook, Queen, King, Ghost)
+	kinds = (Pawn, Knight, Bishop, Rook, Queen, King)
 	empty = "8/8/8/8/8/8/8/8"
 
 	@staticmethod
@@ -183,6 +183,45 @@ class TestPiece(MaterialSetup):
 		assert piece.index is None
 		assert piece not in position.white
 		assert not piece.moved
+
+
+class TestGhost(MaterialSetup):
+
+	placements = ((False, Index.E4, Index.E3), (True, Index.E5, Index.E6))
+
+	@pytest.mark.parametrize("color", MaterialSetup.colors)
+	def test_initial_state_and_pawn_reference(self, color) -> None:
+		pawn = Pawn(color)
+		pawn.moved = True
+		ghost = Ghost(pawn)
+		assert ghost.rusher is pawn
+		assert ghost.color is pawn.color
+		assert ghost.index is None
+		assert not hasattr(ghost, "position")
+		assert not ghost.moved
+		assert repr(ghost) == "-"
+		assert ghost.targets == ghost.squares == collection()
+
+	@pytest.mark.parametrize("color, source, target", placements)
+	def test_placement_and_removal_preserve_pawn_reference(self, color, source, target) -> None:
+		position = self.position()
+		pawn = self.place(position, Pawn, source, color)
+		ghost = Ghost(pawn)
+		position[target] = ghost
+		assert ghost.side is pawn.side
+		assert ghost in pawn.side
+		del position[target]
+		assert ghost.index is None
+		assert ghost.rusher is pawn
+		assert ghost not in pawn.side
+		assert ghost.targets == ghost.squares == collection()
+		assert position[source] is pawn
+		assert pawn.index is source
+		assert pawn in pawn.side
+
+	def test_requires_pawn(self) -> None:
+		with pytest.raises(AssertionError):
+			Ghost(Knight(False))  # pyright: ignore[reportArgumentType]
 
 
 class TestRoster:
@@ -451,7 +490,8 @@ class TestPawn(MaterialSetup):
 		assert isinstance(pawn, Pawn)
 		victim = position[middle]
 		assert isinstance(victim, Pawn)
-		ghost = self.place(position, Ghost, target, not color)
+		ghost = Ghost(victim)
+		position[target] = ghost
 
 		if not attacked:
 			del position[attacker]
@@ -475,7 +515,9 @@ class TestPawn(MaterialSetup):
 		position = Position(placement)
 		pawn = position[source]
 		assert isinstance(pawn, Pawn)
-		self.place(position, Ghost, target, not color)
+		victim = position[middle]
+		assert isinstance(victim, Pawn)
+		position[target] = Ghost(victim)
 		del position[middle]
 		assert target not in self.targets(pawn)
 		assert target not in pawn.squares

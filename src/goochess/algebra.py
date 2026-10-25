@@ -90,7 +90,9 @@ class Promotion(Spec):
 
 		raise TypeError(f"{cls.__name__} expects Move or Capt")
 
-	def __init__(self, x: int, piece: material.Piece) -> None:
+	def __init__(self, x: int, piece: material.Pawn) -> None:
+		assert isinstance(piece, material.Pawn)
+
 		super().__init__(x, piece)
 
 		self.to = next(self.officers)
@@ -99,8 +101,7 @@ class Promotion(Spec):
 		return super().__repr__() + "=" + self.to.name
 
 	def __bool__(self) -> bool:
-		return super().__bool__() and \
-			isinstance(self.piece, material.Pawn ) and self.source.rank == (2 if self.piece.color else 7)
+		return super().__bool__() and self.source.rank == (2 if self.piece.color else 7)
 
 
 	@functools.cached_property
@@ -114,7 +115,9 @@ class PromotionCapt(Promotion, Capt): ...
 
 class EnPassant(Capt):
 
-	def __init__(self, x: int, piece: material.Piece) -> None:
+	def __init__(self, x: int, piece: material.Pawn) -> None:
+		assert isinstance(piece, material.Pawn)
+
 		super().__init__(x, piece)
 
 		self.victim = self.piece.position[self.middle]
@@ -136,7 +139,6 @@ class EnPassant(Capt):
 		ghost = self.piece.position[self.middle]
 
 		return super().__bool__() and \
-			isinstance(self.piece, material.Pawn ) and \
 			isinstance(     other, material.Ghost) and \
 			isinstance(     ghost, material.Pawn ) and ghost.color != self.piece.color and \
 			self.source.rank == (4 if self.piece.color else 5) and \

@@ -221,4 +221,9 @@ class Roster(enum.Enum):
 
 class Ghost(Piece):
 
-	...
+	def __init__(self, rusher: Pawn, /) -> None:
+		assert isinstance(rusher, Pawn)
+
+		super().__init__(rusher.color)
+
+		self.rusher = rusher

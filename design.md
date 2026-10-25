@@ -332,6 +332,8 @@ The second option must account for ordinary moves, sliding rays, blockers, ordin
 
 `EnPassant.other` remains the construction-time destination occupant, the manually placed ghost. `middle` identifies the destination file and source rank, and `victim` snapshots the pawn on that square. Validation checks for an opposing pawn, and execution and simulation remove it through ordinary position assignment. Context exit restores all three affected squares, including the original ghost and pawn, with indices and rosters maintained by the binding machinery. This repairs the extra occupancy change needed for king safety without selecting the final ghost representation or lifecycle API.
 
+`Ghost(pawn)` retains a reference to the represented `Pawn` and takes its color at construction. This establishes the relationship explicitly; valid placement, creation after a rush, and expiry remain to be implemented.
+
 Expiry, creation on a committed rush, history undo of availability, and initialization from full FEN are not implemented. The FEN target can be present even without an available capturing pawn; do not confuse serialization of that target with legal capture availability. [FEN, section 16.1.3.4](https://www.saremba.de/chessgml/standards/pgn/pgn-complete.htm)
 
 ### O06. What represents an empty square?
