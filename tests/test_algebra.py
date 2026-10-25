@@ -70,6 +70,7 @@ class TestMove(AlgebraSetup):
 		piece = self.place(self.position(), kind, source, color)
 		move = Move(target, piece)
 		assert move.piece is piece
+		assert move.position is piece.position
 		assert move.source is source
 		assert move.target is target
 		assert move.other is None
@@ -550,7 +551,7 @@ class TestEnPassant(AlgebraSetup):
 		assert capture.target is target
 		assert capture.other is ghost
 		assert capture.middle is middle
-		assert capture.victim is victim
+		assert capture.other.rusher is victim
 
 	@pytest.mark.parametrize("color, source, target", other_ranks)
 	def test_requires_en_passant_rank(self, color, source, target) -> None:
@@ -572,7 +573,12 @@ class TestEnPassant(AlgebraSetup):
 		elif kind is not None:
 			self.place(position, kind, target, pawn.color if friendly else not pawn.color)
 
-		assert bool(EnPassant(target, pawn)) is expected
+		if kind is Ghost:
+			assert bool(EnPassant(target, pawn)) is expected
+
+		else:
+			with pytest.raises(AssertionError):
+				EnPassant(target, pawn)
 
 	@pytest.mark.parametrize("color, source, middle, target", valid_moves)
 	@pytest.mark.parametrize("kind, friendly, expected", victims)
@@ -632,7 +638,7 @@ class TestEnPassant(AlgebraSetup):
 
 			assert self.state(position) == before
 			assert capture.other is ghost
-			assert capture.victim is victim
+			assert capture.other.rusher is victim
 
 	@pytest.mark.parametrize("color, source, middle, target", valid_moves)
 	def test_context_restores_after_exception(self, color, source, middle, target) -> None:
@@ -669,7 +675,7 @@ class TestEnPassant(AlgebraSetup):
 		assert ghost not in position.side[not color]
 
 	@pytest.mark.parametrize("color, source, middle, target", valid_moves)
-	def test_live_victim_validation_and_snapshot_guard(self, color, source, middle, target) -> None:
+	def test_requires_linked_rusher_beside_source(self, color, source, middle, target) -> None:
 		position = self.position()
 		pawn = self.place(position, Pawn, source, color)
 		victim = self.place(position, Pawn, middle, not color)
@@ -678,8 +684,8 @@ class TestEnPassant(AlgebraSetup):
 		del position[middle]
 		assert not capture
 		self.place(position, Pawn, middle, not color)
-		assert bool(capture)
-		assert capture.victim is victim
+		assert not capture
+		assert capture.other.rusher is victim
 		before = self.state(position)
 
 		with pytest.raises(AssertionError):
