@@ -32,6 +32,16 @@ class Piece:
 	def __repr__(self) -> str:
 		return self.black if self.color else self.white
 
+	def __call__(self, target: int | geometry.Index, kept: Piece | None = None, /) -> typing.Self:
+		assert (source := self.index) is not None
+
+		target = geometry.Index(target)
+
+		self.position[source] = kept
+		self.position[target] = self
+
+		return self
+
 	def __hash__(self) -> int:
 		return id(self)
 

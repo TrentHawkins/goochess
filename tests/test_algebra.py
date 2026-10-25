@@ -43,6 +43,15 @@ class AlgebraSetup:
 
 		return piece
 
+	@staticmethod
+	def state(position: Position):
+		pieces = position.white | position.black
+
+		return (
+			tuple(position), frozenset(position.white), frozenset(position.black),
+			frozenset((piece, piece.index, piece.moved) for piece in pieces),
+		)
+
 
 class TestMove(AlgebraSetup):
 
@@ -53,6 +62,8 @@ class TestMove(AlgebraSetup):
 		(Knight, True, Index.B8, Index.C6, "Nc6"),
 	)
 	invalid_targets = (-1, 64)
+	moved_states = (False, True)
+	changed_sources = (None, Index.E3)
 
 	@pytest.mark.parametrize("kind, color, source, target, notation", notations)
 	def test_source_target_and_notation(self, kind, color, source, target, notation) -> None:
@@ -109,6 +120,116 @@ class TestMove(AlgebraSetup):
 		assert len({move, capture}) == 1
 		assert move != Move(Index.E3, first)
 
+	@pytest.mark.parametrize("color", AlgebraSetup.colors)
+	@pytest.mark.parametrize("moved", moved_states)
+	def test_execution_updates_placement_and_moved_flag(self, color, moved) -> None:
+		position = self.position()
+		piece = self.place(position, Pawn, Index.E2, color)
+		piece.moved = moved
+		move = Move(Index.E3, piece)
+		assert move() is move
+		assert position[move.source] is None
+		assert position[move.target] is piece
+		assert piece.index is move.target
+		assert piece in piece.side
+		assert piece.moved
+		assert move.source is Index.E2
+		assert move.other is None
+
+	@pytest.mark.parametrize("color", AlgebraSetup.colors)
+	@pytest.mark.parametrize("moved", moved_states)
+	def test_context_restores_placement_without_changing_moved_flag(self, color, moved) -> None:
+		position = self.position()
+		piece = self.place(position, Pawn, Index.E2, color)
+		piece.moved = moved
+		move = Move(Index.E3, piece)
+		before = self.state(position)
+
+		with move as active:
+			assert active is move
+			assert position[move.source] is None
+			assert position[move.target] is piece
+			assert piece.index is move.target
+			assert piece in piece.side
+			assert piece.moved is moved
+
+		assert self.state(position) == before
+
+	def test_context_restores_after_exception(self) -> None:
+		position = self.position()
+		piece = self.place(position, Pawn, Index.E2, False)
+		move = Move(Index.E3, piece)
+		before = self.state(position)
+
+		with pytest.raises(LookupError, match = "simulation failed"):
+			with move as active:
+				assert active is move
+				assert piece.index is move.target
+
+				raise LookupError("simulation failed")
+
+		assert self.state(position) == before
+
+	def test_execution_cannot_overlap_itself(self) -> None:
+		position = self.position()
+		piece = self.place(position, Pawn, Index.E2, False)
+		move = Move(Index.E3, piece)
+		before = self.state(position)
+
+		with move:
+			active = self.state(position)
+
+			with pytest.raises(ValueError):
+				move()
+
+			with pytest.raises(ValueError):
+				with move:
+					...
+
+			assert self.state(position) == active
+
+		assert self.state(position) == before
+
+	@pytest.mark.parametrize("source", changed_sources)
+	def test_rejects_changed_source_without_mutation(self, source) -> None:
+		position = self.position()
+		piece = self.place(position, Pawn, Index.E2, False)
+		move = Move(Index.E4, piece)
+		del position[move.source]
+
+		if source is not None:
+			position[source] = piece
+
+		before = self.state(position)
+
+		with pytest.raises(ValueError):
+			move()
+
+		with pytest.raises(ValueError):
+			with move:
+				...
+
+		assert self.state(position) == before
+		assert piece.index is source
+		assert not piece.moved
+
+	def test_rejects_changed_destination_without_mutation(self) -> None:
+		position = self.position()
+		piece = self.place(position, Pawn, Index.E2, False)
+		move = Move(Index.E3, piece)
+		self.place(position, Knight, move.target, True)
+		before = self.state(position)
+
+		with pytest.raises(ValueError):
+			move()
+
+		with pytest.raises(ValueError):
+			with move:
+				...
+
+		assert self.state(position) == before
+		assert move.other is None
+
 
 class TestCapt(AlgebraSetup):
 
@@ -118,6 +239,7 @@ class TestCapt(AlgebraSetup):
 		(Knight, False, Index.B1, Index.C3, "Nxc3"),
 		(Knight, True, Index.B8, Index.C6, "Nxc6"),
 	)
+	moved_states = (False, True)
 
 	@pytest.mark.parametrize("kind, color, source, target, notation", notations)
 	def test_enemy_capture_and_notation(self, kind, color, source, target, notation) -> None:
@@ -147,6 +269,45 @@ class TestCapt(AlgebraSetup):
 		assert not capture
 		self.place(position, Knight, Index.D5, not piece.color)
 		assert bool(capture)
+		assert capture.other is enemy
+
+	@pytest.mark.parametrize("color", AlgebraSetup.colors)
+	@pytest.mark.parametrize("moved", moved_states)
+	def test_capture_context_is_reusable(self, color, moved) -> None:
+		position = self.position()
+		piece = self.place(position, Pawn, Index.E4, color)
+		piece.moved = moved
+		enemy = self.place(position, Knight, Index.D5, not color)
+		capture = Capt(Index.D5, piece)
+		before = self.state(position)
+
+		for _ in range(2):
+			with capture as active:
+				assert active is capture
+				assert position[capture.source] is None
+				assert position[capture.target] is piece
+				assert piece.index is capture.target
+				assert piece.moved is moved
+				assert enemy.index is None
+				assert enemy not in enemy.side
+				assert capture.other is enemy
+
+			assert self.state(position) == before
+			assert capture.source is Index.E4
+			assert capture.other is enemy
+
+	def test_rejects_replacement_of_captured_piece(self) -> None:
+		position = self.position()
+		piece = self.place(position, Pawn, Index.E4, False)
+		enemy = self.place(position, Knight, Index.D5, True)
+		capture = Capt(Index.D5, piece)
+		self.place(position, Knight, capture.target, True)
+		before = self.state(position)
+
+		with pytest.raises(ValueError):
+			capture()
+
+		assert self.state(position) == before
 		assert capture.other is enemy
 
 

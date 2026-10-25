@@ -36,6 +36,8 @@ class TestPiece(MaterialSetup):
 
 	canonical = (Pawn, Queen, Rook, Knight, Bishop, King)
 	invalid_symbols = ("", "-", "X", "PP", "1")
+	invalid_targets = (-1, 64)
+	moved_states = (False, True)
 
 	@pytest.mark.parametrize("color", MaterialSetup.colors)
 	def test_initial_state(self, color) -> None:
@@ -121,6 +123,66 @@ class TestPiece(MaterialSetup):
 		assert piece.position is position
 		assert piece not in piece.side
 		assert piece.targets == piece.squares == indices()
+
+	@pytest.mark.parametrize("color", MaterialSetup.colors)
+	@pytest.mark.parametrize("moved", moved_states)
+	def test_relocation_and_restoration_preserve_movement_flag(self, color, moved) -> None:
+		position = self.position()
+		source, target = Index.D4, Index.D5
+		piece = self.place(position, Pawn, source, color)
+		piece.moved = moved
+		other = self.place(position, Knight, target, not color)
+		before = tuple(position)
+		assert piece(target) is piece
+		assert position[source] is None  # pylint: disable = invalid-sequence-index
+		assert position[target] is piece  # pylint: disable = invalid-sequence-index
+		assert piece.index is target
+		assert piece in piece.side
+		assert piece.moved is moved
+		assert other.index is None
+		assert other not in other.side
+		assert piece(source, other) is piece
+		assert tuple(position) == before
+		assert piece.index is source
+		assert piece in piece.side
+		assert piece.moved is moved
+		assert other.index is target
+		assert other in other.side
+
+	@pytest.mark.parametrize("target", invalid_targets)
+	def test_invalid_relocation_keeps_source_unchanged(self, target) -> None:
+		position = self.position()
+		source = Index.E2
+		piece = self.place(position, Pawn, source, False)
+		before = tuple(position)
+
+		with pytest.raises(ValueError):
+			piece(target)
+
+		assert tuple(position) == before
+		assert piece.index is source
+		assert piece in piece.side
+		assert not piece.moved
+
+	@pytest.mark.parametrize("placed", (False, True))
+	def test_detached_piece_cannot_be_relocated(self, placed) -> None:
+		position = self.position()
+		piece = Pawn(False)
+
+		if placed:
+			source = Index.E2
+			position[source] = piece
+			del position[source]
+
+		before = tuple(position)
+
+		with pytest.raises(ValueError, match = "valid index"):
+			piece(Index.E3)
+
+		assert tuple(position) == before
+		assert piece.index is None
+		assert piece not in position.white
+		assert not piece.moved
 
 
 class TestRoster:

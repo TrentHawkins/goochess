@@ -74,6 +74,10 @@ class Side(set[material.Piece]):
 	def other(self) -> Side:
 		return self.position.side[not self]
 
+	@property
+	def targets(self) -> mathematics.indices:
+		return mathematics.indices().union(*(piece.targets for piece in self))
+
 
 class Position(Board):
 

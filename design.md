@@ -25,7 +25,7 @@ The historical starting point is `develop` at `7fb69e20e4a0df819a4adc37039c78548
 | `Index`, `Compass` | Standard chess board geometry and directions | [geometry.py](src/goochess/geometry.py), [geometry tests](tests/test_geometry.py) |
 | `rank`, `board`, `serial` | Placement notation and its decoded representations | [notation.py](src/goochess/notation.py), [notation tests](tests/test_notation.py) |
 | `Piece` and its subclasses | Piece identity, location/context references, and movement patterns | [material.py](src/goochess/material.py), [material tests](tests/test_material.py) |
-| `Move`, `Capt`, and related classes | Move targets, move records, validation predicates, and move notation | [algebra.py](src/goochess/algebra.py), [algebra tests](tests/test_algebra.py) |
+| `Move`, `Capt`, and related classes | Move targets, records, predicates, notation, ordinary execution, and temporary placement contexts | [algebra.py](src/goochess/algebra.py), [algebra tests](tests/test_algebra.py) |
 | `Board` | Square occupancy, piece locations, and placement notation without participant ownership | [engine.py](src/goochess/engine.py), [engine tests](tests/test_engine.py) |
 | `Position(Board)` and `Side` | Current-position context, color-selected participants, active rosters, and initial king references; remaining rule-state fields are planned | [engine.py](src/goochess/engine.py), [engine tests](tests/test_engine.py) |
 | Future `Game` | Own a current position and coordinate progression, history, and reversal; no runner class is implemented | D01, O08 |
@@ -34,15 +34,15 @@ The historical starting point is `develop` at `7fb69e20e4a0df819a4adc37039c78548
 
 ### D01. Standard chess, mutable positions, and explicit move records
 
-**Status: Agreed direction; execution and game-tree search are not implemented.**
+**Status: Agreed direction; ordinary execution and temporary placement implemented, complete transitions and game-tree search pending.**
 
 The current scope is standard chess. `Board` handles mutable square occupancy and placement notation. `Position(Board)` extends it with participating sides and the context needed by piece and move queries. A piece stores its intrinsic boolean color and receives a `position` reference when placed on a position; its `side` is derived from that position's color-selected pair. A plain board remains usable for placement and export, but it does not supply full movement context.
 
-The 2026-10-24 revision renames the former `Game` state class to `Position`. The intended complete current state belongs to `Position`, including the active color, castling rights, en passant availability, and relevant counters; those fields are not implemented yet. A future `Game` runner will own a current position through composition and coordinate progression and history; no runner class exists yet. This restores the distinction between state and progression while retaining `Board` as the occupancy foundation and the boolean color model from 2026-10-23. Full-FEN fields, complete legality, and the execution/reversal API remain open in O05/O07–O09. Context access does not require implementing every shared rule inside a piece.
+The 2026-10-24 revision renames the former `Game` state class to `Position`. The intended complete current state belongs to `Position`, including the active color, castling rights, en passant availability, and relevant counters; those fields are not implemented yet. A future `Game` runner will own a current position through composition and coordinate progression and history; no runner class exists yet. This restores the distinction between state and progression while retaining `Board` as the occupancy foundation and the boolean color model from 2026-10-23. Full-FEN fields, complete legality, and complete transition effects remain open in O05/O07–O09; O08 records the initial execution and temporary-placement API. Context access does not require implementing every shared rule inside a piece.
 
 A move describes a transition around one moving piece and its destination, rather than requiring a newly constructed board for every candidate.
 
-That compact move model must still accommodate effects involving other pieces: captures, the rook in castling, promotion, and en passant. It does not imply that every transition changes only two board slots. Execution, reversal, and game-tree traversal remain open in O08.
+That compact move model must still accommodate effects involving other pieces: captures, the rook in castling, promotion, and en passant. It does not imply that every transition changes only two board slots. O08 establishes ordinary execution and temporary placement for a one-move king-safety check; special effects, history undo, and complete-state game-tree traversal remain pending.
 
 Prefer small, meaningful responsibility boundaries and direct code. Do not add registries, generalized frameworks, or new abstractions merely to anticipate future features. This is also an exercise: implementation proceeds in understandable steps, with review between them.
 
@@ -359,11 +359,17 @@ The current recommendation is the smallest direct query that serves king safety 
 
 ### O08. Where do execution, simulation, and history live?
 
-**Status: Game coordination agreed; execution/reversal API deferred and required before complete king-safety filtering.**
+**Status: Move-owned ordinary execution and lightweight placement contexts implemented; complete transitions, legal filtering, and game coordination pending.**
 
-`Position` supplies rule context. A future `Game` runner will own a current position and coordinate progression, history, and traversal (D01); no runner is implemented yet. We have selected mutable occupancy and compact move records, but not the execution/reversal API. Coordination by `Game` does not yet decide whether execution helpers belong to moves, the position, the runner, or a separate operation record. The API must preserve or restore occupancy, piece positions, roster membership, king references, relevant movement history, castling rights, en passant availability, and turn state when those features exist.
+`move()` performs the ordinary relocation and sets the piece's `moved` flag. `with move:` instead temporarily relocates the piece while leaving that flag unchanged, then restores source/target occupancy and any captured piece on exit, including when the body raises. `Move.__call__` delegates validation and relocation to `__enter__` before setting the flag; context entry does not call `__call__`. Construction-time `source` and `other` remain unchanged, allowing sequential reuse of the context. Both paths require the piece still to occupy that source and the target still to contain that same occupant.
 
-- [ ] Move-owned execution/reversal coordinated with the game.
+`Piece.__call__` is the same relocation primitive in either direction: `piece(target)` applies placement, while `piece(source, kept = other)` restores it. It has no movement-flag or history responsibility. `Position.binding` maintains indices, context references, and rosters around all those assignments; simulation does not bypass roster updates. Move-owned execution does not yet apply special effects for promotion, en passant, or castling.
+
+This deliberately returns to the old context's limited purpose: temporarily inspect the occupancy resulting from one candidate move for king safety. It is not a complete reversible state transition or a faithful deeper-search simulator. The initial public `undo()` and per-move saved movement flag/execution marker have been removed; complete-state simulation and history undo are deferred.
+
+`Position` supplies rule context. A future `Game` runner will own a current position and coordinate progression, history, and traversal (D01); no runner is implemented yet. Complete transitions must preserve or restore king references, castling rights, en passant availability, and turn state when those features exist. Attack queries and legal-move filtering remain open in O07.
+
+- [x] Move-owned execution and temporary placement for king-safety inspection, with future game coordination.
 - [ ] Game-owned application/reversal of move records.
 - [ ] A separate operation/undo record if a concrete need appears.
 
@@ -434,7 +440,7 @@ These are observations, not authorization to fix unrelated code whenever this fi
 - `Board.__setitem__` performs slot replacement within `Board.binding`; `Position.binding` extends index bookkeeping with position binding and active roster synchronization. Later king replacement or removal does not maintain king references. The contexts do not provide rollback or a complete-position invariant inside their bodies.
 - Cross-board assignment validation and coordinated transfer between positions are explicitly deferred.
 - Active-side state, castling rights, relevant counters, and an authoritative ghost reference still need concrete representations and APIs on `Position`.
-- No castling move, ghost expiry, move executor, or king-safety query exists yet. `Position` owns participants and supplies piece context; the future `Game` runner and progression/history remain unimplemented.
+- Ordinary move execution sets `moved`; temporary move contexts restore placement and captured pieces while leaving `moved` unchanged. Public history undo and faithful deeper-state simulation are deferred. Special-effect execution, a castling move, ghost expiry, and a king-safety query remain unimplemented. `Position` owns participants and supplies piece context; the future `Game` runner and progression/history remain unimplemented.
 - En passant tests currently place `Ghost` in board occupancy manually. That is prototype coverage, not closure of O05/O06.
 - Color remains writable by explicit choice; changing a registered piece's color would leave its current roster stale.
 
@@ -461,3 +467,4 @@ These commits explain retained choices. They are navigation aids, not a requirem
 | Boolean color and game context, 2026-10-23 | Intrinsic piece color returns as a boolean with black true, matching zero-based turn parity and square truth. Game owns sides again, Piece.game is bound on game placement, Piece.side is derived, and Board retains placement/notation without participants. This supersedes D18 and the prior complete-state Board boundary; remaining ghost ownership and rule-state APIs need review |
 | State/progression naming, 2026-10-24 | The former Game state class becomes Position(Board), Piece.position and Side.position supply current-state context, and a future Game runner is reserved for composition, progression, and history. Intrinsic boolean color is unchanged; remaining position fields and the runner are not yet implemented |
 | Assignment binding context, 2026-10-24 | Board keeps the sole setter and exposes binding as a context manager; Position nests that context for roster/context bookkeeping. The unused Board.empty experiment is removed without settling ghost occupancy semantics |
+| Lightweight move contexts, 2026-10-24 | `move()` performs relocation and sets `moved`; `with move:` temporarily changes placement without changing `moved`, then restores placement through the same Piece relocation helper. This supersedes the initial saved-flag/public-undo implementation; faithful deeper simulation and history undo remain deferred |

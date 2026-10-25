@@ -3,9 +3,11 @@ from __future__ import annotations
 
 import pytest
 
+from goochess.algebra import Capt
 from goochess.engine import Board, Position, Side
 from goochess.geometry import Index
 from goochess.material import Bishop, King, Knight, Pawn, Queen, Rook
+from goochess.mathematics import indices
 
 
 class EngineSetup:
@@ -165,6 +167,10 @@ class TestSide(EngineSetup):
 
 	counts = (0, 1, 2)
 	contexts = (("white", False, "P"), ("black", True, "p"))
+	target_cases = (
+		(False, Index.B1, Index.E2, Index.H8, (Index.A3, Index.C3, Index.D2, Index.E3, Index.E4)),
+		(True, Index.B8, Index.E7, Index.H1, (Index.A6, Index.C6, Index.D7, Index.E6, Index.E5)),
+	)
 
 	@pytest.mark.parametrize("count", counts)
 	def test_construction_with_position(self, count) -> None:
@@ -215,6 +221,42 @@ class TestSide(EngineSetup):
 		assert first != second
 		assert len(position.side[color]) == 2
 		assert position.side[color] == {first, second}
+
+	@pytest.mark.parametrize("color", EngineSetup.colors)
+	def test_empty_roster_has_no_targets(self, color) -> None:
+		side = Position(self.empty).side[color]
+		assert side.targets == indices()
+		assert isinstance(side.targets, indices)
+
+	@pytest.mark.parametrize("color, knight_square, pawn_square, opponent_square, expected", target_cases)
+	def test_targets_combine_own_pieces(self, color, knight_square, pawn_square, opponent_square, expected) -> None:
+		position = Position(self.empty)
+		position[knight_square] = Knight(color)
+		position[pawn_square] = Pawn(color)
+		position[opponent_square] = Knight(not color)
+		targets = position.side[color].targets
+		assert isinstance(targets, indices)
+		assert targets == indices(*expected)
+
+	@pytest.mark.parametrize("color", EngineSetup.colors)
+	def test_targets_restore_after_capture_simulation(self, color) -> None:
+		position = Position(self.empty)
+		piece = Knight(color)
+		other = Pawn(not color)
+		position[Index.C3] = piece
+		position[Index.D5] = other
+		side = piece.side
+		before = side.targets, side.other.targets
+
+		with Capt(Index.D5, piece):
+			assert side == {piece}
+			assert len(side.other) == 0
+			assert side.other.targets == indices()
+			assert side.targets != before[0]
+
+		assert side == {piece}
+		assert side.other == {other}
+		assert (side.targets, side.other.targets) == before
 
 
 class TestPosition(EngineSetup):

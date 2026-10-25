@@ -37,6 +37,21 @@ class Move(mathematics.index[2, 8]):
 	def __bool__(self) -> bool:
 		return self.piece.position[self.target] is None
 
+	def __call__(self) -> typing.Self:
+		self.piece(self.target)
+		self.piece.moved = True
+
+		return self
+
+	def __enter__(self) -> typing.Self:
+		assert self.piece.index == self.source and self.piece.position[self.target] is self.other
+		self.piece(self.target)
+
+		return self
+
+	def __exit__(self, *_) -> None:
+		self.piece(self.source, self.other)
+
 
 	@property
 	def target(self) -> geometry.Index:
