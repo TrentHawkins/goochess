@@ -138,11 +138,11 @@ class TestMove(AlgebraSetup):
 
 	@pytest.mark.parametrize("color", AlgebraSetup.colors)
 	@pytest.mark.parametrize("moved", moved_states)
-	def test_context_restores_placement_without_changing_moved_flag(self, color, moved) -> None:
+	def test_context_preserves_moved_flag(self, color, moved) -> None:
 		position = self.position()
 		piece = self.place(position, Pawn, Index.E2, color)
-		piece.moved = moved
 		move = Move(Index.E3, piece)
+		piece.moved = moved
 		before = self.state(position)
 
 		with move as active:

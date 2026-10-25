@@ -37,7 +37,7 @@ class Move(mathematics.index[2, 8]):
 		return self.piece.position[self.target] is None
 
 	def __call__(self) -> typing.Self:
-		self.piece(self.target)
+		self.__enter__()
 		self.piece.moved = True
 
 		return self
@@ -119,33 +119,28 @@ class EnPassant(Capt):
 
 		self.victim = self.piece.position[self.middle]
 
-	def __call__(self) -> typing.Self:
-		super().__call__()
-		del self.piece.position[self.middle]
-
-		return self
-
-	def __bool__(self) -> bool:
-		other = self.piece.position[self.target]
-		victim = self.piece.position[self.middle]
-
-		return super().__bool__() and \
-			isinstance(self.piece, material.Pawn ) and \
-			isinstance(     other, material.Ghost) and \
-			isinstance(    victim, material.Pawn ) and victim.color != self.piece.color and \
-			self.source.rank == (4 if self.piece.color else 5) and \
-			self.target.rank == (3 if self.piece.color else 6) and abs(self.target[0] - self.source[0]) == 1
-
 	def __enter__(self) -> typing.Self:
 		assert self.piece.position[self.middle] is self.victim
+
 		super().__enter__()
 		del self.piece.position[self.middle]
 
 		return self
 
 	def __exit__(self, *args) -> None:
-		super().__exit__(*args)
 		self.piece.position[self.middle] = self.victim
+		super().__exit__(*args)
+
+	def __bool__(self) -> bool:
+		other = self.piece.position[self.target]
+		ghost = self.piece.position[self.middle]
+
+		return super().__bool__() and \
+			isinstance(self.piece, material.Pawn ) and \
+			isinstance(     other, material.Ghost) and \
+			isinstance(     ghost, material.Pawn ) and ghost.color != self.piece.color and \
+			self.source.rank == (4 if self.piece.color else 5) and \
+			self.target.rank == (3 if self.piece.color else 6) and abs(self.target[0] - self.source[0]) == 1
 
 
 	@property

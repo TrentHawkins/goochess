@@ -365,7 +365,7 @@ This narrow query concerns an occupied king square. It is not a general attack m
 
 **Status: Move-owned ordinary/en passant execution, lightweight placement contexts, and initial king-safety filtering implemented; complete transitions and game coordination pending.**
 
-`move()` performs the ordinary relocation and sets the piece's `moved` flag. `with move:` instead temporarily relocates the piece while leaving that flag unchanged, then restores source/target occupancy and any captured piece on exit, including when the body raises. Actual execution and context entry each call the piece relocation primitive directly; context entry does not call `__call__`. Construction-time `source` and `other` remain unchanged, allowing sequential reuse of the context. Context entry asserts that the piece still occupies that source and the target still contains that same occupant.
+`move()` delegates placement to `__enter__`, then sets the piece's `moved` flag. `with move:` uses that same entry method while leaving the flag unchanged, then restores source/target occupancy and any captured piece on exit, including when the body raises. En passant extends entry and exit with its additional pawn removal and restoration. Construction-time `source` and `other` remain unchanged, allowing sequential reuse of the context. Context entry asserts that the piece still occupies that source and the target still contains that same occupant.
 
 `Piece.__call__` is the same relocation primitive in either direction: `piece(target)` applies placement, while `piece(source, kept = other)` restores it. It has no movement-flag or history responsibility. `Position.binding` maintains indices, context references, and rosters around all those assignments; simulation does not bypass roster updates. `EnPassant` additionally removes its separately recorded pawn victim during execution and context entry, and restores that pawn on context exit. Move-owned execution does not yet apply special effects for promotion or castling.
 
@@ -454,6 +454,8 @@ The extension mechanism remains open. This goal does not yet select a registry, 
 
 Evolve `with move:` into faithful simulation of the complete move, with the same position effects as actual execution and exact restoration afterward. Compose and reverse all effects: relocation, captures on other squares, secondary piece movement, promotion, movement flags, castling rights, en passant availability, turn state, and relevant counters. Preserve piece identities and restore position bindings and rosters consistently. The eventual contract should support nested simulations and customized rules without relying on standard-chess shortcuts. The concrete representation of effects and saved state remains open.
 
+The immediate development priority is one correctly applied and reversed move. Deeper playback and branching traversal are advanced future work in F04, to follow once that foundation is sound.
+
 The current lightweight context restores placement and the displaced destination occupant; en passant additionally removes and restores the pawn captured on another square. This is a deliberate intermediate step, not proof of complete standard-chess legality:
 
 - **En passant already requires the extra occupancy change in standard chess.** With White Kh5/Pg5 and Black Ka8/Ra5/Pf7, `...f7-f5` is legal. But `g5xf6 e.p.` removes both f5 and g5, exposing Kh5 to Ra5. Moving only the white pawn leaves f5 blocking the rook and gives the wrong safety result. The current prototype now removes and restores that actual pawn during simulation. This counterexample follows [FIDE articles 3.7.3.1–2 and 3.9.2](https://handbook.fide.com/chapter/e012023).
@@ -467,7 +469,23 @@ These limitations do not authorize implementing the larger simulator now. Correc
 
 Explore a deterministic chess AI using minimax game-tree search. Faithful simulations should allow successive candidate moves to be applied, evaluated, and taken back without altering sibling branches or the actual game. This uses the intended separation between `Position` as current state and the future `Game` runner as progression/history coordination.
 
+F04 records the shared history and traversal direction that should eventually support this exploration.
+
 Evaluation, search depth, move ordering, and search optimizations remain future design questions. No particular algorithm refinements or caching strategy are selected. Variant support must obtain legal transitions and outcomes from the configured rules rather than assume that standard-chess displacement shortcuts remain valid.
+
+### F04. Move history and branching traversal
+
+**Status: Agreed advanced future direction; implementation deferred until single-move application, simulation, and reversal are correct. Related: O08, F02, F03.**
+
+Develop history and playback in stages:
+
+- [ ] Begin with a list of moves describing one linear game history.
+- [ ] Upgrade history to a rooted tree of moves. Linear play remains a single path; undoing and choosing another continuation adds a branch without discarding the previous continuation.
+- [ ] Support backtracking and following existing or new branches, keeping the current position synchronized with the selected path through move application and reversal.
+- [ ] Retain traversal history, including backtracks, as well as the move branches themselves. A tree alone does not record the chronological order in which its branches were visited; the representation of that additional history remains open.
+- [ ] Reuse the same application, reversal, and traversal mechanisms to explore hypothetical move trees for minimax and related search, while distinguishing speculative exploration from played game history.
+
+This is a progression from the single-move foundation, not a requirement to implement deeper simulation, tree structures, or navigation APIs during the current development steps.
 
 ## Current implementation gaps
 
