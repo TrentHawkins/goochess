@@ -3,11 +3,11 @@ from __future__ import annotations
 
 import pytest
 
-from goochess.algebra import Capt
+from goochess.algebra import Capt, Move
 from goochess.engine import Board, Position, Side
 from goochess.geometry import Index
 from goochess.material import Bishop, King, Knight, Pawn, Queen, Rook
-from goochess.mathematics import indices
+from goochess.structs import collection
 
 
 class EngineSetup:
@@ -225,8 +225,8 @@ class TestSide(EngineSetup):
 	@pytest.mark.parametrize("color", EngineSetup.colors)
 	def test_empty_roster_has_no_targets(self, color) -> None:
 		side = Position(self.empty).side[color]
-		assert side.targets == indices()
-		assert isinstance(side.targets, indices)
+		assert side.targets == collection()
+		assert isinstance(side.targets, collection)
 
 	@pytest.mark.parametrize("color, knight_square, pawn_square, opponent_square, expected", target_cases)
 	def test_targets_combine_own_pieces(self, color, knight_square, pawn_square, opponent_square, expected) -> None:
@@ -235,8 +235,9 @@ class TestSide(EngineSetup):
 		position[pawn_square] = Pawn(color)
 		position[opponent_square] = Knight(not color)
 		targets = position.side[color].targets
-		assert isinstance(targets, indices)
-		assert targets == indices(*expected)
+		assert isinstance(targets, collection)
+		assert all(isinstance(step, Move) for step in targets)
+		assert targets == collection(*expected)
 
 	@pytest.mark.parametrize("color", EngineSetup.colors)
 	def test_targets_restore_after_capture_simulation(self, color) -> None:
@@ -251,7 +252,7 @@ class TestSide(EngineSetup):
 		with Capt(Index.D5, piece):
 			assert side == {piece}
 			assert len(side.other) == 0
-			assert side.other.targets == indices()
+			assert side.other.targets == collection()
 			assert side.targets != before[0]
 
 		assert side == {piece}

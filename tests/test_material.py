@@ -3,11 +3,11 @@ from __future__ import annotations
 
 import pytest
 
-from goochess.algebra import Capt, Move, Rush
+from goochess.algebra import Capt, EnPassant, Move, Rush
 from goochess.engine import Position
 from goochess.geometry import Index
 from goochess.material import Bishop, Ghost, King, Knight, Officer, Pawn, Piece, Queen, Rook, Roster
-from goochess.mathematics import indices
+from goochess.structs import collection
 
 
 class MaterialSetup:
@@ -48,7 +48,7 @@ class TestPiece(MaterialSetup):
 		assert not piece.moved
 		assert piece.value == 0
 		assert repr(piece) == "-"
-		assert piece.targets == piece.squares == indices()
+		assert piece.targets == piece.squares == collection()
 
 	@pytest.mark.parametrize("kind", canonical)
 	@pytest.mark.parametrize("color", MaterialSetup.colors)
@@ -60,7 +60,7 @@ class TestPiece(MaterialSetup):
 		assert not hasattr(piece, "position")
 		assert piece.index is None
 		assert not piece.moved
-		assert piece.targets == indices()
+		assert piece.targets == collection()
 		assert repr(piece) == symbol
 
 	@pytest.mark.parametrize("symbol", invalid_symbols)
@@ -91,7 +91,7 @@ class TestPiece(MaterialSetup):
 		piece = kind(color)
 		assert piece.index is None
 		assert not hasattr(piece, "position")
-		assert piece.targets == piece.squares == indices()
+		assert piece.targets == piece.squares == collection()
 
 	def test_piece_lifecycles_are_independent(self) -> None:
 		position = self.position()
@@ -122,7 +122,7 @@ class TestPiece(MaterialSetup):
 		assert piece.side is position.side[color]
 		assert piece.position is position
 		assert piece not in piece.side
-		assert piece.targets == piece.squares == indices()
+		assert piece.targets == piece.squares == collection()
 
 	@pytest.mark.parametrize("color", MaterialSetup.colors)
 	@pytest.mark.parametrize("moved", moved_states)
@@ -176,7 +176,7 @@ class TestPiece(MaterialSetup):
 
 		before = tuple(position)
 
-		with pytest.raises(ValueError, match = "valid index"):
+		with pytest.raises(AssertionError):
 			piece(Index.E3)
 
 		assert tuple(position) == before
@@ -329,6 +329,35 @@ class TestRanged(MaterialSetup):
 		assert self.targets(piece) == expected
 
 
+class TestKing(MaterialSetup):
+
+	pawn_attacks = (
+		(False, Index.D4, Index.C5, Index.D5),
+		(True, Index.D5, Index.C4, Index.D4),
+	)
+
+	@pytest.mark.parametrize("color", MaterialSetup.colors)
+	def test_unplaced_king_is_not_safe(self, color) -> None:
+		assert not King(color).safe
+
+	@pytest.mark.parametrize("color, square, diagonal, forward", pawn_attacks)
+	def test_opposing_pawn_attacks_diagonally(self, color, square, diagonal, forward) -> None:
+		position = self.position()
+		king = self.place(position, King, square, color)
+		assert king.safe
+		self.place(position, Pawn, forward, not color)
+		assert king.safe
+		del position[forward]
+		self.place(position, Pawn, diagonal, not color)
+		assert not king.safe
+
+	def test_pinned_opponent_still_attacks(self) -> None:
+		position = Position("4k3/8/4n3/8/5K2/8/8/4R3")
+		king = position.white.king
+		assert king is not None
+		assert not king.safe
+
+
 class TestPawn(MaterialSetup):
 
 	cases = (
@@ -346,6 +375,10 @@ class TestPawn(MaterialSetup):
 		(True, Index.E2, Index.E1, Index.D1),
 	)
 	terminal = ((False, Index.A8), (True, Index.A1))
+	en_passant = (
+		(False, "k7/8/8/r4pPK/8/8/8/8", Index.G5, Index.F5, Index.F6, Index.A5),
+		(True, "8/8/8/8/R4Ppk/8/8/K7", Index.G4, Index.F4, Index.F3, Index.A4),
+	)
 
 	@pytest.mark.parametrize("color, source, single, double, diagonals", cases)
 	def test_forward_moves(self, color, source, single, double, diagonals) -> None:
@@ -364,7 +397,7 @@ class TestPawn(MaterialSetup):
 		position = self.position()
 		pawn = self.place(position, Pawn, source, color)
 		self.place(position, Pawn, single, pawn.color if friendly else not pawn.color)
-		assert pawn.targets == indices()
+		assert pawn.targets == collection()
 
 	@pytest.mark.parametrize("color, source, single, double, diagonals", cases)
 	@pytest.mark.parametrize("friendly", (True, False))
@@ -406,4 +439,43 @@ class TestPawn(MaterialSetup):
 	@pytest.mark.parametrize("color, source", terminal)
 	def test_terminal_rank_has_no_targets(self, color, source) -> None:
 		pawn = self.place(self.position(), Pawn, source, color)
-		assert pawn.targets == indices()
+		assert pawn.targets == collection()
+
+	@pytest.mark.parametrize("color, placement, source, middle, target, attacker", en_passant)
+	@pytest.mark.parametrize("attacked", (False, True))
+	def test_en_passant_king_safety_removes_both_pawns(self, color, placement, source,
+		middle, target, attacker, attacked,
+	) -> None:
+		position = Position(placement)
+		pawn = position[source]
+		assert isinstance(pawn, Pawn)
+		victim = position[middle]
+		assert isinstance(victim, Pawn)
+		ghost = self.place(position, Ghost, target, not color)
+
+		if not attacked:
+			del position[attacker]
+
+		king = pawn.side.king
+		assert king is not None and king.safe
+		before = tuple(position), frozenset(position.white), frozenset(position.black)
+		assert self.targets(pawn)[target] is EnPassant
+		assert (target in pawn.squares) is not attacked
+		assert (tuple(position), frozenset(position.white), frozenset(position.black)) == before
+		assert pawn.index is source
+		assert victim.index is middle
+		assert ghost.index is target
+		assert not pawn.moved
+		assert king.safe
+
+	@pytest.mark.parametrize("color, placement, source, middle, target, attacker", en_passant)
+	def test_ghost_without_capturable_pawn_is_not_a_target(self, color, placement,
+		source, middle, target, attacker,
+	) -> None:
+		position = Position(placement)
+		pawn = position[source]
+		assert isinstance(pawn, Pawn)
+		self.place(position, Ghost, target, not color)
+		del position[middle]
+		assert target not in self.targets(pawn)
+		assert target not in pawn.squares

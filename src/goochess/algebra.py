@@ -19,8 +19,7 @@ class Move(mathematics.index[2, 8]):
 		return super().__new__(cls, x)
 
 	def __init__(self, x: int, piece: material.Piece) -> None:
-		if (source := piece.index) is None:
-			raise ValueError("a piece must have a valid index before creating a move")
+		assert (source := piece.index) is not None
 
 		super().__init__()
 
@@ -115,12 +114,43 @@ class PromotionCapt(Promotion, Capt): ...
 
 class EnPassant(Capt):
 
+	def __init__(self, x: int, piece: material.Piece) -> None:
+		super().__init__(x, piece)
+
+		self.victim = self.piece.position[self.middle]
+
+	def __call__(self) -> typing.Self:
+		super().__call__()
+		del self.piece.position[self.middle]
+
+		return self
+
 	def __bool__(self) -> bool:
 		other = self.piece.position[self.target]
+		victim = self.piece.position[self.middle]
 
 		return super().__bool__() and \
 			isinstance(self.piece, material.Pawn ) and \
-			isinstance(     other, material.Ghost) and self.source.rank == (4 if self.piece.color else 5)
+			isinstance(     other, material.Ghost) and \
+			isinstance(    victim, material.Pawn ) and victim.color != self.piece.color and \
+			self.source.rank == (4 if self.piece.color else 5) and \
+			self.target.rank == (3 if self.piece.color else 6) and abs(self.target[0] - self.source[0]) == 1
+
+	def __enter__(self) -> typing.Self:
+		assert self.piece.position[self.middle] is self.victim
+		super().__enter__()
+		del self.piece.position[self.middle]
+
+		return self
+
+	def __exit__(self, *args) -> None:
+		super().__exit__(*args)
+		self.piece.position[self.middle] = self.victim
+
+
+	@property
+	def middle(self) -> geometry.Index:
+		return geometry.Index.from_sequence((self.target[0], self.source[1]))  # pylint: disable = no-member
 
 
 class Check(Move):

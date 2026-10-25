@@ -2,7 +2,7 @@
 
 This is the working reference for Goochess design discussions: what we have chosen, why we chose it, what the code currently implements, and what still needs a decision. It records the model we are building together rather than prescribing the rest of the implementation.
 
-Jump to [decisions](#decisions-and-retained-baseline), [open questions](#open-decisions), or [implementation gaps](#current-implementation-gaps).
+Jump to [decisions](#decisions-and-retained-baseline), [open questions](#open-decisions), [future directions](#future-directions), or [implementation gaps](#current-implementation-gaps).
 
 ## Reading and maintaining this record
 
@@ -42,7 +42,7 @@ The 2026-10-24 revision renames the former `Game` state class to `Position`. The
 
 A move describes a transition around one moving piece and its destination, rather than requiring a newly constructed board for every candidate.
 
-That compact move model must still accommodate effects involving other pieces: captures, the rook in castling, promotion, and en passant. It does not imply that every transition changes only two board slots. O08 establishes ordinary execution and temporary placement for a one-move king-safety check; special effects, history undo, and complete-state game-tree traversal remain pending.
+That compact move model must still accommodate effects involving other pieces: captures, the rook in castling, promotion, and en passant. It does not imply that every transition changes only two board slots. O08 establishes ordinary and en passant execution and temporary placement for a one-move king-safety check; remaining special effects, history undo, and complete-state game-tree traversal remain pending.
 
 Prefer small, meaningful responsibility boundaries and direct code. Do not add registries, generalized frameworks, or new abstractions merely to anticipate future features. This is also an exercise: implementation proceeds in understandable steps, with review between them.
 
@@ -159,7 +159,7 @@ A union, difference, or copy of a roster is an ordinary set of pieces; it is not
 
 The scope is standard chess, and each side of a valid playable position must have exactly one king. `Side.king` refers to the same king object contained in its roster; its position remains `king.index`.
 
-`Position.__init__` assigns each encountered king to its color-selected side during the post-parsing king scan. This establishes the reference for a normally populated position; it does not validate exactly one king. Missing kings leave the reference unset, and duplicate kings overwrite it. Choosing mutation-time updates and the validation boundary remains O01/O02. Plain boards and current positions can still represent partial setups; that need not weaken the intended playable-position invariant.
+`Position.__init__` assigns each encountered king to its color-selected side during the post-parsing king scan. This establishes the reference for a normally populated position; it does not validate exactly one king. Missing kings leave `Side.king` as `None`, and duplicate kings overwrite it. Choosing mutation-time updates and the validation boundary remains O01/O02. Plain boards and current positions can still represent partial setups; that need not weaken the intended playable-position invariant.
 
 ### D10. Movement search uses generators and boundary exceptions
 
@@ -171,7 +171,9 @@ Off-board point operations raise `ValueError`; search catches or suppresses it a
 
 Occupancy and later king-safety rejection are boolean validation outcomes, rather than exceptions. The pawn's single advance and double advance are checked independently: a future king-safety rejection of the intermediate destination must not by itself suppress a legal double advance.
 
-These are currently geometric/occupancy candidates. Calling them fully legal moves would overstate the implementation. Attack detection and complete legality remain open in O07.
+`targets` contains geometric/occupancy candidates. `squares` simulates each candidate and excludes those leaving an installed king unsafe; partial positions without a king retain their candidates. This is an initial king-safety filter, not complete legal-move validation. General attack queries and complete legality remain open in O07.
+
+Piece and side target collections, and filtered piece squares, use `structs.collection[algebra.Move]`. Search already constructs `Move`, `Capt`, `Rush`, and `EnPassant` instances; filtering preserves those objects and their simulation context rather than upgrading plain indices. These chess collections need set operations, not the Cartesian operations supplied by the separate mathematical `indices` type.
 
 ### D11. A move is a target index with a recorded source and piece
 
@@ -198,7 +200,7 @@ Arithmetic on a contextual move is not a promise that a new move can be reconstr
 
 Promotion augments either an ordinary move or capture rather than replacing that distinction. The current `Promotion[Move]` and `Promotion[Capt]` select finite named classes, not freshly synthesized runtime classes. Each promotion instance owns its selected officer and its queen-first choice cycle. This implementation is retained as prototype context, not a requirement to emit all variants during square search.
 
-`EnPassant` is capture-related, but its actual victim and occupancy rules depend on O05/O06. Ordinary pawn generation currently does not emit promotion or en passant variants. `Check` and `Checkmate` currently provide notation suffixes, not detection algorithms. The next classification/notation boundary is O10.
+Pawn diagonal search emits `EnPassant` when the target contains a manually supplied `Ghost`, and `Capt` otherwise. `EnPassant` separately snapshots and validates the actual opposing pawn, removes it during execution or simulation, and restores it on context exit. Ghost creation and expiry remain O05/O06. Pawn generation does not emit promotion variants. `Check` and `Checkmate` currently provide notation suffixes, not detection algorithms. The next classification/notation boundary is O10.
 
 ### D13. Placement notation has explicit decoded layers
 
@@ -328,9 +330,9 @@ The physical representation is a different, still open decision:
 
 The second option must account for ordinary moves, sliding rays, blockers, ordinary captures, attacks, side membership, and placement export. The experimental `Board.empty` helper considered both `None` and `Ghost` empty, but was removed without being adopted by move validation. No replacement helper or ghost-transparency policy has been selected. The inherited ghost symbol is `-`, so placement export hides it. These are experiments rather than closure of the representation choice. Conversely, separate metadata requires `EnPassant` to consult that metadata instead of inheriting ordinary occupied-target validation unchanged.
 
-Execution must identify the actual pawn victim, which occupies a different square from the destination. The current `other` snapshot points to the manually placed ghost in the prototype, not automatically to that pawn. The fields or references connecting the two remain open.
+`EnPassant.other` remains the construction-time destination occupant, the manually placed ghost. `middle` identifies the destination file and source rank, and `victim` snapshots the pawn on that square. Validation checks for an opposing pawn, and execution and simulation remove it through ordinary position assignment. Context exit restores all three affected squares, including the original ghost and pawn, with indices and rosters maintained by the binding machinery. This repairs the extra occupancy change needed for king safety without selecting the final ghost representation or lifecycle API.
 
-Expiry, creation on a committed rush, restoration during undo, and initialization from full FEN are not implemented. The FEN target can be present even without an available capturing pawn; do not confuse serialization of that target with legal capture availability. [FEN, section 16.1.3.4](https://www.saremba.de/chessgml/standards/pgn/pgn-complete.htm)
+Expiry, creation on a committed rush, history undo of availability, and initialization from full FEN are not implemented. The FEN target can be present even without an available capturing pawn; do not confuse serialization of that target with legal capture availability. [FEN, section 16.1.3.4](https://www.saremba.de/chessgml/standards/pgn/pgn-complete.htm)
 
 ### O06. What represents an empty square?
 
@@ -347,7 +349,7 @@ The unplaced-piece convention `piece.index is None` in D06 is a separate questio
 
 ### O07. What query establishes attacks and king safety?
 
-**Status: Required behavior identified; API and implementation open.**
+**Status: Initial occupied-king safety query and candidate filtering implemented; general attack API and complete legality open.**
 
 Attacks cannot be defined as the opponent's fully legal destinations: pinned pieces still attack, and pawn forward moves differ from pawn diagonal attacks. Validating each side through the other's legal moves would also create a circular definition. [FIDE, articles 3.1.3 and 3.9](https://handbook.fide.com/chapter/e012023)
 
@@ -355,19 +357,21 @@ Attacks cannot be defined as the opponent's fully legal destinations: pinned pie
 - [ ] A generated collection of attacked squares, independent of legal-move filtering.
 - [ ] Cached attack information with explicit invalidation, only if later justified.
 
-The current recommendation is the smallest direct query that serves king safety and castling, reusing geometry where appropriate. Evaluate safety against the position resulting from the complete candidate move, including special-move effects. Do not introduce attack-map caching just to select the initial API.
+`King.safe` checks whether the occupied king square occurs in the opposing side's raw `targets`, without consulting their filtered `squares`. `Piece.squares` temporarily applies each candidate and retains it only when its side's installed king is safe; missing kings permit partial-position tests. En passant simulation includes removal of the actual pawn, so discovered attacks through either vacated pawn square are visible.
+
+This narrow query concerns an occupied king square. It is not a general attack map: pawn forward movement and empty diagonals make raw targets unsuitable for arbitrary empty squares, including castling transit squares. The current recommendation remains the smallest direct attack query that serves those checks, reusing geometry where appropriate. Evaluate safety against the position resulting from the complete candidate move, including special-move effects. Do not introduce attack-map caching just to select the initial API.
 
 ### O08. Where do execution, simulation, and history live?
 
-**Status: Move-owned ordinary execution and lightweight placement contexts implemented; complete transitions, legal filtering, and game coordination pending.**
+**Status: Move-owned ordinary/en passant execution, lightweight placement contexts, and initial king-safety filtering implemented; complete transitions and game coordination pending.**
 
-`move()` performs the ordinary relocation and sets the piece's `moved` flag. `with move:` instead temporarily relocates the piece while leaving that flag unchanged, then restores source/target occupancy and any captured piece on exit, including when the body raises. `Move.__call__` delegates validation and relocation to `__enter__` before setting the flag; context entry does not call `__call__`. Construction-time `source` and `other` remain unchanged, allowing sequential reuse of the context. Both paths require the piece still to occupy that source and the target still to contain that same occupant.
+`move()` performs the ordinary relocation and sets the piece's `moved` flag. `with move:` instead temporarily relocates the piece while leaving that flag unchanged, then restores source/target occupancy and any captured piece on exit, including when the body raises. Actual execution and context entry each call the piece relocation primitive directly; context entry does not call `__call__`. Construction-time `source` and `other` remain unchanged, allowing sequential reuse of the context. Context entry asserts that the piece still occupies that source and the target still contains that same occupant.
 
-`Piece.__call__` is the same relocation primitive in either direction: `piece(target)` applies placement, while `piece(source, kept = other)` restores it. It has no movement-flag or history responsibility. `Position.binding` maintains indices, context references, and rosters around all those assignments; simulation does not bypass roster updates. Move-owned execution does not yet apply special effects for promotion, en passant, or castling.
+`Piece.__call__` is the same relocation primitive in either direction: `piece(target)` applies placement, while `piece(source, kept = other)` restores it. It has no movement-flag or history responsibility. `Position.binding` maintains indices, context references, and rosters around all those assignments; simulation does not bypass roster updates. `EnPassant` additionally removes its separately recorded pawn victim during execution and context entry, and restores that pawn on context exit. Move-owned execution does not yet apply special effects for promotion or castling.
 
-This deliberately returns to the old context's limited purpose: temporarily inspect the occupancy resulting from one candidate move for king safety. It is not a complete reversible state transition or a faithful deeper-search simulator. The initial public `undo()` and per-move saved movement flag/execution marker have been removed; complete-state simulation and history undo are deferred.
+This deliberately returns to the old context's limited purpose: temporarily inspect the occupancy resulting from one candidate move for king safety. It is not a complete reversible state transition or a faithful deeper-search simulator. The initial public `undo()` and per-move saved movement flag/execution marker have been removed; complete-state simulation and history undo are deferred. F02 records the longer-term direction and the special-move limitations that already matter for standard chess.
 
-`Position` supplies rule context. A future `Game` runner will own a current position and coordinate progression, history, and traversal (D01); no runner is implemented yet. Complete transitions must preserve or restore king references, castling rights, en passant availability, and turn state when those features exist. Attack queries and legal-move filtering remain open in O07.
+`Position` supplies rule context. A future `Game` runner will own a current position and coordinate progression, history, and traversal (D01); no runner is implemented yet. Complete transitions must preserve or restore king references, castling rights, en passant availability, and turn state when those features exist. O07 records the initial king-safety filter and the remaining general attack-query boundary.
 
 - [x] Move-owned execution and temporary placement for king-safety inspection, with future game coordination.
 - [ ] Game-owned application/reversal of move records.
@@ -390,7 +394,7 @@ Rank widths, total dimensions, accepted symbols, malformed input behavior, and t
 
 **Status: Partial separation agreed in D12; the remaining boundary is deferred.**
 
-Basic moves, captures, and rushes stay available to piece search. Castling will also require explicit behavior. Promotion/en passant enrichment and final check/disambiguation annotations still need to be placed deliberately.
+Basic moves, captures, rushes, and the current ghost-based en passant prototype stay available to piece search. Castling will also require explicit behavior. Promotion enrichment and final check/disambiguation annotations still need to be placed deliberately.
 
 - [ ] Detect geometric/occupancy targets first, then enrich a selected move with its special behavior and notation.
 - [ ] Generate the necessary specialized executable choices during legal-move enumeration.
@@ -432,6 +436,39 @@ Symbol parsing supplies color without needing an owner. Position placement binds
 
 `geometry.Color` and `Index.color` remain removed. No color immutability enforcement is requested. Representations and APIs for the remaining king, castling, ghost, and attack decisions stay open in their existing entries.
 
+## Future directions
+
+These are agreed longer-term goals, with implementation deliberately deferred. Standard chess remains the immediate scope in D01. The directions below should guide the responsibility boundaries we build together, without requiring a general framework before concrete needs establish its shape.
+
+### F01. Custom rules and chess variants
+
+**Status: Planned direction; API and implementation deferred.**
+
+Support customizing game rules and constructing chess variants through a composable API. Movement patterns, validation, move effects, and position context should cooperate through explicit responsibilities, so extending a rule does not require duplicating the engine. Standard chess should be one supported rule configuration rather than a collection of hidden assumptions that every extension must satisfy.
+
+The extension mechanism remains open. This goal does not yet select a registry, configuration format, inheritance scheme, or separate rules engine. It builds on the existing piece, move, and position boundaries, subject to further review as variants become concrete.
+
+### F02. Faithful algebraic move simulation
+
+**Status: Planned direction; full transition and reversal design deferred. Related: O05, O07, O08, F01, F03.**
+
+Evolve `with move:` into faithful simulation of the complete move, with the same position effects as actual execution and exact restoration afterward. Compose and reverse all effects: relocation, captures on other squares, secondary piece movement, promotion, movement flags, castling rights, en passant availability, turn state, and relevant counters. Preserve piece identities and restore position bindings and rosters consistently. The eventual contract should support nested simulations and customized rules without relying on standard-chess shortcuts. The concrete representation of effects and saved state remains open.
+
+The current lightweight context restores placement and the displaced destination occupant; en passant additionally removes and restores the pawn captured on another square. This is a deliberate intermediate step, not proof of complete standard-chess legality:
+
+- **En passant already requires the extra occupancy change in standard chess.** With White Kh5/Pg5 and Black Ka8/Ra5/Pf7, `...f7-f5` is legal. But `g5xf6 e.p.` removes both f5 and g5, exposing Kh5 to Ra5. Moving only the white pawn leaves f5 blocking the rook and gives the wrong safety result. The current prototype now removes and restores that actual pawn during simulation. This counterexample follows [FIDE articles 3.7.3.1–2 and 3.9.2](https://handbook.fide.com/chapter/e012023).
+- **Castling validation is narrower than full simulation.** Standard rules require rights, clearance, and safety at the king's starting, crossing, and destination squares. King-placement probes can serve these checks; they do not model rook relocation or provide a variant-independent transition. See [FIDE articles 3.8.2–3.8.2.2](https://handbook.fide.com/chapter/e012023) and O04. Castling is not implemented in the current package; `King` inherits the ordinary relocation helper.
+
+These limitations do not authorize implementing the larger simulator now. Correct special-move occupancy for immediate legality checks can be addressed before the full reusable transition API is selected.
+
+### F03. Deterministic minimax engine
+
+**Status: Planned exploration; implementation deferred. Depends on complete legal-move enumeration and F02.**
+
+Explore a deterministic chess AI using minimax game-tree search. Faithful simulations should allow successive candidate moves to be applied, evaluated, and taken back without altering sibling branches or the actual game. This uses the intended separation between `Position` as current state and the future `Game` runner as progression/history coordination.
+
+Evaluation, search depth, move ordering, and search optimizations remain future design questions. No particular algorithm refinements or caching strategy are selected. Variant support must obtain legal transitions and outcomes from the configured rules rather than assume that standard-chess displacement shortcuts remain valid.
+
 ## Current implementation gaps
 
 These are observations, not authorization to fix unrelated code whenever this file is edited.
@@ -440,7 +477,7 @@ These are observations, not authorization to fix unrelated code whenever this fi
 - `Board.__setitem__` performs slot replacement within `Board.binding`; `Position.binding` extends index bookkeeping with position binding and active roster synchronization. Later king replacement or removal does not maintain king references. The contexts do not provide rollback or a complete-position invariant inside their bodies.
 - Cross-board assignment validation and coordinated transfer between positions are explicitly deferred.
 - Active-side state, castling rights, relevant counters, and an authoritative ghost reference still need concrete representations and APIs on `Position`.
-- Ordinary move execution sets `moved`; temporary move contexts restore placement and captured pieces while leaving `moved` unchanged. Public history undo and faithful deeper-state simulation are deferred. Special-effect execution, a castling move, ghost expiry, and a king-safety query remain unimplemented. `Position` owns participants and supplies piece context; the future `Game` runner and progression/history remain unimplemented.
+- Ordinary move execution sets `moved`; temporary move contexts restore placement and captured pieces while leaving `moved` unchanged. En passant also removes/restores its separate pawn victim, and candidate filtering uses `King.safe`. Public history undo and faithful deeper-state simulation are deferred. Promotion effects, a castling move, general attack queries, and ghost creation/expiry remain unimplemented. `Position` owns participants and supplies piece context; the future `Game` runner and progression/history remain unimplemented.
 - En passant tests currently place `Ghost` in board occupancy manually. That is prototype coverage, not closure of O05/O06.
 - Color remains writable by explicit choice; changing a registered piece's color would leave its current roster stale.
 

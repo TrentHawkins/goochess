@@ -5,7 +5,7 @@ import contextlib
 import typing
 
 from . import structs
-from . import mathematics
+from . import algebra
 from . import notation
 from . import geometry
 from . import material
@@ -58,7 +58,7 @@ class Board(list[material.Piece | None]):
 class Side(set[material.Piece]):
 
 	position: Position
-	king: material.King
+	king: material.King | None = None
 
 
 	def __init__(self, position: Position, /, *pieces: material.Piece):
@@ -75,8 +75,8 @@ class Side(set[material.Piece]):
 		return self.position.side[not self]
 
 	@property
-	def targets(self) -> mathematics.indices:
-		return mathematics.indices().union(*(piece.targets for piece in self))
+	def targets(self) -> structs.collection[algebra.Move]:
+		return structs.collection[algebra.Move]().union(*(piece.targets for piece in self))
 
 
 class Position(Board):

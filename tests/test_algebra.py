@@ -79,7 +79,7 @@ class TestMove(AlgebraSetup):
 	def test_requires_placed_piece(self) -> None:
 		piece = Pawn(False)
 
-		with pytest.raises(ValueError, match = "valid index"):
+		with pytest.raises(AssertionError):
 			Move(Index.E3, piece)
 
 	@pytest.mark.parametrize("target", invalid_targets)
@@ -170,7 +170,7 @@ class TestMove(AlgebraSetup):
 
 		assert self.state(position) == before
 
-	def test_execution_cannot_overlap_itself(self) -> None:
+	def test_context_cannot_overlap_itself(self) -> None:
 		position = self.position()
 		piece = self.place(position, Pawn, Index.E2, False)
 		move = Move(Index.E3, piece)
@@ -179,10 +179,7 @@ class TestMove(AlgebraSetup):
 		with move:
 			active = self.state(position)
 
-			with pytest.raises(ValueError):
-				move()
-
-			with pytest.raises(ValueError):
+			with pytest.raises(AssertionError):
 				with move:
 					...
 
@@ -202,10 +199,7 @@ class TestMove(AlgebraSetup):
 
 		before = self.state(position)
 
-		with pytest.raises(ValueError):
-			move()
-
-		with pytest.raises(ValueError):
+		with pytest.raises(AssertionError):
 			with move:
 				...
 
@@ -220,10 +214,7 @@ class TestMove(AlgebraSetup):
 		self.place(position, Knight, move.target, True)
 		before = self.state(position)
 
-		with pytest.raises(ValueError):
-			move()
-
-		with pytest.raises(ValueError):
+		with pytest.raises(AssertionError):
 			with move:
 				...
 
@@ -304,8 +295,9 @@ class TestCapt(AlgebraSetup):
 		self.place(position, Knight, capture.target, True)
 		before = self.state(position)
 
-		with pytest.raises(ValueError):
-			capture()
+		with pytest.raises(AssertionError):
+			with capture:
+				...
 
 		assert self.state(position) == before
 		assert capture.other is enemy
@@ -504,8 +496,8 @@ class TestPromotionCapt(AlgebraSetup):
 class TestEnPassant(AlgebraSetup):
 
 	valid_moves = (
-		(False, Index.E5, Index.D6),
-		(True, Index.E4, Index.D3),
+		(False, Index.E5, Index.D5, Index.D6),
+		(True, Index.E4, Index.D4, Index.D3),
 	)
 	other_ranks = (
 		(False, Index.E1, Index.D2),
@@ -522,17 +514,35 @@ class TestEnPassant(AlgebraSetup):
 		(Knight, False, False),
 		(Ghost, False, True),
 	)
+	victims = (
+		(None, False, False),
+		(Pawn, True, False),
+		(Knight, False, False),
+		(Pawn, False, True),
+	)
+	wrong_targets = (
+		(False, Index.E5, Index.D5, Index.E6),
+		(False, Index.E5, Index.D5, Index.C6),
+		(False, Index.E5, Index.D5, Index.D7),
+		(True, Index.E4, Index.D4, Index.E3),
+		(True, Index.E4, Index.D4, Index.C3),
+		(True, Index.E4, Index.D4, Index.D2),
+	)
+	moved_states = (False, True)
 
-	@pytest.mark.parametrize("color, source, target", valid_moves)
-	def test_en_passant_rank(self, color, source, target) -> None:
+	@pytest.mark.parametrize("color, source, middle, target", valid_moves)
+	def test_en_passant_rank(self, color, source, middle, target) -> None:
 		position = self.position()
 		pawn = self.place(position, Pawn, source, color)
+		victim = self.place(position, Pawn, middle, not color)
 		ghost = self.place(position, Ghost, target, not pawn.color)
 		capture = EnPassant(target, pawn)
 		assert bool(capture)
 		assert capture.source is source
 		assert capture.target is target
 		assert capture.other is ghost
+		assert capture.middle is middle
+		assert capture.victim is victim
 
 	@pytest.mark.parametrize("color, source, target", other_ranks)
 	def test_requires_en_passant_rank(self, color, source, target) -> None:
@@ -541,13 +551,124 @@ class TestEnPassant(AlgebraSetup):
 		self.place(position, Ghost, target, not pawn.color)
 		assert not EnPassant(target, pawn)
 
-	@pytest.mark.parametrize("color, source, target", valid_moves)
+	@pytest.mark.parametrize("color, source, middle, target", valid_moves)
 	@pytest.mark.parametrize("kind, friendly, expected", occupants)
-	def test_requires_enemy_ghost(self, color, source, target, kind, friendly, expected) -> None:
+	def test_requires_enemy_ghost(self, color, source, middle, target, kind, friendly, expected) -> None:
 		position = self.position()
 		pawn = self.place(position, Pawn, source, color)
+		self.place(position, Pawn, middle, not color)
 
 		if kind is not None:
 			self.place(position, kind, target, pawn.color if friendly else not pawn.color)
 
 		assert bool(EnPassant(target, pawn)) is expected
+
+	@pytest.mark.parametrize("color, source, middle, target", valid_moves)
+	@pytest.mark.parametrize("kind, friendly, expected", victims)
+	def test_requires_enemy_pawn_beside_source(self, color, source, middle, target, kind, friendly, expected) -> None:
+		position = self.position()
+		pawn = self.place(position, Pawn, source, color)
+		self.place(position, Ghost, target, not color)
+
+		if kind is not None:
+			self.place(position, kind, middle, color if friendly else not color)
+
+		assert bool(EnPassant(target, pawn)) is expected
+
+	@pytest.mark.parametrize("color, source, middle, target", wrong_targets)
+	def test_requires_one_forward_diagonal(self, color, source, middle, target) -> None:
+		position = self.position()
+		pawn = self.place(position, Pawn, source, color)
+		self.place(position, Pawn, middle, not color)
+		self.place(position, Ghost, target, not color)
+		assert not EnPassant(target, pawn)
+
+	@pytest.mark.parametrize("color, source, middle, target", valid_moves)
+	def test_requires_capturing_pawn(self, color, source, middle, target) -> None:
+		position = self.position()
+		knight = self.place(position, Knight, source, color)
+		self.place(position, Pawn, middle, not color)
+		self.place(position, Ghost, target, not color)
+		assert not EnPassant(target, knight)
+
+	@pytest.mark.parametrize("color, source, middle, target", valid_moves)
+	@pytest.mark.parametrize("moved", moved_states)
+	def test_context_restores_all_three_squares_and_is_reusable(self, color, source, middle, target, moved) -> None:
+		position = self.position()
+		pawn = self.place(position, Pawn, source, color)
+		pawn.moved = moved
+		victim = self.place(position, Pawn, middle, not color)
+		victim.moved = True
+		ghost = self.place(position, Ghost, target, not color)
+		capture = EnPassant(target, pawn)
+		before = self.state(position)
+
+		for _ in range(2):
+			with capture as active:
+				assert active is capture
+				assert position[source] is position[middle] is None
+				assert position[target] is pawn
+				assert pawn.index is target
+				assert pawn.moved is moved
+				assert victim.index is ghost.index is None
+				assert victim not in position.side[not color]
+				assert ghost not in position.side[not color]
+				assert victim.moved
+
+			assert self.state(position) == before
+			assert capture.other is ghost
+			assert capture.victim is victim
+
+	@pytest.mark.parametrize("color, source, middle, target", valid_moves)
+	def test_context_restores_after_exception(self, color, source, middle, target) -> None:
+		position = self.position()
+		pawn = self.place(position, Pawn, source, color)
+		self.place(position, Pawn, middle, not color)
+		self.place(position, Ghost, target, not color)
+		capture = EnPassant(target, pawn)
+		before = self.state(position)
+
+		with pytest.raises(LookupError, match = "simulation failed"):
+			with capture:
+				assert position[middle] is None
+
+				raise LookupError("simulation failed")
+
+		assert self.state(position) == before
+
+	@pytest.mark.parametrize("color, source, middle, target", valid_moves)
+	def test_execution_removes_victim_and_ghost(self, color, source, middle, target) -> None:
+		position = self.position()
+		pawn = self.place(position, Pawn, source, color)
+		victim = self.place(position, Pawn, middle, not color)
+		ghost = self.place(position, Ghost, target, not color)
+		capture = EnPassant(target, pawn)
+		assert capture() is capture
+		assert position[source] is position[middle] is None
+		assert position[target] is pawn
+		assert pawn.index is target
+		assert pawn in position.side[color]
+		assert pawn.moved
+		assert victim.index is ghost.index is None
+		assert victim not in position.side[not color]
+		assert ghost not in position.side[not color]
+
+	@pytest.mark.parametrize("color, source, middle, target", valid_moves)
+	def test_live_victim_validation_and_snapshot_guard(self, color, source, middle, target) -> None:
+		position = self.position()
+		pawn = self.place(position, Pawn, source, color)
+		victim = self.place(position, Pawn, middle, not color)
+		self.place(position, Ghost, target, not color)
+		capture = EnPassant(target, pawn)
+		del position[middle]
+		assert not capture
+		self.place(position, Pawn, middle, not color)
+		assert bool(capture)
+		assert capture.victim is victim
+		before = self.state(position)
+
+		with pytest.raises(AssertionError):
+			with capture:
+				...
+
+		assert self.state(position) == before

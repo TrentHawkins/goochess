@@ -7,6 +7,7 @@ import contextlib
 import typing
 
 from . import mathematics
+from . import structs
 from . import geometry
 from . import algebra
 if typing.TYPE_CHECKING: from . import engine
@@ -61,18 +62,25 @@ class Piece:
 		return self.position.side[self.color]
 
 	@property
-	def targets(self) -> mathematics.indices:
-		return mathematics.indices()
+	def targets(self) -> structs.collection[algebra.Move]:
+		return structs.collection[algebra.Move]()
 
 	@property
-	def squares(self) -> mathematics.indices:
-		return self.targets
+	def squares(self) -> structs.collection[algebra.Move]:
+		squares = self.targets
+
+		for step in tuple(squares):
+			with step:
+				if self.side.king is not None and not self.side.king.safe:
+					squares.discard(step)
+
+		return squares
 
 
 class Omni(Piece, abc.ABC):
 
 	@property
-	def targets(self) -> mathematics.indices:
+	def targets(self) -> structs.collection[algebra.Move]:
 		targets = super().targets
 
 		if self.index is None:
@@ -163,6 +171,11 @@ class King(Melee, Star):
 	black = "k"  # "♚"
 
 
+	@property
+	def safe(self) -> bool:
+		return self.index is not None and self.index not in self.side.other.targets
+
+
 class Pawn(Piece):
 
 	value =  1
@@ -171,13 +184,13 @@ class Pawn(Piece):
 
 
 	@property
-	def targets(self) -> mathematics.indices:
+	def targets(self) -> structs.collection[algebra.Move]:
 		targets = super().targets
 
 		if self.index is None:
 			return targets
 
-		Δ = geometry.Compass.south if self.color else geometry.Compass.north; ᐊ, ᐅ = tuple(geometry.Compass.files)
+		Δ = geometry.Compass.south if self.color else geometry.Compass.north
 
 		try: square = self.index + Δ
 		except ValueError: return targets
@@ -186,11 +199,12 @@ class Pawn(Piece):
 			if step := algebra.Move(square    , self): targets.add(step)
 			if step := algebra.Rush(square + Δ, self): targets.add(step)
 
-		with contextlib.suppress(ValueError):
-			if step := algebra.Capt(square + ᐊ, self): targets.add(step)
+		for move in geometry.Compass.files:
+			with contextlib.suppress(ValueError):
+				target = square + move
+				cls = algebra.EnPassant if isinstance(self.position[target], Ghost) else algebra.Capt
 
-		with contextlib.suppress(ValueError):
-			if step := algebra.Capt(square + ᐅ, self): targets.add(step)
+				if step := cls(target, self): targets.add(step)
 
 		return targets
 
