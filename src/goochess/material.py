@@ -7,6 +7,7 @@ import contextlib
 import typing
 
 from . import mathematics
+from . import structs
 from . import geometry
 from . import algebra
 if typing.TYPE_CHECKING: from . import engine
@@ -14,8 +15,8 @@ if typing.TYPE_CHECKING: from . import engine
 
 class Piece:
 
-	side: engine.Side
 	index: geometry.Index | None = None
+	position: engine.Position
 
 	value: int =  0
 	white: str = "-"
@@ -25,12 +26,27 @@ class Piece:
 	specs: mathematics.arrays
 
 
-	def __init__(self, side: engine.Side, /) -> None:
-		self.side = side
+	def __init__(self, color: bool, /) -> None:
+		self.color = color
 		self.moved = False
 
 	def __repr__(self) -> str:
-		return self.white if self.side else self.black
+		return self.black if self.color else self.white
+
+	def __call__(self, target: int | geometry.Index, /, *,
+		kept: Piece | None = None,
+		moved: bool = True,
+	) -> typing.Self:
+		assert (source := self.index) is not None
+
+		target = geometry.Index(target)
+
+		self.position[source] = kept
+		self.position[target] = self
+
+		self.moved = moved
+
+		return self
 
 	def __hash__(self) -> int:
 		return id(self)
@@ -40,30 +56,36 @@ class Piece:
 
 
 	@staticmethod
-	def fromnotation(notation: str, board: engine.Board, /) -> Piece:
+	def fromnotation(notation: str, /) -> Piece:
 		cls = Roster[notation.upper()].value
-		side = board.white if notation.isupper() else board.black
 
-		return cls(side)
+		return cls(notation.islower())
 
-
-	@property
-	def board(self) -> engine.Board:
-		return self.side.board
 
 	@property
-	def targets(self) -> mathematics.indices:
-		return mathematics.indices()
+	def side(self) -> engine.Side:
+		return self.position.side[self.color]
 
 	@property
-	def squares(self) -> mathematics.indices:
-		return self.targets
+	def targets(self) -> algebra.Moves:
+		return algebra.Moves()
+
+	@property
+	def squares(self) -> algebra.Moves:
+		squares = self.targets
+
+		for step in tuple(squares):
+			with step.simulated:
+				if self.side.king is not None and not self.side.king.safe:
+					squares.discard(step)
+
+		return squares
 
 
 class Omni(Piece, abc.ABC):
 
 	@property
-	def targets(self) -> mathematics.indices:
+	def targets(self) -> algebra.Moves:
 		targets = super().targets
 
 		if self.index is None:
@@ -154,6 +176,11 @@ class King(Melee, Star):
 	black = "k"  # "♚"
 
 
+	@property
+	def safe(self) -> bool:
+		return self.index is not None and self.index not in self.side.other.targets
+
+
 class Pawn(Piece):
 
 	value =  1
@@ -162,13 +189,13 @@ class Pawn(Piece):
 
 
 	@property
-	def targets(self) -> mathematics.indices:
+	def targets(self) -> algebra.Moves:
 		targets = super().targets
 
 		if self.index is None:
 			return targets
 
-		Δ = self.side.forward; ᐊ, ᐅ = tuple(geometry.Compass.files)
+		Δ = geometry.Compass.south if self.color else geometry.Compass.north
 
 		try: square = self.index + Δ
 		except ValueError: return targets
@@ -177,11 +204,12 @@ class Pawn(Piece):
 			if step := algebra.Move(square    , self): targets.add(step)
 			if step := algebra.Rush(square + Δ, self): targets.add(step)
 
-		with contextlib.suppress(ValueError):
-			if step := algebra.Capt(square + ᐊ, self): targets.add(step)
+		for move in geometry.Compass.files:
+			with contextlib.suppress(ValueError):
+				target = square + move
+				cls = algebra.EnPassant if isinstance(self.position[target], Ghost) else algebra.Capt
 
-		with contextlib.suppress(ValueError):
-			if step := algebra.Capt(square + ᐅ, self): targets.add(step)
+				if step := cls(target, self): targets.add(step)
 
 		return targets
 
@@ -198,4 +226,9 @@ class Roster(enum.Enum):
 
 class Ghost(Piece):
 
-	...
+	def __init__(self, rusher: Pawn, /) -> None:
+		assert isinstance(rusher, Pawn)
+
+		super().__init__(rusher.color)
+
+		self.rusher = rusher

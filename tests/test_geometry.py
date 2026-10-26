@@ -7,56 +7,56 @@ import pickle
 
 import pytest
 
-from goochess.geometry import Compass, Index
-from goochess.mathematics import array, arrays, indices
+from goochess import geometry
+from goochess import mathematics
 
 
 class TestIndex: # pylint: disable = no-member
 
-	members = tuple(Index)
+	members = tuple(geometry.Index)
 	fen_names = tuple(f"{file}{rank}" for rank in range(8, 0, -1) for file in "ABCDEFGH")
-	diagonal = array(-1, 0) + array(0, -1)
+	diagonal = mathematics.array(-1, 0) + mathematics.array(0, -1)
 	translations = (
-		(operator.add, Index.A1, array(1, -1), Index.B2),
-		(operator.add, array(1, -1), Index.A1, Index.B2),
-		(operator.add, array(0, -1), Index.B2, Index.B3),
-		(operator.add, Index.A1, array(0, -1), Index.A2),
-		(operator.add, Index.A1, array(1, 0), Index.B1),
-		(operator.sub, Index.B2, array(1, -1), Index.A1),
-		(operator.add, Index.D4, diagonal, Index.C5),
-		(operator.add, diagonal, Index.D4, Index.C5),
+		(operator.add, geometry.Index.A1, mathematics.array(1, -1), geometry.Index.B2),
+		(operator.add, mathematics.array(1, -1), geometry.Index.A1, geometry.Index.B2),
+		(operator.add, mathematics.array(0, -1), geometry.Index.B2, geometry.Index.B3),
+		(operator.add, geometry.Index.A1, mathematics.array(0, -1), geometry.Index.A2),
+		(operator.add, geometry.Index.A1, mathematics.array(1, 0), geometry.Index.B1),
+		(operator.sub, geometry.Index.B2, mathematics.array(1, -1), geometry.Index.A1),
+		(operator.add, geometry.Index.D4, diagonal, geometry.Index.C5),
+		(operator.add, diagonal, geometry.Index.D4, geometry.Index.C5),
 	)
-	differences = ((Index.B2, Index.A1, (1, -1)), (Index.A1, Index.H8, (-7, 7)), (Index.A1, Index.A1, (0, 0)))
-	invalid_translations = ((Index.H1, array(1, 0)), (Index.A8, array(0, -1)), (Index.A1, array(0, 1)))
-	rays = ((Index.A6, array(0, -1), (Index.A7, Index.A8)), (Index.H8, array(1, -1), ()))
-	serialization_values = (Index.A1, Index.B2, Index.H8)
+	differences = ((geometry.Index.B2, geometry.Index.A1, (1, -1)), (geometry.Index.A1, geometry.Index.H8, (-7, 7)), (geometry.Index.A1, geometry.Index.A1, (0, 0)))
+	invalid_translations = ((geometry.Index.H1, mathematics.array(1, 0)), (geometry.Index.A8, mathematics.array(0, -1)), (geometry.Index.A1, mathematics.array(0, 1)))
+	rays = ((geometry.Index.A6, mathematics.array(0, -1), (geometry.Index.A7, geometry.Index.A8)), (geometry.Index.H8, mathematics.array(1, -1), ()))
+	serialization_values = (geometry.Index.A1, geometry.Index.B2, geometry.Index.H8)
 	copy_functions = (copy.copy, copy.deepcopy)
 	pickle_protocols = tuple(range(pickle.HIGHEST_PROTOCOL + 1))
 
 	def test_board(self) -> None:
-		assert (Index.dimension, Index.base) == (2, 8)
+		assert (geometry.Index.dimension, geometry.Index.base) == (2, 8)
 		assert tuple(member.name for member in self.members) == self.fen_names
 		assert tuple(int(member) for member in self.members) == tuple(range(64))
-		assert (int(Index.A8), int(Index.H8), int(Index.A7), int(Index.A1), int(Index.H1)) == (0, 7, 8, 56, 63)
-		assert not Index.A1
-		assert Index.A8
-		assert Index.H1
+		assert (int(geometry.Index.A8), int(geometry.Index.H8), int(geometry.Index.A7), int(geometry.Index.A1), int(geometry.Index.H1)) == (0, 7, 8, 56, 63)
+		assert geometry.Index.A1
+		assert not geometry.Index.A8
+		assert not geometry.Index.H1
 
 	def test_collection(self) -> None:
-		assert indices(*self.members) == set(self.members)
+		assert mathematics.indices(*self.members) == set(self.members)
 
 	@pytest.mark.parametrize("member", members)
 	def test_coordinates_and_notation(self, member) -> None:
 		file, rank = member.name
 		components = (ord(file) - ord("A"), 8 - int(rank))
-		white = (ord(file) - ord("A") + int(rank) - 1) % 2 == 1
+		black = (ord(file) - ord("A") + int(rank) - 1) % 2 == 0
 		assert member.array == components
 		assert (member[0], member[1]) == components
 		assert member.rank == int(rank)
 		assert member.file == file.lower()
 		assert repr(member) == member.name.lower()
-		assert bool(member) is white
-		assert Index.from_sequence(components) is member
+		assert bool(member) is black
+		assert geometry.Index.from_sequence(components) is member
 
 	@pytest.mark.parametrize("operation, left, right, expected", translations)
 	def test_translation(self, operation, left, right, expected) -> None:
@@ -66,7 +66,7 @@ class TestIndex: # pylint: disable = no-member
 	def test_difference(self, left, right, expected) -> None:
 		result = left - right
 		assert result == expected
-		assert type(result) is array
+		assert type(result) is mathematics.array
 
 	@pytest.mark.parametrize("square, displacement", invalid_translations)
 	def test_translation_bounds(self, square, displacement) -> None:
@@ -91,17 +91,17 @@ class TestIndex: # pylint: disable = no-member
 class TestCompass:
 
 	directions = (
-		(Compass.north, (0, -1), Index.D5),
-		(Compass.south, (0, 1), Index.D3),
-		(Compass.east, (1, 0), Index.E4),
-		(Compass.west, (-1, 0), Index.C4),
+		(geometry.Compass.north, (0, -1), geometry.Index.D5),
+		(geometry.Compass.south, (0, 1), geometry.Index.D3),
+		(geometry.Compass.east, (1, 0), geometry.Index.E4),
+		(geometry.Compass.west, (-1, 0), geometry.Index.C4),
 	)
 
 	@pytest.mark.parametrize("direction, components, target", directions)
 	def test_direction(self, direction, components, target) -> None:
 		assert direction == components
-		assert Index.D4 + direction is target
+		assert geometry.Index.D4 + direction is target
 
 	def test_orthogonal_groups(self) -> None:
-		assert Compass.ranks == arrays(Compass.north, Compass.south)
-		assert Compass.files == arrays(Compass.east, Compass.west)
+		assert geometry.Compass.ranks == mathematics.arrays(geometry.Compass.north, geometry.Compass.south)
+		assert geometry.Compass.files == mathematics.arrays(geometry.Compass.east, geometry.Compass.west)

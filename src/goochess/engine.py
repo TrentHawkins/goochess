@@ -1,8 +1,12 @@
 from __future__ import annotations
 
 
+import contextlib
+import typing
+
+from . import structs
+from . import algebra
 from . import notation
-from . import mathematics
 from . import geometry
 from . import material
 
@@ -10,17 +14,10 @@ from . import material
 class Board(list[material.Piece | None]):
 
 	def __init__(self, forsyth_edwards: str, /):
-		self.white = Side(); self.white.board = self
-		self.black = Side(); self.black.board = self
-
 		super().__init__([None] * len(geometry.Index))
 
 		for item in enumerate(notation.serial(forsyth_edwards)):
 			self.set(*item)
-
-		for piece in self:
-			if isinstance(piece, material.King):
-				piece.side.king = piece
 
 	def __repr__(self) -> str:
 		return str(notation.serial("".join(map(self.get, geometry.Index))))
@@ -28,18 +25,24 @@ class Board(list[material.Piece | None]):
 	def __setitem__(self, key: int, value: material.Piece | None):
 		key = geometry.Index(key)
 
-		if (piece := self[key]) is not None:
-			piece.side.discard(piece)
-			piece.index = None
-
-		if value is not None:
-			value.index = key
-			value.side.add(value)
-
-		super().__setitem__(key, value)
+		with self.binding(key, value):
+			super().__setitem__(key, value)
 
 	def __delitem__(self, key: int):
 		self[key] = None
+
+
+	@contextlib.contextmanager
+	def binding(self, key: geometry.Index,
+		value: material.Piece | None,
+	) -> typing.Generator:
+		if (piece := self[key]) is not None:
+			piece.index = None
+
+		yield
+
+		if value is not None:
+			value.index = key
 
 
 	def get(self, key: int, /) -> str:
@@ -49,34 +52,66 @@ class Board(list[material.Piece | None]):
 		return repr(piece)
 
 	def set(self, key: int, value: str, /):
-		self[geometry.Index(key)] = material.Piece.fromnotation(value, self) if value != "-" else None
-
-	def empty(self, key: int, /) -> bool:
-		return (piece := self[geometry.Index(key)]) is None or isinstance(piece, material.Ghost)
+		self[geometry.Index(key)] = material.Piece.fromnotation(value) if value != "-" else None
 
 
 class Side(set[material.Piece]):
 
-	board: Board
-	king: material.King
+	position: Position
+	king: material.King | None = None
 
 
-	def __init__(self, *pieces: material.Piece):
+	def __init__(self, position: Position, /, *pieces: material.Piece):
+		self.position = position
+
 		super().__init__(pieces)
 
-
 	def __bool__(self) -> bool:
-		return self is self.board.white
+		return self is self.position.black
+
 
 	@property
 	def other(self) -> Side:
-		return self.board.black if self else self.board.white
+		return self.position.side[not self]
 
 	@property
-	def forward(self) -> mathematics.array:
-		return geometry.Compass.north if self else geometry.Compass.south
+	def targets(self) -> algebra.Moves:
+		return algebra.Moves().union(*(piece.targets for piece in self))
 
 
-class Game(Board):
+class Position(Board):
 
-	...
+	def __init__(self, forsyth_edwards: str, /):
+		self.side = structs.switch(
+			Side(self),  # white
+			Side(self),  # black
+		)
+
+		super().__init__(forsyth_edwards)
+
+		for piece in self:
+			if isinstance(piece, material.King):
+				piece.side.king = piece
+
+
+	@contextlib.contextmanager
+	def binding(self, key: geometry.Index,
+		value: material.Piece | None,
+	) -> typing.Generator:
+		if (piece := self[key]) is not None:
+			piece.side.discard(piece)
+
+		with super().binding(key, value):
+			yield
+
+		if value is not None:
+			value.position = self
+			value.side.add(value)
+
+	@property
+	def white(self) -> Side:
+		return self.side[False]  # white
+
+	@property
+	def black(self) -> Side:
+		return self.side[True]  # black

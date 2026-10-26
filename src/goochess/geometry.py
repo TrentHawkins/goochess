@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+
 import enum
 
 from . import mathematics
@@ -41,7 +42,7 @@ class Index(mathematics.index[2, 8], enum.Enum):
 		return repr(self)
 
 	def __bool__(self) -> bool:
-		return not sum(self.array) & 1
+		return bool(sum(self.array) & 1)
 
 	@property
 	def rank(self) -> int:
