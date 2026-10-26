@@ -301,6 +301,19 @@ class TestMelee(MaterialSetup):
 
 		assert self.targets(piece) == expected
 
+	@pytest.mark.parametrize("kind", kinds)
+	@pytest.mark.parametrize("color", MaterialSetup.colors)
+	@pytest.mark.parametrize("ghost_color", MaterialSetup.colors)
+	def test_ghost_destination_is_a_quiet_move(self, kind, color, ghost_color) -> None:
+		position = self.position()
+		piece = self.place(position, kind, geometry.Index.D4, color)
+		target = self.blockers[kind]
+		ghost = material.Ghost(material.Pawn(ghost_color))
+		position[target] = ghost
+		assert self.targets(piece) == {index: algebra.Move for index in self.center[kind]}
+		assert position[target] is ghost
+		assert ghost.index is target
+
 	@pytest.mark.parametrize("color", MaterialSetup.colors)
 	def test_knight_jumps_over_occupied_square(self, color) -> None:
 		position = self.position()
@@ -367,6 +380,21 @@ class TestRanged(MaterialSetup):
 
 		assert self.targets(piece) == expected
 
+	@pytest.mark.parametrize("kind, line", lines)
+	@pytest.mark.parametrize("color", MaterialSetup.colors)
+	@pytest.mark.parametrize("ghost_color", MaterialSetup.colors)
+	def test_ray_passes_through_ghost_to_real_capture(self, kind, line, color, ghost_color) -> None:
+		position = self.position()
+		piece = self.place(position, kind, geometry.Index.D4, color)
+		ghost = material.Ghost(material.Pawn(ghost_color))
+		position[line[0]] = ghost
+		self.place(position, material.Pawn, line[2], not color)
+		expected = {index: algebra.Move for index in self.center[kind] - {line[3]}}
+		expected[line[2]] = algebra.Capt
+		assert self.targets(piece) == expected
+		assert position[line[0]] is ghost
+		assert ghost.index is line[0]
+
 
 class TestKing(MaterialSetup):
 
@@ -394,6 +422,15 @@ class TestKing(MaterialSetup):
 		position = engine.Position("4k3/8/4n3/8/5K2/8/8/4R3")
 		king = position.white.king
 		assert king is not None
+		assert not king.safe
+
+	@pytest.mark.parametrize("color", MaterialSetup.colors)
+	@pytest.mark.parametrize("ghost_color", MaterialSetup.colors)
+	def test_ghost_does_not_block_attacking_ray(self, color, ghost_color) -> None:
+		position = self.position()
+		king = self.place(position, material.King, geometry.Index.H4, color)
+		self.place(position, material.Rook, geometry.Index.A4, not color)
+		position[geometry.Index.D4] = material.Ghost(material.Pawn(ghost_color))
 		assert not king.safe
 
 

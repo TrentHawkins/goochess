@@ -45,6 +45,13 @@ class AlgebraSetup:
 		return piece
 
 	@staticmethod
+	def place_ghost(position: engine.Position, square: geometry.Index, pawn: material.Pawn) -> material.Ghost:
+		ghost = material.Ghost(pawn)
+		position[square] = ghost
+
+		return ghost
+
+	@staticmethod
 	def state(position: engine.Position):
 		pieces = position.white | position.black
 
@@ -126,6 +133,28 @@ class TestMove(AlgebraSetup):
 		assert move.other is None
 		del position[geometry.Index.E3]
 		assert bool(move)
+
+	@pytest.mark.parametrize("color", AlgebraSetup.colors)
+	@pytest.mark.parametrize("ghost_color", AlgebraSetup.colors)
+	def test_ghost_is_transparent_and_restored(self, color, ghost_color) -> None:
+		position = self.position()
+		piece = self.place(position, material.Pawn, geometry.Index.E2, color)
+		rusher = self.place(position, material.Pawn, geometry.Index.H5, ghost_color)
+		ghost = self.place_ghost(position, geometry.Index.E3, rusher)
+		move = algebra.Move(geometry.Index.E3, piece)
+		before = self.state(position)
+		assert bool(move)
+		assert move.other is ghost
+
+		with move.simulated:
+			assert position[move.target] is piece
+			assert ghost.index is None
+			assert ghost not in ghost.side
+			assert rusher.index is geometry.Index.H5
+
+		assert self.state(position) == before
+		assert position[move.target] is ghost
+		assert move.other is ghost
 
 	def test_equality_and_hash_use_target(self) -> None:
 		position = self.position()
@@ -339,6 +368,19 @@ class TestCapt(AlgebraSetup):
 		self.place(position, material.Knight, geometry.Index.D5, not piece.color)
 		assert bool(capture)
 		assert capture.other is enemy
+
+	@pytest.mark.parametrize("color", AlgebraSetup.colors)
+	@pytest.mark.parametrize("ghost_color", AlgebraSetup.colors)
+	def test_ghost_cannot_be_captured_normally(self, color, ghost_color) -> None:
+		position = self.position()
+		piece = self.place(position, material.Pawn, geometry.Index.E4, color)
+		rusher = self.place(position, material.Pawn, geometry.Index.D4, ghost_color)
+		ghost = self.place_ghost(position, geometry.Index.D5, rusher)
+		capture = algebra.Capt(geometry.Index.D5, piece)
+		before = self.state(position)
+		assert not capture
+		assert capture.other is ghost
+		assert self.state(position) == before
 
 	@pytest.mark.parametrize("color", AlgebraSetup.colors)
 	@pytest.mark.parametrize("moved", moved_states)
@@ -690,13 +732,6 @@ class TestEnPassant(AlgebraSetup):
 		(True, geometry.Index.E4, geometry.Index.D4, geometry.Index.D2),
 	)
 	moved_states = (False, True)
-
-	@staticmethod
-	def place_ghost(position: engine.Position, square: geometry.Index, pawn: material.Pawn) -> material.Ghost:
-		ghost = material.Ghost(pawn)
-		position[square] = ghost
-
-		return ghost
 
 	@pytest.mark.parametrize("color, source, middle, target", valid_moves)
 	def test_en_passant_rank(self, color, source, middle, target) -> None:

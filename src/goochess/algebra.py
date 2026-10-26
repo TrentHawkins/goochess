@@ -37,7 +37,12 @@ class Move(mathematics.index[2, 8]):
 		return piece + self.action + str(self.target)
 
 	def __bool__(self) -> bool:
-		return self.position[self.target] is None
+		return self.occupant(self.target) is None
+
+	def occupant(self, square: geometry.Index, /) -> material.Piece | None:
+		other = self.position[square]
+
+		return None if isinstance(other, material.Ghost) else other
 
 	def apply(self) -> typing.Self:
 		assert self.piece.index == self.source and self.position[self.target] is self.other
@@ -80,7 +85,7 @@ class Capt(Move):
 
 
 	def __bool__(self) -> bool:
-		return (other := self.position[self.target]) is not None and other.color != self.piece.color
+		return (other := self.occupant(self.target)) is not None and other.color != self.piece.color
 
 
 class Spec(Move):
@@ -161,6 +166,9 @@ class EnPassant(Pawn, Capt):
 		super().__init__(x, piece)
 
 		assert isinstance(self.other, material.Ghost)
+
+	def occupant(self, square: geometry.Index, /) -> material.Piece | None:
+		return self.position[square]
 
 	def apply(self) -> typing.Self:
 		assert self.position[self.middle] is self.other.rusher
