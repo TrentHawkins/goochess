@@ -249,7 +249,7 @@ class TestSide(EngineSetup):
 		side = piece.side
 		before = side.targets, side.other.targets
 
-		with Capt(Index.D5, piece):
+		with Capt(Index.D5, piece).simulated:
 			assert side == {piece}
 			assert len(side.other) == 0
 			assert side.other.targets == collection()

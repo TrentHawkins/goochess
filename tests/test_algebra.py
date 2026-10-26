@@ -146,7 +146,7 @@ class TestMove(AlgebraSetup):
 		piece.moved = moved
 		before = self.state(position)
 
-		with move as active:
+		with move.simulated as active:
 			assert active is move
 			assert position[move.source] is None
 			assert position[move.target] is piece
@@ -163,7 +163,7 @@ class TestMove(AlgebraSetup):
 		before = self.state(position)
 
 		with pytest.raises(LookupError, match = "simulation failed"):
-			with move as active:
+			with move.simulated as active:
 				assert active is move
 				assert piece.index is move.target
 
@@ -177,11 +177,11 @@ class TestMove(AlgebraSetup):
 		move = Move(Index.E3, piece)
 		before = self.state(position)
 
-		with move:
+		with move.simulated:
 			active = self.state(position)
 
 			with pytest.raises(AssertionError):
-				with move:
+				with move.simulated:
 					...
 
 			assert self.state(position) == active
@@ -201,7 +201,7 @@ class TestMove(AlgebraSetup):
 		before = self.state(position)
 
 		with pytest.raises(AssertionError):
-			with move:
+			with move.simulated:
 				...
 
 		assert self.state(position) == before
@@ -216,7 +216,7 @@ class TestMove(AlgebraSetup):
 		before = self.state(position)
 
 		with pytest.raises(AssertionError):
-			with move:
+			with move.simulated:
 				...
 
 		assert self.state(position) == before
@@ -274,7 +274,7 @@ class TestCapt(AlgebraSetup):
 		before = self.state(position)
 
 		for _ in range(2):
-			with capture as active:
+			with capture.simulated as active:
 				assert active is capture
 				assert position[capture.source] is None
 				assert position[capture.target] is piece
@@ -297,7 +297,7 @@ class TestCapt(AlgebraSetup):
 		before = self.state(position)
 
 		with pytest.raises(AssertionError):
-			with capture:
+			with capture.simulated:
 				...
 
 		assert self.state(position) == before
@@ -330,6 +330,78 @@ class TestRush(AlgebraSetup):
 		rush = Rush(target, piece)
 		assert rush.middle is middle
 		assert bool(rush) is (not moved and not middle_occupied and not target_occupied)
+
+	@pytest.mark.parametrize("color, source, middle, target", cases)
+	def test_simulation_creates_and_cleans_up_ghost(self, color, source, middle, target) -> None:
+		position = self.position()
+		pawn = self.place(position, Pawn, source, color)
+		rush = Rush(target, pawn)
+		before = self.state(position)
+
+		for _ in range(2):
+			with rush.simulated as active:
+				assert active is rush
+				assert position[source] is None
+				assert position[target] is pawn
+				assert pawn.index is target
+				assert not pawn.moved
+				ghost = position[middle]
+				assert isinstance(ghost, Ghost)
+				assert ghost.rusher is pawn
+				assert ghost.color is color
+				assert ghost.index is middle
+				assert ghost in pawn.side
+
+			assert self.state(position) == before
+			assert ghost.index is None
+			assert ghost not in pawn.side
+
+	@pytest.mark.parametrize("color, source, middle, target", cases)
+	def test_simulation_cleans_up_ghost_after_exception(self, color, source, middle, target) -> None:
+		position = self.position()
+		pawn = self.place(position, Pawn, source, color)
+		rush = Rush(target, pawn)
+		before = self.state(position)
+
+		with pytest.raises(LookupError, match = "simulation failed"):
+			with rush.simulated:
+				assert isinstance(position[middle], Ghost)
+
+				raise LookupError("simulation failed")
+
+		assert self.state(position) == before
+
+	@pytest.mark.parametrize("color, source, middle, target", cases)
+	def test_execution_keeps_ghost(self, color, source, middle, target) -> None:
+		position = self.position()
+		pawn = self.place(position, Pawn, source, color)
+		rush = Rush(target, pawn)
+		assert rush() is rush
+		assert position[source] is None
+		assert position[target] is pawn
+		assert pawn.index is target
+		assert pawn.moved
+		ghost = position[middle]
+		assert isinstance(ghost, Ghost)
+		assert ghost.rusher is pawn
+		assert ghost.color is color
+		assert ghost.index is middle
+		assert ghost in pawn.side
+
+	@pytest.mark.parametrize("color, source, middle, target", cases)
+	def test_rejected_simulation_does_not_create_ghost(self, color, source, middle, target) -> None:
+		position = self.position()
+		pawn = self.place(position, Pawn, source, color)
+		rush = Rush(target, pawn)
+		self.place(position, Knight, target, not color)
+		before = self.state(position)
+
+		with pytest.raises(AssertionError):
+			with rush.simulated:
+				...
+
+		assert self.state(position) == before
+		assert position[middle] is None
 
 
 class TestCheck(AlgebraSetup):
@@ -625,7 +697,7 @@ class TestEnPassant(AlgebraSetup):
 		before = self.state(position)
 
 		for _ in range(2):
-			with capture as active:
+			with capture.simulated as active:
 				assert active is capture
 				assert position[source] is position[middle] is None
 				assert position[target] is pawn
@@ -650,7 +722,7 @@ class TestEnPassant(AlgebraSetup):
 		before = self.state(position)
 
 		with pytest.raises(LookupError, match = "simulation failed"):
-			with capture:
+			with capture.simulated:
 				assert position[middle] is None
 
 				raise LookupError("simulation failed")
@@ -689,7 +761,7 @@ class TestEnPassant(AlgebraSetup):
 		before = self.state(position)
 
 		with pytest.raises(AssertionError):
-			with capture:
+			with capture.simulated:
 				...
 
 		assert self.state(position) == before

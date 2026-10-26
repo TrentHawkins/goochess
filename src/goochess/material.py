@@ -70,7 +70,7 @@ class Piece:
 		squares = self.targets
 
 		for step in tuple(squares):
-			with step:
+			with step.simulated:
 				if self.side.king is not None and not self.side.king.safe:
 					squares.discard(step)
 

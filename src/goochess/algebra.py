@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 
+import contextlib
 import functools
 import itertools
 import typing
@@ -21,6 +22,7 @@ class Move(mathematics.index[2, 8]):
 
 	def __init__(self, x: int, piece: material.Piece) -> None:
 		assert (source := piece.index) is not None
+
 		super().__init__()
 
 		self.piece = piece
@@ -37,20 +39,21 @@ class Move(mathematics.index[2, 8]):
 		return self.position[self.target] is None
 
 	def __call__(self) -> typing.Self:
-		self.__enter__()
-		self.piece.moved = True
+		assert self.piece.index == self.source and self.position[self.target] is self.other
+
+		self.piece(self.target).moved = True
 
 		return self
 
-	def __enter__(self) -> typing.Self:
+	@property
+	@contextlib.contextmanager
+	def simulated(self) -> typing.Generator[typing.Self]:
 		assert self.piece.index == self.source and self.position[self.target] is self.other
+
 		self.piece(self.target)
 
-		return self
-
-	def __exit__(self, *_) -> None:
-		self.piece(self.source, self.other)
-
+		try: yield self
+		finally: self.piece(self.source, self.other)
 
 	@property
 	def target(self) -> geometry.Index:
@@ -83,17 +86,21 @@ class Rush(Spec):
 	def __bool__(self) -> bool:
 		return super().__bool__() and not self.piece.moved and self.position[self.middle] is None
 
-	def __enter__(self) -> typing.Self:
-		self = super().__enter__()
+	def __call__(self) -> typing.Self:
+		super().__call__()
+
 		self.position[self.middle] = material.Ghost(self.piece)
 
 		return self
 
-	def __exit__(self, *_) -> None:
-		del self.position[self.middle]
+	@property
+	@contextlib.contextmanager
+	def simulated(self) -> typing.Generator[typing.Self]:
+		with super().simulated:
+			self.position[self.middle] = material.Ghost(self.piece)
 
-		return super().__exit__(*_)
-
+			try: yield self
+			finally: del self.position[self.middle]
 
 	@property
 	def middle(self) -> geometry.Index:
@@ -136,22 +143,30 @@ class EnPassant(Capt):
 
 
 	def __init__(self, x: int, piece: material.Pawn) -> None:
-		assert isinstance(piece, material.Pawn)
 		super().__init__(x, piece)
+
+		assert isinstance(self.piece, material.Pawn )
 		assert isinstance(self.other, material.Ghost)
 
-	def __enter__(self) -> typing.Self:
+	def __call__(self) -> typing.Self:
 		assert self.position[self.middle] is self.other.rusher
 
-		super().__enter__()
+		super().__call__()
+
 		del self.position[self.middle]
 
 		return self
 
-	def __exit__(self, *args) -> None:
-		self.position[self.middle] = self.other.rusher
+	@property
+	@contextlib.contextmanager
+	def simulated(self) -> typing.Generator[typing.Self]:
+		assert self.position[self.middle] is self.other.rusher
 
-		super().__exit__(*args)
+		with super().simulated:
+			del self.position[self.middle]
+
+			try: yield self
+			finally: self.position[self.middle] = self.other.rusher
 
 	def __bool__(self) -> bool:
 		return super().__bool__() and self.position[self.middle] is self.other.rusher and \
