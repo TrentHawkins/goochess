@@ -196,13 +196,13 @@ Arithmetic on a contextual move is not a promise that a new move can be reconstr
 
 **Status: Agreed direction; specialized behavior remains incomplete.**
 
-`Move` and `Capt` validate meaningfully different occupancy conditions. `Rush` remains an explicit special move because a double advance creates a ghost on the intermediate square, during execution or simulation. Castling is also expected to be explicit. Moving all move classification out of piece search was considered, then narrowed to this partial separation.
+`Move` and `Capt` validate meaningfully different occupancy conditions through the live `occupant(square)` hook. Ordinary moves treat ghosts as empty; ordinary captures ignore them. `EnPassant` overrides the hook to expose the actual occupant to inherited capture validation. `Rush` remains an explicit special move because a double advance creates a ghost on the intermediate square, during execution or simulation. Castling is also expected to be explicit. Moving all move classification out of piece search was considered, then narrowed to this partial separation.
 
 `algebra.Pawn` supplies the shared pawn-only constructor and `piece: material.Pawn` annotation for `Rush`, `Promotion`, and `EnPassant`. `Rush` and `Promotion` retain their `Spec` role; `EnPassant` retains its `Capt` role.
 
 Promotion augments either an ordinary move or capture rather than replacing that distinction. The current `Promotion[Move]` and `Promotion[Capt]` select finite named classes, not freshly synthesized runtime classes. Each promotion instance owns its selected officer and its queen-first choice cycle. This implementation is retained as prototype context, not a requirement to emit all variants during square search.
 
-Pawn diagonal search emits `EnPassant` when the target contains a `Ghost`, and `Capt` otherwise. `EnPassant` uses that ghost's `rusher` reference to validate the actual opposing pawn, removes it during execution or simulation, and restores it on simulation exit. `Rush` creates the ghost; expiry and occupancy semantics remain O05/O06. Pawn generation does not emit promotion variants. `Check` and `Checkmate` currently provide notation suffixes, not detection algorithms. The next classification/notation boundary is O10.
+Pawn diagonal search emits `EnPassant` when the target contains a `Ghost`, and `Capt` otherwise. `EnPassant` uses that ghost's `rusher` reference to validate the actual opposing pawn, removes it during execution or simulation, and restores it on simulation exit. `Rush` creates the ghost; expiry remains open in O05. Pawn generation does not emit promotion variants. `Check` and `Checkmate` currently provide notation suffixes, not detection algorithms. The next classification/notation boundary is O10.
 
 ### D13. Placement notation has explicit decoded layers
 
@@ -314,7 +314,7 @@ A false rights flag can skip further checks. A true flag still requires position
 
 ### O05. How does the single ghost interact with occupancy and captures?
 
-**Status: One shared reference in current-position context agreed; final API, representation, and occupancy semantics remain open.**
+**Status: One shared reference in current-position context agreed; in-board ghosts and move-validation transparency implemented. Authoritative reference and lifecycle API remain open.**
 
 - [x] One optional shared ghost reference rather than separate authoritative side references.
 - [x] Current-position context on `Position`, consistent with D01's state/progression boundary.
@@ -328,13 +328,13 @@ No authoritative ghost slot exists in code. En passant availability belongs to t
 The physical representation is a different, still open decision:
 
 - [ ] Keep the ghost outside occupancy as metadata describing the passed square and actual rushed pawn. This was the assistant's recommendation, not an accepted choice.
-- [ ] Keep a ghost in the occupancy model, with explicit semantics distinguishing transparent/empty behavior from en passant capturability.
+- [x] Keep a ghost in the occupancy model, with explicit semantics distinguishing transparent/empty behavior from en passant capturability.
 
-The second option must account for ordinary moves, sliding rays, blockers, ordinary captures, attacks, side membership, and placement export. The experimental `Board.empty` helper considered both `None` and `Ghost` empty, but was removed without being adopted by move validation. No replacement helper or ghost-transparency policy has been selected. The inherited ghost symbol is `-`, so placement export hides it. These are experiments rather than closure of the representation choice. Conversely, separate metadata requires `EnPassant` to consult that metadata instead of inheriting ordinary occupied-target validation unchanged.
+`Move.occupant(square)` reads live occupancy and maps `Ghost` to `None`. Move and capture predicates use this hook, so ordinary pieces can land on ghosts and sliding rays continue through them. `EnPassant.occupant` returns the raw occupant, retaining inherited opposing-color capture validation. The saved `Move.other` remains the raw construction-time occupant for exact reversal. The earlier `Board.empty` experiment remains removed. Ghosts still participate in side rosters but generate no targets; their inherited `-` symbol hides them in placement export.
 
-`EnPassant.other` is the construction-time destination occupant, required to be a `Ghost`. Its `rusher` reference identifies the captured pawn without a separate `victim` attribute. `middle` identifies the destination file and source rank and remains available for restoration after capture clears the rusher's index. Validation checks that the same opposing rusher occupies that square, and execution and simulation remove it through ordinary position assignment. Context exit restores all three affected squares, including the original ghost and pawn, with indices and rosters maintained by the binding machinery. This repairs the extra occupancy change needed for king safety without selecting the final ghost representation or lifecycle API.
+`EnPassant.other` is the construction-time destination occupant, required to be a `Ghost`. Its `rusher` reference identifies the captured pawn without a separate `victim` attribute. `middle` identifies the destination file and source rank and remains available for restoration after capture clears the rusher's index. Validation checks that the same opposing rusher occupies that square, and execution and simulation remove it through ordinary position assignment. Context exit restores all three affected squares, including the original ghost and pawn, with indices and rosters maintained by the binding machinery. This repairs the extra occupancy change needed for king safety without implementing the lifecycle API.
 
-`Ghost(rusher)` retains a reference to the represented `Pawn` and takes its color at construction. `Rush` creates it on the intermediate square during execution or simulation; simulation removes it again before restoring the pawn. The future `Game` runner will manage expiry as play advances, after the opponent's immediately following move; the ghost itself belongs to the current position state.
+`Ghost(rusher)` retains a reference to the represented `Pawn` and takes its color at construction. `Rush` creates it on the intermediate square during execution or simulation; undo removes it before restoring the pawn. Standard-chess rushes do not cross existing ghosts, so the intermediate-square check requires `None` and no extra occupant snapshot is stored. The future `Game` runner will manage expiry as play advances, after the opponent's immediately following move; the ghost itself belongs to the current position state.
 
 Expiry, history undo of availability, and initialization from full FEN are not implemented. The FEN target can be present even without an available capturing pawn; do not confuse serialization of that target with legal capture availability. [FEN, section 16.1.3.4](https://www.saremba.de/chessgml/standards/pgn/pgn-complete.htm)
 
@@ -500,7 +500,7 @@ These are observations, not authorization to fix unrelated code whenever this fi
 - Cross-board assignment validation and coordinated transfer between positions are explicitly deferred.
 - Active-side state, castling rights, relevant counters, and an authoritative ghost reference still need concrete representations and APIs on `Position`.
 - `move.apply()` commits execution, and the shared `move.simulated` context calls the move's `apply()` and `undo()` hooks to restore placement, captured pieces, and the previous movement flag afterward. Rush creates/removes a ghost; en passant also removes/restores its separate pawn victim, and candidate filtering uses `King.safe`. History undo and faithful deeper-state simulation are deferred. Promotion effects, a castling move, general attack queries, and ghost expiry remain unimplemented. `Position` owns participants and supplies piece context; the future `Game` runner and progression/history remain unimplemented.
-- Ghost creation and en passant capture are prototype behavior, not closure of O05/O06: transparency and lifetime remain unresolved.
+- Ghost transparency is implemented through the move occupancy hook. Expiry and an authoritative availability reference remain unresolved in O05; O06 retains the separate ordinary-empty representation question.
 - Color remains writable by explicit choice; changing a registered piece's color would leave its current roster stale.
 
 ## Selected history anchors
