@@ -3,11 +3,11 @@ from __future__ import annotations
 
 import pytest
 
-from goochess.algebra import Capt, Move
-from goochess.engine import Board, Position, Side
-from goochess.geometry import Index
-from goochess.material import Bishop, King, Knight, Pawn, Queen, Rook
-from goochess.structs import collection
+from goochess import algebra
+from goochess import engine
+from goochess import geometry
+from goochess import material
+from goochess import structs
 
 
 class EngineSetup:
@@ -22,8 +22,8 @@ class EngineSetup:
 		(initial, "rnbqkbnr" + "pppppppp" + "-" * 32 + "PPPPPPPP" + "RNBQKBNR"),
 		(asymmetric, "r-b-k--q" + "-p----n-" + "--------" + "------N-" + "--B-----" + "-------P" + "----KQ--" + "R-------"),
 	)
-	indices = (Index.A8, Index.B8, Index.H1)
-	symbol_keys = (0, Index.B8, 63)
+	indices = (geometry.Index.A8, geometry.Index.B8, geometry.Index.H1)
+	symbol_keys = (0, geometry.Index.B8, 63)
 	symbols = "-PNBRQKpnbrqk"
 	invalid_indices = (-1, -64, 64)
 
@@ -31,29 +31,29 @@ class EngineSetup:
 class TestBoard(EngineSetup):
 
 	asymmetric_pieces = {
-		Index.A8: (Rook, True),
-		Index.C8: (Bishop, True),
-		Index.E8: (King, True),
-		Index.H8: (Queen, True),
-		Index.B7: (Pawn, True),
-		Index.G7: (Knight, True),
-		Index.G5: (Knight, False),
-		Index.C4: (Bishop, False),
-		Index.H3: (Pawn, False),
-		Index.E2: (King, False),
-		Index.F2: (Queen, False),
-		Index.A1: (Rook, False),
+		geometry.Index.A8: (material.Rook, True),
+		geometry.Index.C8: (material.Bishop, True),
+		geometry.Index.E8: (material.King, True),
+		geometry.Index.H8: (material.Queen, True),
+		geometry.Index.B7: (material.Pawn, True),
+		geometry.Index.G7: (material.Knight, True),
+		geometry.Index.G5: (material.Knight, False),
+		geometry.Index.C4: (material.Bishop, False),
+		geometry.Index.H3: (material.Pawn, False),
+		geometry.Index.E2: (material.King, False),
+		geometry.Index.F2: (material.Queen, False),
+		geometry.Index.A1: (material.Rook, False),
 	}
 
 	@pytest.mark.parametrize("placement, flat", EngineSetup.positions)
 	def test_placement_round_trip(self, placement, flat) -> None:
-		board = Board(placement)
+		board = engine.Board(placement)
 		assert len(board) == 64
 		assert repr(board) == placement
 		assert tuple("-" if piece is None else repr(piece) for piece in board) == tuple(flat)
 		assert not hasattr(board, "side")
 
-		for index, symbol in zip(Index, flat, strict = True):
+		for index, symbol in zip(geometry.Index, flat, strict = True):
 			piece = board[index]
 			assert board.get(index) == symbol
 
@@ -67,8 +67,8 @@ class TestBoard(EngineSetup):
 				assert not hasattr(piece, "position")
 
 	def test_piece_types_and_colors(self) -> None:
-		board = Board(self.asymmetric)
-		assert {index for index in Index if board[index] is not None} == set(self.asymmetric_pieces)
+		board = engine.Board(self.asymmetric)
+		assert {index for index in geometry.Index if board[index] is not None} == set(self.asymmetric_pieces)
 
 		for index, (kind, color) in self.asymmetric_pieces.items():
 			piece = board[index]
@@ -78,63 +78,63 @@ class TestBoard(EngineSetup):
 
 	@pytest.mark.parametrize("color", EngineSetup.colors)
 	def test_assignment_and_replacement(self, color) -> None:
-		board = Board(self.empty)
-		outgoing = Pawn(not color)
-		incoming = Knight(color)
-		board[Index.E4] = outgoing
-		assert outgoing.index is Index.E4
-		board[Index.E4] = incoming
-		assert board[Index.E4] is incoming  # pylint: disable = invalid-sequence-index
+		board = engine.Board(self.empty)
+		outgoing = material.Pawn(not color)
+		incoming = material.Knight(color)
+		board[geometry.Index.E4] = outgoing
+		assert outgoing.index is geometry.Index.E4
+		board[geometry.Index.E4] = incoming
+		assert board[geometry.Index.E4] is incoming  # pylint: disable = invalid-sequence-index
 		assert outgoing.index is None
-		assert incoming.index is Index.E4
+		assert incoming.index is geometry.Index.E4
 		assert not hasattr(outgoing, "position")
 		assert not hasattr(incoming, "position")
 		assert len(board) == 64
 
 	@pytest.mark.parametrize("delete", (False, True))
 	def test_removal_preserves_board_size(self, delete) -> None:
-		board = Board(self.empty)
-		piece = Pawn(False)
-		board[Index.E4] = piece
+		board = engine.Board(self.empty)
+		piece = material.Pawn(False)
+		board[geometry.Index.E4] = piece
 
 		if delete:
-			del board[Index.E4]
+			del board[geometry.Index.E4]
 
 		else:
-			board[Index.E4] = None
+			board[geometry.Index.E4] = None
 
-		assert board[Index.E4] is None  # pylint: disable = invalid-sequence-index
+		assert board[geometry.Index.E4] is None  # pylint: disable = invalid-sequence-index
 		assert piece.index is None
 		assert len(board) == 64
 
 	@pytest.mark.parametrize("symbol", EngineSetup.symbols)
 	def test_symbol_assignment(self, symbol) -> None:
-		board = Board(self.empty)
-		board.set(Index.E4, symbol)
-		assert board.get(Index.E4) == symbol
-		piece = board[Index.E4]  # pylint: disable = invalid-sequence-index
+		board = engine.Board(self.empty)
+		board.set(geometry.Index.E4, symbol)
+		assert board.get(geometry.Index.E4) == symbol
+		piece = board[geometry.Index.E4]  # pylint: disable = invalid-sequence-index
 
 		if symbol == "-":
 			assert piece is None
 
 		else:
 			assert piece is not None
-			assert piece.index is Index.E4
+			assert piece.index is geometry.Index.E4
 			assert piece.color is symbol.islower()
 			assert not hasattr(piece, "position")
 
 	def test_notation_tracks_mutation(self) -> None:
-		board = Board(self.empty)
-		board.set(Index.A8, "r")
-		board[Index.H1] = King(False)
+		board = engine.Board(self.empty)
+		board.set(geometry.Index.A8, "r")
+		board[geometry.Index.H1] = material.King(False)
 		assert repr(board) == "r7/8/8/8/8/8/8/7K"
-		del board[Index.A8]
+		del board[geometry.Index.A8]
 		assert repr(board) == "8/8/8/8/8/8/8/7K"
 
 	@pytest.mark.parametrize("index", EngineSetup.invalid_indices)
 	def test_invalid_assignment_preserves_placement(self, index) -> None:
-		board = Board(self.initial)
-		incoming = Knight(False)
+		board = engine.Board(self.initial)
+		incoming = material.Knight(False)
 		before = tuple(board)
 
 		with pytest.raises(ValueError):
@@ -145,21 +145,21 @@ class TestBoard(EngineSetup):
 		assert not hasattr(incoming, "position")
 
 	def test_binding_wraps_placement(self) -> None:
-		board = Board(self.empty)
-		outgoing = Pawn(False)
-		incoming = Knight(True)
-		board[Index.E4] = outgoing
+		board = engine.Board(self.empty)
+		outgoing = material.Pawn(False)
+		incoming = material.Knight(True)
+		board[geometry.Index.E4] = outgoing
 
-		with board.binding(Index.E4, incoming) as bound:
+		with board.binding(geometry.Index.E4, incoming) as bound:
 			assert bound is None
-			assert board[Index.E4] is outgoing  # pylint: disable = invalid-sequence-index
+			assert board[geometry.Index.E4] is outgoing  # pylint: disable = invalid-sequence-index
 			assert outgoing.index is None
 			assert incoming.index is None
-			list.__setitem__(board, Index.E4, incoming)
+			list.__setitem__(board, geometry.Index.E4, incoming)
 
-		assert board[Index.E4] is incoming  # pylint: disable = invalid-sequence-index
+		assert board[geometry.Index.E4] is incoming  # pylint: disable = invalid-sequence-index
 		assert outgoing.index is None
-		assert incoming.index is Index.E4
+		assert incoming.index is geometry.Index.E4
 		assert not hasattr(incoming, "position")
 
 
@@ -168,21 +168,21 @@ class TestSide(EngineSetup):
 	counts = (0, 1, 2)
 	contexts = (("white", False, "P"), ("black", True, "p"))
 	target_cases = (
-		(False, Index.B1, Index.E2, Index.H8, (Index.A3, Index.C3, Index.D2, Index.E3, Index.E4)),
-		(True, Index.B8, Index.E7, Index.H1, (Index.A6, Index.C6, Index.D7, Index.E6, Index.E5)),
+		(False, geometry.Index.B1, geometry.Index.E2, geometry.Index.H8, (geometry.Index.A3, geometry.Index.C3, geometry.Index.D2, geometry.Index.E3, geometry.Index.E4)),
+		(True, geometry.Index.B8, geometry.Index.E7, geometry.Index.H1, (geometry.Index.A6, geometry.Index.C6, geometry.Index.D7, geometry.Index.E6, geometry.Index.E5)),
 	)
 
 	@pytest.mark.parametrize("count", counts)
 	def test_construction_with_position(self, count) -> None:
-		position = Position(self.empty)
-		pieces = tuple(Pawn(False) for _ in range(count))
-		side = Side(position, *pieces)
+		position = engine.Position(self.empty)
+		pieces = tuple(material.Pawn(False) for _ in range(count))
+		side = engine.Side(position, *pieces)
 		assert set(side) == set(pieces)
 		assert side.position is position
 
 	@pytest.mark.parametrize("side_name, color, symbol", contexts)
 	def test_empty_sides_have_distinct_roles(self, side_name, color, symbol) -> None:
-		position = Position(self.empty)
+		position = engine.Position(self.empty)
 		side = getattr(position, side_name)
 		assert len(position.white) == len(position.black) == 0
 		assert position.white == position.black
@@ -191,32 +191,32 @@ class TestSide(EngineSetup):
 		assert bool(side) is color
 		assert side.other is position.side[not color]
 		assert side.other.other is side
-		assert repr(Pawn(color)) == symbol
+		assert repr(material.Pawn(color)) == symbol
 
 	@pytest.mark.parametrize("side_name, color, symbol", contexts)
 	def test_truth_is_independent_of_roster_size(self, side_name, color, symbol) -> None:
-		position = Position(self.empty)
+		position = engine.Position(self.empty)
 		side = getattr(position, side_name)
-		pawn = Pawn(color)
+		pawn = material.Pawn(color)
 		assert len(side) == 0
 		assert bool(side) is color
-		position[Index.A2] = pawn
+		position[geometry.Index.A2] = pawn
 		assert len(side) == 1
 		assert bool(side) is color
 		assert bool(side.other) is (not color)
 		assert pawn.side is side
 		assert repr(pawn) == symbol
-		del position[Index.A2]
+		del position[geometry.Index.A2]
 		assert len(side) == 0
 		assert bool(side) is color
 
 	@pytest.mark.parametrize("color", EngineSetup.colors)
 	def test_distinct_same_color_pieces(self, color) -> None:
-		position = Position(self.empty)
-		first = Pawn(color)
-		second = Pawn(color)
-		position[Index.A2] = first
-		position[Index.H2] = second
+		position = engine.Position(self.empty)
+		first = material.Pawn(color)
+		second = material.Pawn(color)
+		position[geometry.Index.A2] = first
+		position[geometry.Index.H2] = second
 		assert first is not second
 		assert first != second
 		assert len(position.side[color]) == 2
@@ -224,35 +224,35 @@ class TestSide(EngineSetup):
 
 	@pytest.mark.parametrize("color", EngineSetup.colors)
 	def test_empty_roster_has_no_targets(self, color) -> None:
-		side = Position(self.empty).side[color]
-		assert side.targets == collection()
-		assert isinstance(side.targets, collection)
+		side = engine.Position(self.empty).side[color]
+		assert side.targets == structs.collection()
+		assert isinstance(side.targets, structs.collection)
 
 	@pytest.mark.parametrize("color, knight_square, pawn_square, opponent_square, expected", target_cases)
 	def test_targets_combine_own_pieces(self, color, knight_square, pawn_square, opponent_square, expected) -> None:
-		position = Position(self.empty)
-		position[knight_square] = Knight(color)
-		position[pawn_square] = Pawn(color)
-		position[opponent_square] = Knight(not color)
+		position = engine.Position(self.empty)
+		position[knight_square] = material.Knight(color)
+		position[pawn_square] = material.Pawn(color)
+		position[opponent_square] = material.Knight(not color)
 		targets = position.side[color].targets
-		assert isinstance(targets, collection)
-		assert all(isinstance(step, Move) for step in targets)
-		assert targets == collection(*expected)
+		assert isinstance(targets, structs.collection)
+		assert all(isinstance(step, algebra.Move) for step in targets)
+		assert targets == structs.collection(*expected)
 
 	@pytest.mark.parametrize("color", EngineSetup.colors)
 	def test_targets_restore_after_capture_simulation(self, color) -> None:
-		position = Position(self.empty)
-		piece = Knight(color)
-		other = Pawn(not color)
-		position[Index.C3] = piece
-		position[Index.D5] = other
+		position = engine.Position(self.empty)
+		piece = material.Knight(color)
+		other = material.Pawn(not color)
+		position[geometry.Index.C3] = piece
+		position[geometry.Index.D5] = other
 		side = piece.side
 		before = side.targets, side.other.targets
 
-		with Capt(Index.D5, piece).simulated:
+		with algebra.Capt(geometry.Index.D5, piece).simulated:
 			assert side == {piece}
 			assert len(side.other) == 0
-			assert side.other.targets == collection()
+			assert side.other.targets == structs.collection()
 			assert side.targets != before[0]
 
 		assert side == {piece}
@@ -263,54 +263,54 @@ class TestSide(EngineSetup):
 class TestPosition(EngineSetup):
 
 	roster_positions = ((EngineSetup.empty, 0), (EngineSetup.initial, 16), (EngineSetup.asymmetric, 6))
-	king_positions = ((EngineSetup.initial, Index.E1, Index.E8), (EngineSetup.asymmetric, Index.E2, Index.E8))
+	king_positions = ((EngineSetup.initial, geometry.Index.E1, geometry.Index.E8), (EngineSetup.asymmetric, geometry.Index.E2, geometry.Index.E8))
 
 	def test_binding_wraps_placement_and_rosters(self) -> None:
-		position = Position(self.empty)
-		outgoing = Pawn(False)
-		incoming = Knight(True)
-		position[Index.E4] = outgoing
+		position = engine.Position(self.empty)
+		outgoing = material.Pawn(False)
+		incoming = material.Knight(True)
+		position[geometry.Index.E4] = outgoing
 
-		with position.binding(Index.E4, incoming) as bound:
+		with position.binding(geometry.Index.E4, incoming) as bound:
 			assert bound is None
-			assert position[Index.E4] is outgoing  # pylint: disable = invalid-sequence-index
+			assert position[geometry.Index.E4] is outgoing  # pylint: disable = invalid-sequence-index
 			assert outgoing.index is None
 			assert outgoing not in position.white
 			assert incoming.index is None
 			assert not hasattr(incoming, "position")
-			list.__setitem__(position, Index.E4, incoming)
+			list.__setitem__(position, geometry.Index.E4, incoming)
 
-		assert position[Index.E4] is incoming  # pylint: disable = invalid-sequence-index
+		assert position[geometry.Index.E4] is incoming  # pylint: disable = invalid-sequence-index
 		assert outgoing.index is None
 		assert len(position.white) == 0
-		assert incoming.index is Index.E4
+		assert incoming.index is geometry.Index.E4
 		assert incoming.position is position
 		assert incoming.side is position.black
 		assert position.black == {incoming}
 
 	def test_binding_propagates_body_exception_without_attaching_incoming(self) -> None:
-		position = Position(self.empty)
-		incoming = Knight(True)
+		position = engine.Position(self.empty)
+		incoming = material.Knight(True)
 
 		with pytest.raises(RuntimeError, match = "placement failed"):
-			with position.binding(Index.E4, incoming) as bound:
+			with position.binding(geometry.Index.E4, incoming) as bound:
 				assert bound is None
 
 				raise RuntimeError("placement failed")
 
-		assert position[Index.E4] is None  # pylint: disable = invalid-sequence-index
+		assert position[geometry.Index.E4] is None  # pylint: disable = invalid-sequence-index
 		assert incoming.index is None
 		assert not hasattr(incoming, "position")
 		assert len(position.white) == len(position.black) == 0
 
 	@pytest.mark.parametrize("placement, flat", EngineSetup.positions)
 	def test_placement_round_trip_and_position_binding(self, placement, flat) -> None:
-		position = Position(placement)
-		assert isinstance(position, Board)
+		position = engine.Position(placement)
+		assert isinstance(position, engine.Board)
 		assert len(position) == 64
 		assert repr(position) == placement
 
-		for index, symbol in zip(Index, flat, strict = True):
+		for index, symbol in zip(geometry.Index, flat, strict = True):
 			piece = position[index]
 			assert position.get(index) == symbol
 
@@ -325,10 +325,10 @@ class TestPosition(EngineSetup):
 				assert piece.side is position.side[piece.color]
 
 	def test_sides_are_owned_per_position(self) -> None:
-		first = Position(self.empty)
-		second = Position(self.empty)
-		piece = Pawn(False)
-		first[Index.A2] = piece
+		first = engine.Position(self.empty)
+		second = engine.Position(self.empty)
+		piece = material.Pawn(False)
+		first[geometry.Index.A2] = piece
 		assert first.white == {piece}
 		assert len(second.white) == 0
 
@@ -340,7 +340,7 @@ class TestPosition(EngineSetup):
 
 	@pytest.mark.parametrize("placement, count", roster_positions)
 	def test_initial_rosters_match_active_pieces(self, placement, count) -> None:
-		position = Position(placement)
+		position = engine.Position(placement)
 		active = {piece for piece in position if piece is not None}
 		assert len(position.white) == len(position.black) == count
 		assert set(position.white) | set(position.black) == active
@@ -353,7 +353,7 @@ class TestPosition(EngineSetup):
 
 	@pytest.mark.parametrize("placement, white, black", king_positions)
 	def test_initial_king_references(self, placement, white, black) -> None:
-		position = Position(placement)
+		position = engine.Position(placement)
 		assert position.white.king is position[white]
 		assert position.black.king is position[black]
 		assert position.white.king in position.white
@@ -362,9 +362,9 @@ class TestPosition(EngineSetup):
 	@pytest.mark.parametrize("color", EngineSetup.colors)
 	@pytest.mark.parametrize("index", EngineSetup.indices)
 	def test_assignment_binds_position_and_side(self, color, index) -> None:
-		position = Position(self.empty)
+		position = engine.Position(self.empty)
 		side = position.side[color]
-		piece = Knight(color)
+		piece = material.Knight(color)
 		assert piece.index is None
 		assert not hasattr(piece, "position")
 		position[index] = piece
@@ -380,11 +380,11 @@ class TestPosition(EngineSetup):
 	@pytest.mark.parametrize("incoming_color", EngineSetup.colors)
 	@pytest.mark.parametrize("index", EngineSetup.indices)
 	def test_replacement_updates_rosters_and_clears_outgoing_index(self, outgoing_color, incoming_color, index) -> None:
-		position = Position(self.empty)
+		position = engine.Position(self.empty)
 		outgoing_side = position.side[outgoing_color]
 		incoming_side = position.side[incoming_color]
-		outgoing = Pawn(outgoing_color)
-		incoming = Knight(incoming_color)
+		outgoing = material.Pawn(outgoing_color)
+		incoming = material.Knight(incoming_color)
 		position[index] = outgoing
 		position[index] = incoming
 		assert position[index] is incoming
@@ -401,9 +401,9 @@ class TestPosition(EngineSetup):
 	@pytest.mark.parametrize("delete", (False, True))
 	@pytest.mark.parametrize("index", EngineSetup.indices)
 	def test_removal_updates_roster_without_shrinking_board(self, color, delete, index) -> None:
-		position = Position(self.empty)
+		position = engine.Position(self.empty)
 		side = position.side[color]
-		piece = Rook(color)
+		piece = material.Rook(color)
 		position[index] = piece
 
 		if delete:
@@ -422,9 +422,9 @@ class TestPosition(EngineSetup):
 	@pytest.mark.parametrize("color", EngineSetup.colors)
 	@pytest.mark.parametrize("index", EngineSetup.indices)
 	def test_self_assignment_preserves_binding_and_roster(self, color, index) -> None:
-		position = Position(self.empty)
+		position = engine.Position(self.empty)
 		side = position.side[color]
-		piece = Bishop(color)
+		piece = material.Bishop(color)
 		position[index] = piece
 		position[index] = piece
 		assert position[index] is piece
@@ -437,8 +437,8 @@ class TestPosition(EngineSetup):
 	@pytest.mark.parametrize("key", EngineSetup.symbol_keys)
 	@pytest.mark.parametrize("symbol", EngineSetup.symbols)
 	def test_symbol_assignment_updates_rosters(self, key, symbol) -> None:
-		position = Position(self.empty)
-		outgoing = Pawn(True)
+		position = engine.Position(self.empty)
+		outgoing = material.Pawn(True)
 		position[key] = outgoing
 		position.set(key, symbol)
 		assert position.get(key) == symbol
@@ -454,7 +454,7 @@ class TestPosition(EngineSetup):
 
 		else:
 			assert piece is not None
-			assert piece.index is Index(key)
+			assert piece.index is geometry.Index(key)
 			assert piece.position is position
 			assert piece.color is symbol.islower()
 			assert piece.side == {piece}
@@ -462,12 +462,12 @@ class TestPosition(EngineSetup):
 
 	@pytest.mark.parametrize("index", EngineSetup.invalid_indices)
 	def test_invalid_assignment_preserves_occupancy_and_rosters(self, index) -> None:
-		position = Position(self.empty)
-		white = Pawn(False)
-		black = Pawn(True)
-		incoming = Knight(False)
-		position[Index.A8] = white
-		position[Index.H1] = black
+		position = engine.Position(self.empty)
+		white = material.Pawn(False)
+		black = material.Pawn(True)
+		incoming = material.Knight(False)
+		position[geometry.Index.A8] = white
+		position[geometry.Index.H1] = black
 		before = tuple(position)
 
 		with pytest.raises(ValueError):
@@ -476,7 +476,7 @@ class TestPosition(EngineSetup):
 		assert tuple(position) == before
 		assert position.white == {white}
 		assert position.black == {black}
-		assert white.index is Index.A8
-		assert black.index is Index.H1
+		assert white.index is geometry.Index.A8
+		assert black.index is geometry.Index.H1
 		assert incoming.index is None
 		assert not hasattr(incoming, "position")

@@ -75,8 +75,8 @@ class Side(set[material.Piece]):
 		return self.position.side[not self]
 
 	@property
-	def targets(self) -> structs.collection[algebra.Move]:
-		return structs.collection[algebra.Move]().union(*(piece.targets for piece in self))
+	def targets(self) -> algebra.Moves:
+		return algebra.Moves().union(*(piece.targets for piece in self))
 
 
 class Position(Board):

@@ -83,10 +83,18 @@ class Spec(Move):
 	...
 
 
-class Rush(Spec):
+class Pawn(Move):
 
 	piece: material.Pawn
 
+
+	def __init__(self, x: int, piece: material.Pawn) -> None:
+		assert isinstance(piece, material.Pawn)
+
+		super().__init__(x, piece)
+
+
+class Rush(Pawn, Spec):
 
 	def __bool__(self) -> bool:
 		return super().__bool__() and not self.piece.moved and self.position[self.middle] is None
@@ -112,7 +120,7 @@ class Rush(Spec):
 		return self.source.middle(self.target)
 
 
-class Promotion(Spec):
+class Promotion(Pawn, Spec):
 
 	def __class_getitem__(cls, item: type[Move], /) -> type[Promotion]:
 		if item is Move: return PromotionMove
@@ -121,7 +129,6 @@ class Promotion(Spec):
 		raise TypeError(f"{cls.__name__} expects Move or Capt")
 
 	def __init__(self, x: int, piece: material.Pawn) -> None:
-		assert isinstance(piece, material.Pawn)
 		super().__init__(x, piece)
 
 		self.to = next(self.officers)
@@ -142,7 +149,7 @@ class PromotionMove(Promotion, Move): ...
 class PromotionCapt(Promotion, Capt): ...
 
 
-class EnPassant(Capt):
+class EnPassant(Pawn, Capt):
 
 	other: material.Ghost
 
@@ -150,7 +157,6 @@ class EnPassant(Capt):
 	def __init__(self, x: int, piece: material.Pawn) -> None:
 		super().__init__(x, piece)
 
-		assert isinstance(self.piece, material.Pawn )
 		assert isinstance(self.other, material.Ghost)
 
 	def __call__(self) -> typing.Self:
@@ -159,7 +165,6 @@ class EnPassant(Capt):
 		super().__call__()
 
 		del self.position[self.middle]
-
 		return self
 
 	@property
@@ -169,7 +174,6 @@ class EnPassant(Capt):
 
 		with super().simulated:
 			del self.position[self.middle]
-
 			try: yield self
 			finally: self.position[self.middle] = self.other.rusher
 

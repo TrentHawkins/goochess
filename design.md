@@ -173,7 +173,7 @@ Occupancy and later king-safety rejection are boolean validation outcomes, rathe
 
 `targets` contains geometric/occupancy candidates. `squares` simulates each candidate and excludes those leaving an installed king unsafe; partial positions without a king retain their candidates. This is an initial king-safety filter, not complete legal-move validation. General attack queries and complete legality remain open in O07.
 
-Piece and side target collections, and filtered piece squares, use `structs.collection[algebra.Move]`. Search already constructs `Move`, `Capt`, `Rush`, and `EnPassant` instances; filtering preserves those objects and their simulation context rather than upgrading plain indices. These chess collections need set operations, not the Cartesian operations supplied by the separate mathematical `indices` type.
+Piece and side target collections, and filtered piece squares, use `algebra.Moves`, a specialization of `structs.collection[algebra.Move]`. Search already constructs `Move`, `Capt`, `Rush`, and `EnPassant` instances; filtering preserves those objects and their simulation context rather than upgrading plain indices. These chess collections need set operations, not the Cartesian operations supplied by the separate mathematical `indices` type.
 
 ### D11. A move is a target index with a recorded source and piece
 
@@ -197,6 +197,8 @@ Arithmetic on a contextual move is not a promise that a new move can be reconstr
 **Status: Agreed direction; specialized behavior remains incomplete.**
 
 `Move` and `Capt` validate meaningfully different occupancy conditions. `Rush` remains an explicit special move because a double advance creates a ghost on the intermediate square, during execution or simulation. Castling is also expected to be explicit. Moving all move classification out of piece search was considered, then narrowed to this partial separation.
+
+`algebra.Pawn` supplies the shared pawn-only constructor and `piece: material.Pawn` annotation for `Rush`, `Promotion`, and `EnPassant`. `Rush` and `Promotion` retain their `Spec` role; `EnPassant` retains its `Capt` role.
 
 Promotion augments either an ordinary move or capture rather than replacing that distinction. The current `Promotion[Move]` and `Promotion[Capt]` select finite named classes, not freshly synthesized runtime classes. Each promotion instance owns its selected officer and its queen-first choice cycle. This implementation is retained as prototype context, not a requirement to emit all variants during square search.
 
@@ -222,7 +224,7 @@ Only the placement field is currently supported by `Board`. `notation.game` is a
 
 **Status: Baseline and implemented.**
 
-`src/goochess` is the importable package; `src` itself is not the public package name. Target Python 3.14 or newer and use an editable installation for development. Tests import `goochess`; package code uses relative imports.
+`src/goochess` is the importable package; `src` itself is not the public package name. Target Python 3.14 or newer and use an editable installation for development. Tests import modules with `from goochess import module` and access objects through their module namespaces; package code uses relative module imports.
 
 Cross-interacting modules need not be merged merely to remove every import cycle. Use module-qualified runtime references and deferred annotations where appropriate; imports used only for annotations belong under `TYPE_CHECKING`. This is not permission to execute cross-module lookups before initialization completes. The current `material`/`algebra` relationship still exists; complete decoupling has not been implemented or required.
 

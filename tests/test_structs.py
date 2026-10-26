@@ -7,15 +7,15 @@ import pickle
 
 import pytest
 
-from goochess.structs import collection, switch
+from goochess import structs
 
 
 class TestSwitch:
 
-	class Derived(switch[str]):
+	class Derived(structs.switch[str]):
 		...
 
-	switch_types = (switch, Derived)
+	switch_types = (structs.switch, Derived)
 	items = ("false", "true")
 	selections = ((False, "false"), (True, "true"), (-4, "false"), (-3, "true"), (-1, "true"),
 		(0, "false"), (1, "true"), (2, "false"), (3, "true"), (100, "false"), (101, "true"))
@@ -43,11 +43,11 @@ class TestSwitch:
 	@pytest.mark.parametrize("key", invalid_keys)
 	def test_invalid_subscription(self, key) -> None:
 		with pytest.raises(TypeError):
-			_ = switch(*self.items)[key]
+			_ = structs.switch(*self.items)[key]
 
 	@pytest.mark.parametrize("mutation, arguments", mutations)
 	def test_immutability(self, mutation, arguments) -> None:
-		value = switch(*self.items)
+		value = structs.switch(*self.items)
 
 		with pytest.raises(TypeError):
 			mutation(value, *arguments)
@@ -71,10 +71,10 @@ class TestSwitch:
 
 class TestCollection:
 
-	class Derived(collection[int]):
+	class Derived(structs.collection[int]):
 		...
 
-	collection_types = (collection, Derived)
+	collection_types = (structs.collection, Derived)
 	items = (0, 1, 2)
 	other = (2, 3)
 	operations = (
