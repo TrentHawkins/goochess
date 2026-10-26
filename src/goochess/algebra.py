@@ -39,24 +39,29 @@ class Move(mathematics.index[2, 8]):
 	def __bool__(self) -> bool:
 		return self.position[self.target] is None
 
-	def __call__(self) -> typing.Self:
+	def apply(self) -> typing.Self:
 		assert self.piece.index == self.source and self.position[self.target] is self.other
 
 		self.piece(self.target)
 
 		return self
 
+	def undo(self, *, moved: bool) -> typing.Self:
+		self.piece(self.source,
+			kept = self.other,
+			moved = moved,
+		)
+
+		return self
+
 	@property
 	@contextlib.contextmanager
 	def simulated(self) -> typing.Generator[typing.Self]:
-		assert self.piece.index == self.source and self.position[self.target] is self.other
-
 		moved = self.piece.moved
-		self.piece(self.target)
+		self.apply()
 
 		try: yield self
-		finally: self.piece(self.source,
-			kept = self.other,
+		finally: self.undo(
 			moved = moved,
 		)
 
@@ -99,21 +104,19 @@ class Rush(Pawn, Spec):
 	def __bool__(self) -> bool:
 		return super().__bool__() and not self.piece.moved and self.position[self.middle] is None
 
-	def __call__(self) -> typing.Self:
-		super().__call__()
+	def apply(self) -> typing.Self:
+		super().apply()
 
 		self.position[self.middle] = material.Ghost(self.piece)
 
 		return self
 
-	@property
-	@contextlib.contextmanager
-	def simulated(self) -> typing.Generator[typing.Self]:
-		with super().simulated:
-			self.position[self.middle] = material.Ghost(self.piece)
+	def undo(self, *, moved: bool) -> typing.Self:
+		del self.position[self.middle]
 
-			try: yield self
-			finally: del self.position[self.middle]
+		return super().undo(
+			moved = moved,
+		)
 
 	@property
 	def middle(self) -> geometry.Index:
@@ -159,23 +162,21 @@ class EnPassant(Pawn, Capt):
 
 		assert isinstance(self.other, material.Ghost)
 
-	def __call__(self) -> typing.Self:
+	def apply(self) -> typing.Self:
 		assert self.position[self.middle] is self.other.rusher
 
-		super().__call__()
+		super().apply()
 
 		del self.position[self.middle]
+
 		return self
 
-	@property
-	@contextlib.contextmanager
-	def simulated(self) -> typing.Generator[typing.Self]:
-		assert self.position[self.middle] is self.other.rusher
+	def undo(self, *, moved: bool) -> typing.Self:
+		self.position[self.middle] = self.other.rusher
 
-		with super().simulated:
-			del self.position[self.middle]
-			try: yield self
-			finally: self.position[self.middle] = self.other.rusher
+		return super().undo(
+			moved = moved,
+		)
 
 	def __bool__(self) -> bool:
 		return super().__bool__() and self.position[self.middle] is self.other.rusher and \

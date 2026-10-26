@@ -2,6 +2,7 @@ from __future__ import annotations
 
 
 import pickle
+import typing
 
 import pytest
 
@@ -54,6 +55,22 @@ class AlgebraSetup:
 
 
 class TestMove(AlgebraSetup):
+
+	class RecordedMove(algebra.Move):
+
+		def __init__(self, target: int, piece: material.Piece) -> None:
+			super().__init__(target, piece)
+			self.events: list[str] = []
+
+		def apply(self) -> typing.Self:
+			self.events.append("apply")
+
+			return super().apply()
+
+		def undo(self, *, moved: bool) -> typing.Self:
+			self.events.append("undo")
+
+			return super().undo(moved = moved)
 
 	notations = (
 		(material.Pawn, False, geometry.Index.E2, geometry.Index.E3, "e3"),
@@ -128,7 +145,7 @@ class TestMove(AlgebraSetup):
 		piece = self.place(position, material.Pawn, geometry.Index.E2, color)
 		piece.moved = moved
 		move = algebra.Move(geometry.Index.E3, piece)
-		assert move() is move
+		assert move.apply() is move
 		assert position[move.source] is None
 		assert position[move.target] is piece
 		assert piece.index is move.target
@@ -136,6 +153,41 @@ class TestMove(AlgebraSetup):
 		assert piece.moved
 		assert move.source is geometry.Index.E2
 		assert move.other is None
+
+	@pytest.mark.parametrize("moved", moved_states)
+	def test_apply_and_undo_hooks_restore_state(self, moved) -> None:
+		position = self.position()
+		piece = self.place(position, material.Pawn, geometry.Index.E2, False)
+		piece.moved = moved
+		move = self.RecordedMove(geometry.Index.E3, piece)
+		before = self.state(position)
+		assert move.apply() is move
+		assert move.events == ["apply"]
+		assert piece.index is move.target
+		assert piece.moved
+		assert move.undo(moved = moved) is move
+		assert move.events == ["apply", "undo"]
+		assert self.state(position) == before
+
+	@pytest.mark.parametrize("moved", moved_states)
+	def test_simulation_uses_hooks_once_and_restores_after_exception(self, moved) -> None:
+		position = self.position()
+		piece = self.place(position, material.Pawn, geometry.Index.E2, False)
+		piece.moved = moved
+		move = self.RecordedMove(geometry.Index.E3, piece)
+		before = self.state(position)
+
+		with pytest.raises(LookupError, match = "simulation failed"):
+			with move.simulated as active:
+				assert active is move
+				assert move.events == ["apply"]
+				assert piece.index is move.target
+				assert piece.moved
+
+				raise LookupError("simulation failed")
+
+		assert move.events == ["apply", "undo"]
+		assert self.state(position) == before
 
 	@pytest.mark.parametrize("color", AlgebraSetup.colors)
 	@pytest.mark.parametrize("moved", moved_states)
@@ -411,7 +463,7 @@ class TestRush(AlgebraSetup):
 		position = self.position()
 		pawn = self.place(position, material.Pawn, source, color)
 		rush = algebra.Rush(target, pawn)
-		assert rush() is rush
+		assert rush.apply() is rush
 		assert position[source] is None
 		assert position[target] is pawn
 		assert pawn.index is target
@@ -771,7 +823,7 @@ class TestEnPassant(AlgebraSetup):
 		victim = self.place(position, material.Pawn, middle, not color)
 		ghost = self.place_ghost(position, target, victim)
 		capture = algebra.EnPassant(target, pawn)
-		assert capture() is capture
+		assert capture.apply() is capture
 		assert position[source] is position[middle] is None
 		assert position[target] is pawn
 		assert pawn.index is target
