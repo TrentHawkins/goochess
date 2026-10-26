@@ -139,7 +139,7 @@ class TestMove(AlgebraSetup):
 
 	@pytest.mark.parametrize("color", AlgebraSetup.colors)
 	@pytest.mark.parametrize("moved", moved_states)
-	def test_context_preserves_moved_flag(self, color, moved) -> None:
+	def test_context_marks_moved_and_restores_flag(self, color, moved) -> None:
 		position = self.position()
 		piece = self.place(position, Pawn, Index.E2, color)
 		move = Move(Index.E3, piece)
@@ -152,7 +152,7 @@ class TestMove(AlgebraSetup):
 			assert position[move.target] is piece
 			assert piece.index is move.target
 			assert piece in piece.side
-			assert piece.moved is moved
+			assert piece.moved
 
 		assert self.state(position) == before
 
@@ -166,6 +166,7 @@ class TestMove(AlgebraSetup):
 			with move.simulated as active:
 				assert active is move
 				assert piece.index is move.target
+				assert piece.moved
 
 				raise LookupError("simulation failed")
 
@@ -279,7 +280,7 @@ class TestCapt(AlgebraSetup):
 				assert position[capture.source] is None
 				assert position[capture.target] is piece
 				assert piece.index is capture.target
-				assert piece.moved is moved
+				assert piece.moved
 				assert enemy.index is None
 				assert enemy not in enemy.side
 				assert capture.other is enemy
@@ -344,7 +345,7 @@ class TestRush(AlgebraSetup):
 				assert position[source] is None
 				assert position[target] is pawn
 				assert pawn.index is target
-				assert not pawn.moved
+				assert pawn.moved
 				ghost = position[middle]
 				assert isinstance(ghost, Ghost)
 				assert ghost.rusher is pawn
@@ -702,7 +703,7 @@ class TestEnPassant(AlgebraSetup):
 				assert position[source] is position[middle] is None
 				assert position[target] is pawn
 				assert pawn.index is target
-				assert pawn.moved is moved
+				assert pawn.moved
 				assert victim.index is ghost.index is None
 				assert victim not in position.side[not color]
 				assert ghost not in position.side[not color]

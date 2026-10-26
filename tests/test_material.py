@@ -126,7 +126,7 @@ class TestPiece(MaterialSetup):
 
 	@pytest.mark.parametrize("color", MaterialSetup.colors)
 	@pytest.mark.parametrize("moved", moved_states)
-	def test_relocation_and_restoration_preserve_movement_flag(self, color, moved) -> None:
+	def test_relocation_marks_moved_and_restoration_restores_flag(self, color, moved) -> None:
 		position = self.position()
 		source, target = Index.D4, Index.D5
 		piece = self.place(position, Pawn, source, color)
@@ -138,10 +138,10 @@ class TestPiece(MaterialSetup):
 		assert position[target] is piece  # pylint: disable = invalid-sequence-index
 		assert piece.index is target
 		assert piece in piece.side
-		assert piece.moved is moved
+		assert piece.moved
 		assert other.index is None
 		assert other not in other.side
-		assert piece(source, other) is piece
+		assert piece(source, kept = other, moved = moved) is piece
 		assert tuple(position) == before
 		assert piece.index is source
 		assert piece in piece.side

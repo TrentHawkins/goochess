@@ -33,13 +33,18 @@ class Piece:
 	def __repr__(self) -> str:
 		return self.black if self.color else self.white
 
-	def __call__(self, target: int | geometry.Index, kept: Piece | None = None, /) -> typing.Self:
+	def __call__(self, target: int | geometry.Index, /, *,
+		kept: Piece | None = None,
+		moved: bool = True,
+	) -> typing.Self:
 		assert (source := self.index) is not None
 
 		target = geometry.Index(target)
 
 		self.position[source] = kept
 		self.position[target] = self
+
+		self.moved = moved
 
 		return self
 
@@ -62,11 +67,11 @@ class Piece:
 		return self.position.side[self.color]
 
 	@property
-	def targets(self) -> structs.collection[algebra.Move]:
-		return structs.collection[algebra.Move]()
+	def targets(self) -> algebra.Moves:
+		return algebra.Moves()
 
 	@property
-	def squares(self) -> structs.collection[algebra.Move]:
+	def squares(self) -> algebra.Moves:
 		squares = self.targets
 
 		for step in tuple(squares):
@@ -80,7 +85,7 @@ class Piece:
 class Omni(Piece, abc.ABC):
 
 	@property
-	def targets(self) -> structs.collection[algebra.Move]:
+	def targets(self) -> algebra.Moves:
 		targets = super().targets
 
 		if self.index is None:
@@ -184,7 +189,7 @@ class Pawn(Piece):
 
 
 	@property
-	def targets(self) -> structs.collection[algebra.Move]:
+	def targets(self) -> algebra.Moves:
 		targets = super().targets
 
 		if self.index is None:

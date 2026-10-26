@@ -6,6 +6,7 @@ import functools
 import itertools
 import typing
 
+from . import structs
 from . import mathematics
 from . import geometry
 from . import material
@@ -41,7 +42,7 @@ class Move(mathematics.index[2, 8]):
 	def __call__(self) -> typing.Self:
 		assert self.piece.index == self.source and self.position[self.target] is self.other
 
-		self.piece(self.target).moved = True
+		self.piece(self.target)
 
 		return self
 
@@ -50,10 +51,14 @@ class Move(mathematics.index[2, 8]):
 	def simulated(self) -> typing.Generator[typing.Self]:
 		assert self.piece.index == self.source and self.position[self.target] is self.other
 
+		moved = self.piece.moved
 		self.piece(self.target)
 
 		try: yield self
-		finally: self.piece(self.source, self.other)
+		finally: self.piece(self.source,
+			kept = self.other,
+			moved = moved,
+		)
 
 	@property
 	def target(self) -> geometry.Index:
@@ -189,3 +194,6 @@ class Checkmate(Check):
 
 	def __repr__(self) -> str:
 		return super().__repr__().replace("+", "#")
+
+
+class Moves(structs.collection[Move]): ...
