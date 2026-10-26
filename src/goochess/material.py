@@ -178,7 +178,8 @@ class King(Melee, Star):
 
 	@property
 	def safe(self) -> bool:
-		return self.index is not None and self.index not in self.side.other.targets
+		assert self.index is not None
+		return self.index not in self.side.other.targets
 
 
 class Pawn(Piece):
