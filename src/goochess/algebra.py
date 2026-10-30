@@ -40,9 +40,7 @@ class Move(mathematics.index[2, 8]):
 		return self.occupant(self.target) is None
 
 	def occupant(self, square: geometry.Index, /) -> material.Piece | None:
-		other = self.position[square]
-
-		return None if isinstance(other, material.Ghost) else other
+		return None if isinstance(other := self.position[square], material.Ghost) else other
 
 	def apply(self) -> typing.Self:
 		assert self.piece.index == self.source and self.position[self.target] is self.other
@@ -93,6 +91,75 @@ class Spec(Move):
 	...
 
 
+class Jump(Spec):
+
+	def __bool__(self) -> bool:
+		return super().__bool__() and not self.piece.moved and self.position[self.middle] is None
+
+	@property
+	def middle(self) -> geometry.Index:
+		return self.source.middle(self.target)
+
+
+class Castle(Jump):
+
+	piece: material.King
+	rook: material.Rook | None
+
+
+	def __init__(self, x: int, piece: material.King) -> None:
+		assert isinstance(piece, material.King)
+
+		super().__init__(x, piece)
+
+		direction = piece.ᐊ if self.long else piece.ᐅ
+		self.rook_source = self.source + direction
+		self.rook = piece.rooks.get(direction)
+
+	def __repr__(self) -> str:
+		return "O-O-O" if self.long else "O-O"
+
+	def __bool__(self) -> bool:
+		if self.rook is None:
+			return False
+
+		if not super().__bool__(): return False
+		if self.rook.moved or self.rook.index != self.rook_source: return False
+		if self.long and self.occupant(self.target + geometry.Compass.west) is not None: return False
+		if not self.piece.safe: return False
+
+		with Move(self.middle, self.piece).simulated:
+			if not self.piece.safe:
+				return False
+
+		with self.simulated:
+			return self.piece.safe
+
+	def apply(self) -> typing.Self:
+		assert self.rook is not None
+
+		super().apply()
+
+		self.rook(self.middle)
+
+		return self
+
+	def undo(self, *, moved: bool) -> typing.Self:
+		assert self.rook is not None
+
+		self.rook(self.rook_source,
+			moved = False,
+		)
+
+		return super().undo(
+			moved = moved,
+		)
+
+	@property
+	def long(self) -> bool:
+		return self.target < self.source
+
+
 class Pawn(Move):
 
 	piece: material.Pawn
@@ -104,10 +171,7 @@ class Pawn(Move):
 		super().__init__(x, piece)
 
 
-class Rush(Pawn, Spec):
-
-	def __bool__(self) -> bool:
-		return super().__bool__() and not self.piece.moved and self.position[self.middle] is None
+class Rush(Pawn, Jump):
 
 	def apply(self) -> typing.Self:
 		super().apply()
@@ -119,13 +183,7 @@ class Rush(Pawn, Spec):
 	def undo(self, *, moved: bool) -> typing.Self:
 		del self.position[self.middle]
 
-		return super().undo(
-			moved = moved,
-		)
-
-	@property
-	def middle(self) -> geometry.Index:
-		return self.source.middle(self.target)
+		return super().undo(moved = moved)
 
 
 class Promotion(Pawn, Spec):

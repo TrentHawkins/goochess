@@ -175,10 +175,33 @@ class King(Melee, Star):
 	white = "K"  # "♔"
 	black = "k"  # "♚"
 
+	ᐊ = geometry.Compass.west * 4
+	ᐅ = geometry.Compass.east * 3
+
+
+	def __init__(self, color: bool, /) -> None:
+		super().__init__(color)
+		self.rooks: dict[mathematics.array, Rook] = {}
+
+
+	@property
+	def squares(self) -> algebra.Moves:
+		squares = super().squares
+
+		if self.index is None or self.moved:
+			return squares
+
+		for direction in self.rooks:
+			target = self.index + (geometry.Compass.west if direction[0] < 0 else geometry.Compass.east) * 2
+
+			if step := algebra.Castle(target, self): squares.add(step)
+
+		return squares
 
 	@property
 	def safe(self) -> bool:
 		assert self.index is not None
+
 		return self.index not in self.side.other.targets
 
 
@@ -190,20 +213,22 @@ class Pawn(Piece):
 
 
 	@property
+	def Δ(self) -> mathematics.array:
+		return geometry.Compass.south if self.color else geometry.Compass.north
+
+	@property
 	def targets(self) -> algebra.Moves:
 		targets = super().targets
 
 		if self.index is None:
 			return targets
 
-		Δ = geometry.Compass.south if self.color else geometry.Compass.north
-
-		try: square = self.index + Δ
+		try: square = self.index + self.Δ
 		except ValueError: return targets
 
 		with contextlib.suppress(ValueError):
-			if step := algebra.Move(square    , self): targets.add(step)
-			if step := algebra.Rush(square + Δ, self): targets.add(step)
+			if step := algebra.Move(square         , self): targets.add(step)
+			if step := algebra.Rush(square + self.Δ, self): targets.add(step)
 
 		for move in geometry.Compass.files:
 			with contextlib.suppress(ValueError):

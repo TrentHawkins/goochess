@@ -82,16 +82,33 @@ class Side(set[material.Piece]):
 class Position(Board):
 
 	def __init__(self, forsyth_edwards: str, /):
+		placement, _, castling, _, _, _ = forsyth_edwards.split()
+
 		self.side = structs.switch(
 			Side(self),  # white
 			Side(self),  # black
 		)
 
-		super().__init__(forsyth_edwards)
+		super().__init__(placement)
 
 		for piece in self:
 			if isinstance(piece, material.King):
 				piece.side.king = piece
+
+		if castling == "-":
+			return
+
+		for flag in castling:
+			assert flag in "KQkq"
+
+			color = flag.islower()
+			source = geometry.Index.E8 if color else geometry.Index.E1
+			king = self[source]
+			assert isinstance(king, material.King) and king.color == color
+			direction = king.ᐅ if flag.upper() == "K" else king.ᐊ
+			rook = self[source + direction]
+			assert isinstance(rook, material.Rook) and rook.color == color
+			king.rooks[direction] = rook
 
 
 	@contextlib.contextmanager

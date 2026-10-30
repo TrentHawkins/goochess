@@ -14,7 +14,7 @@ class MaterialSetup:
 
 	colors = (False, True)
 	kinds = (material.Pawn, material.Knight, material.Bishop, material.Rook, material.Queen, material.King)
-	empty = "8/8/8/8/8/8/8/8"
+	empty = "8/8/8/8/8/8/8/8 w - - 0 1"
 
 	@staticmethod
 	def position() -> engine.Position:
@@ -402,10 +402,21 @@ class TestKing(MaterialSetup):
 		(False, geometry.Index.D4, geometry.Index.C5, geometry.Index.D5),
 		(True, geometry.Index.D5, geometry.Index.C4, geometry.Index.D4),
 	)
+	castles = (
+		(False, "4k3/8/8/8/8/8/8/R3K2R", geometry.Index.E1,
+			(geometry.Index.A1, geometry.Index.H1), (geometry.Index.C1, geometry.Index.G1)),
+		(True, "r3k2r/8/8/8/8/8/8/4K3", geometry.Index.E8,
+			(geometry.Index.A8, geometry.Index.H8), (geometry.Index.C8, geometry.Index.G8)),
+	)
+	wings = (0, 1)
+	wing_tokens = ("Q", "K")
+	castling_pieces = (material.King, material.Rook)
+	unavailable_rooks = ("missing", "wrong_type", "wrong_color", "replacement")
 
 	@pytest.mark.parametrize("color", MaterialSetup.colors)
-	def test_unplaced_king_is_not_safe(self, color) -> None:
-		assert not material.King(color).safe
+	def test_unplaced_king_cannot_be_checked_for_safety(self, color) -> None:
+		with pytest.raises(AssertionError):
+			_ = material.King(color).safe
 
 	@pytest.mark.parametrize("color, square, diagonal, forward", pawn_attacks)
 	def test_opposing_pawn_attacks_diagonally(self, color, square, diagonal, forward) -> None:
@@ -419,7 +430,7 @@ class TestKing(MaterialSetup):
 		assert not king.safe
 
 	def test_pinned_opponent_still_attacks(self) -> None:
-		position = engine.Position("4k3/8/4n3/8/5K2/8/8/4R3")
+		position = engine.Position("4k3/8/4n3/8/5K2/8/8/4R3 w - - 0 1")
 		king = position.white.king
 		assert king is not None
 		assert not king.safe
@@ -432,6 +443,100 @@ class TestKing(MaterialSetup):
 		self.place(position, material.Rook, geometry.Index.A4, not color)
 		position[geometry.Index.D4] = material.Ghost(material.Pawn(ghost_color))
 		assert not king.safe
+
+	@pytest.mark.parametrize("color, placement, source, corners, targets", castles)
+	@pytest.mark.parametrize("wing", wings)
+	def test_castling_is_a_legal_square_for_an_allowed_wing(self, color, placement,
+		source, corners, targets, wing,
+	) -> None:
+		token = self.wing_tokens[wing]
+		position = engine.Position(f"{placement} w {token.lower() if color else token} - 0 1")
+		king = position[source]
+		rook = position[corners[wing]]
+		assert isinstance(king, material.King)
+		assert isinstance(rook, material.Rook)
+		before = tuple(position), frozenset(position.white), frozenset(position.black)
+		squares = king.squares
+		castles = {step for step in squares if isinstance(step, algebra.Castle)}
+		assert castles == {targets[wing]}
+		assert targets[not wing] not in squares
+		assert all(not isinstance(step, algebra.Castle) for step in king.targets)
+		assert all(target not in king.targets for target in targets)
+		assert (tuple(position), frozenset(position.white), frozenset(position.black)) == before
+		assert king.color is color
+		assert king.index is source
+		assert rook.index is corners[wing]
+		assert not king.moved and not rook.moved
+		assert king.rooks == {(material.King.ᐊ, material.King.ᐅ)[wing]: rook}
+
+	@pytest.mark.parametrize("color, placement, source, corners, targets", castles)
+	@pytest.mark.parametrize("wing", wings)
+	@pytest.mark.parametrize("kind", castling_pieces)
+	def test_returned_piece_prevents_castling_without_changing_permissions(self, color, placement,
+		source, corners, targets, wing, kind,
+	) -> None:
+		position = engine.Position(f"{placement} w {"kq" if color else "KQ"} - 0 1")
+		king = position[source]
+		assert isinstance(king, material.King)
+		partners = dict(king.rooks)
+		piece_source = source if kind is material.King else corners[wing]
+		piece = position[piece_source]
+		assert isinstance(piece, kind)
+		direction = geometry.Compass.south if color else geometry.Compass.north
+		algebra.Move(piece_source + direction, piece).apply()
+		algebra.Move(piece_source, piece).apply()
+		assert piece.moved
+		assert king.rooks == partners
+		expected = set() if kind is material.King else {targets[not wing]}
+		assert {step for step in king.squares if isinstance(step, algebra.Castle)} == expected
+
+	@pytest.mark.parametrize("color, placement, source, corners, targets", castles)
+	def test_corner_rooks_alone_do_not_grant_castling(self, color, placement,
+		source, corners, targets,
+	) -> None:
+		position = engine.Position(f"{placement} w - - 0 1")
+		king = position[source]
+		assert isinstance(king, material.King)
+		assert king.rooks == {}
+		assert all(target not in king.squares for target in targets)
+		assert king.squares == king.targets
+
+	@pytest.mark.parametrize("color, placement, source, corners, targets", castles)
+	@pytest.mark.parametrize("wing", wings)
+	@pytest.mark.parametrize("fault", unavailable_rooks)
+	def test_unavailable_corner_rook_does_not_generate_castling(self, color, placement,
+		source, corners, targets, wing, fault,
+	) -> None:
+		token = self.wing_tokens[wing]
+		position = engine.Position(f"{placement} w {token.lower() if color else token} - 0 1")
+		king = position[source]
+		assert isinstance(king, material.King)
+		partners = dict(king.rooks)
+
+		if fault == "missing":
+			del position[corners[wing]]
+
+		elif fault == "wrong_type":
+			self.place(position, material.Knight, corners[wing], color)
+
+		else:
+			self.place(position, material.Rook, corners[wing], not color if fault == "wrong_color" else color)
+
+		before = tuple(position), frozenset(position.white), frozenset(position.black)
+		assert not any(isinstance(step, algebra.Castle) for step in king.squares)
+		assert (tuple(position), frozenset(position.white), frozenset(position.black)) == before
+		assert king.rooks == partners
+		assert all(rook.index is None for rook in partners.values())
+
+	def test_both_sides_castle_without_recursing_into_attack_queries(self) -> None:
+		position = engine.Position("r3k2r/8/8/8/8/8/8/R3K2R w KQkq - 0 1")
+
+		for color, _, source, corners, targets in self.castles:
+			king = position[source]
+			assert isinstance(king, material.King)
+			assert king.safe
+			assert {step for step in king.squares if isinstance(step, algebra.Castle)} == set(targets)
+			assert all(not isinstance(step, algebra.Castle) for step in king.side.targets)
 
 
 class TestPawn(MaterialSetup):
@@ -522,7 +627,7 @@ class TestPawn(MaterialSetup):
 	def test_en_passant_king_safety_removes_both_pawns(self, color, placement, source,
 		middle, target, attacker, attacked,
 	) -> None:
-		position = engine.Position(placement)
+		position = engine.Position(f"{placement} w - - 0 1")
 		pawn = position[source]
 		assert isinstance(pawn, material.Pawn)
 		victim = position[middle]
@@ -549,7 +654,7 @@ class TestPawn(MaterialSetup):
 	def test_ghost_without_capturable_pawn_is_not_a_target(self, color, placement,
 		source, middle, target, attacker,
 	) -> None:
-		position = engine.Position(placement)
+		position = engine.Position(f"{placement} w - - 0 1")
 		pawn = position[source]
 		assert isinstance(pawn, material.Pawn)
 		victim = position[middle]

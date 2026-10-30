@@ -50,7 +50,7 @@ class serial(str):
 		return (rank(self[index:index + 8]) for index in range(0, len(self), 8))
 
 
-class game(
+class position(
 	tuple[
 		board,
 		...  # more to add later
