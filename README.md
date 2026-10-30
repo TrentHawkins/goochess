@@ -60,4 +60,6 @@ Standard castling is available through `Castle(target, king)` and `King.squares`
 
 `Piece.fromnotation(symbol)` constructs an unplaced piece without position context. A plain `Board` can place and export pieces, but movement queries require placement on a `Position`. `Position` currently processes the placement and castling fields of its full-FEN input; active color, en passant availability, and counters are accepted but not yet applied. Full legality and full-FEN export remain unfinished; representation still emits placement only. Future export must derive remaining rights from partners and movement flags, independently of temporary clearance or attacks. A future `Game` runner will own a current position and coordinate progression and history; no `Game` class is implemented yet.
 
+`notation.position` decodes all six FEN fields into a `namedtuple` and formats them back through `str`. It uses black-as-true color, notation strings for castling and en passant, and integer counters. The engine still splits its input directly; wiring in this codec and exporting full FEN from engine state remain separate next steps.
+
 Tests live in `tests`, with one test file per source module. The `graphics` directory holds the project's artwork.

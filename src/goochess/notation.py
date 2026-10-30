@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 
+import collections
 import itertools
 import typing
 
@@ -50,11 +51,34 @@ class serial(str):
 		return (rank(self[index:index + 8]) for index in range(0, len(self), 8))
 
 
-class position(
-	tuple[
-		board,
-		...  # more to add later
-	],
-):
+class position(collections.namedtuple("position", "placement color castling en_passant halfmove fullmove")):
 
-	...
+	__slots__ = ()
+
+	placement: board
+	color: bool
+	castling: str
+	en_passant: str
+	halfmove: int
+	fullmove: int
+
+
+	def __new__(cls, notation: str, /) -> typing.Self:
+		placement, color, castling, en_passant, halfmove, fullmove = notation.split()
+
+		return super().__new__(cls,
+			board(placement),
+			color == "b",
+			castling,
+			en_passant,
+			int(halfmove),
+			int(fullmove),
+		)
+
+	def __getnewargs__(self) -> tuple[str]:
+		return (str(self),)
+
+	def __str__(self) -> str:
+		color = "b" if self.color else "w"
+
+		return f"{self.placement} {color} {self.castling} {self.en_passant} {self.halfmove} {self.fullmove}"

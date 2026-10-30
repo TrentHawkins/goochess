@@ -1,6 +1,9 @@
 from __future__ import annotations
 
 
+import copy
+import pickle
+
 import pytest
 
 from goochess import notation
@@ -122,3 +125,68 @@ class TestSerial(NotationSetup):
 		assert rows.serial == "".join(expanded)
 		assert notation.serial(rows.serial) == value
 		assert notation.board(str(value)).serial == value[:]
+
+
+class TestPosition:
+
+	cases = (
+		(
+			"rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1",
+			"rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR", False, "KQkq", "-", 0, 1,
+		),
+		(
+			"r3k2r/8/8/8/8/8/8/R3K2R b kq - 12 43",
+			"r3k2r/8/8/8/8/8/8/R3K2R", True, "kq", "-", 12, 43,
+		),
+		(
+			"8/8/8/3pP3/8/8/8/8 w - d6 17 128",
+			"8/8/8/3pP3/8/8/8/8", False, "-", "d6", 17, 128,
+		),
+		(
+			"r---k--r/--------/--------/--------/--------/--------/--------/R---K--R b Kq e3 105 1200",
+			"r3k2r/8/8/8/8/8/8/R3K2R", True, "Kq", "e3", 105, 1200,
+		),
+	)
+
+	@pytest.mark.parametrize("source, placement, color, castling, en_passant, halfmove, fullmove", cases)
+	def test_decoded_fields(self, source, placement, color, castling, en_passant, halfmove, fullmove) -> None:
+		value = notation.position(source)
+		expected = (notation.board(placement), color, castling, en_passant, halfmove, fullmove)
+		assert type(value) is notation.position
+		assert isinstance(value, tuple)
+		assert len(value) == 6
+		assert tuple(type(item) for item in value) == (notation.board, bool, str, str, int, int)
+		assert tuple(value) == expected
+		assert (
+			value.placement, value.color, value.castling, value.en_passant, value.halfmove, value.fullmove,
+		) == expected
+		assert all(type(row) is notation.rank for row in value.placement)
+
+	@pytest.mark.parametrize("source, placement, color, castling, en_passant, halfmove, fullmove", cases)
+	def test_round_trip(self, source, placement, color, castling, en_passant, halfmove, fullmove) -> None:
+		value = notation.position(source)
+		encoded = f"{placement} {'b' if color else 'w'} {castling} {en_passant} {halfmove} {fullmove}"
+		assert str(value) == encoded
+		assert notation.position(encoded) == value
+
+	@pytest.mark.parametrize("source, placement, color, castling, en_passant, halfmove, fullmove", cases)
+	def test_copy_and_pickle(self, source, placement, color, castling, en_passant, halfmove, fullmove) -> None:
+		value = notation.position(source)
+		encoded = f"{placement} {'b' if color else 'w'} {castling} {en_passant} {halfmove} {fullmove}"
+		restored_values = (copy.copy(value), copy.deepcopy(value), pickle.loads(pickle.dumps(value)))
+
+		for restored in restored_values:
+			assert type(restored) is notation.position
+			assert restored == value
+			assert type(restored.placement) is notation.board
+			assert all(type(row) is notation.rank for row in restored.placement)
+			assert str(restored) == encoded
+
+	def test_replacement_preserves_codec(self) -> None:
+		source = self.cases[2][0]
+		value = notation.position(source)
+		replacement = value._replace(color = True, halfmove = 25)
+		assert type(replacement) is notation.position
+		assert str(replacement) == "8/8/8/3pP3/8/8/8/8 b - d6 25 128"
+		assert notation.position(str(replacement)) == replacement
+		assert str(value) == source

@@ -210,19 +210,22 @@ Pawn diagonal search emits `EnPassant` when the target contains a `Ghost`, and `
 
 ### D13. Placement notation has explicit decoded layers
 
-**Status: Placement layers and full-FEN position input implemented; remaining field handling, full-FEN export, and validation deferred.**
+**Status: Placement layers and full-FEN notation codec implemented; engine integration, remaining state fields, position export, and validation deferred.**
 
 | Type | Stored representation | Construction and output |
 | --- | --- | --- |
 | `notation.rank` | Expanded rank string, using `-` for empty squares | Constructor expands each empty-square digit; `str` compresses empty runs |
 | `notation.board` | Tuple of expanded rank objects | Constructor accepts placement text or rank objects; `str` joins compressed ranks with `/` |
 | `notation.serial` | Flat expanded board string | Constructor normalizes placement text or an already flat string; `str` uses rank/board conversion to emit placement text |
+| `notation.position` | Named tuple with `board`, `bool`, `str`, `str`, `int`, `int` fields | Constructor decodes all six FEN fields; `str` reconstructs the full FEN |
+
+`notation.position` exposes `placement`, `color` (black is true), `castling`, `en_passant`, `halfmove`, and `fullmove` properties. Castling declarations and the en passant target remain notation strings, including `"-"`; counters are integers. This codec owns no pieces or position bindings and adds no broader validation policy.
 
 `Board` uses the flat representation to enumerate squares and delegates formatting back through these notation objects. Symbol-to-piece conversion belongs to the material/board boundary, not to the rank codec. `Piece.fromnotation(symbol)` resolves the type and boolean color without requiring a board or position. Normal assignment then supplies the location; a position's assignment additionally binds context and roster membership.
 
 The `forsyth_edwards` argument intentionally differs between constructors: `Board` accepts only placement rows, while `Position` accepts a full six-field FEN. `Position` extracts the placement and castling fields, installs its side pair before passing placement to the base constructor, and binds declared partners after placement and king registration. The other input fields are not yet applied. Plain boards require no sides. The current APIs intentionally avoid requiring callers to assemble a second collection of `from_fen`/`from_flat` factories.
 
-Only the placement field is currently supported by `Board`. `notation.game` is a placeholder. Runtime shape/symbol validation and the remaining position fields are O09. The direct placement order follows [FEN, section 16.1.3.1](https://www.saremba.de/chessgml/standards/pgn/pgn-complete.htm).
+Only the placement field is currently supported by `Board`. `notation.position` replaces the earlier `notation.game` placeholder; `engine.Position` still splits its FEN directly and has not yet been wired to the codec. Runtime shape/symbol validation and the remaining position fields are O09. The direct placement order follows [FEN, section 16.1.3.1](https://www.saremba.de/chessgml/standards/pgn/pgn-complete.htm).
 
 ### D14. Package and import boundaries
 
@@ -312,7 +315,7 @@ The 2026-10-27 revision replaces the fixed `Side.castle_short` and `Side.castle_
 - [ ] Keep separate fixed short/long setup flags and derive remaining eligibility from participant presence and movement flags (previous implementation).
 - [ ] Store named optional eligible-rook references for the two wings.
 
-Each king initializes its own empty dictionary. `Position(forsyth_edwards)` accepts a full six-field FEN and reads its third field after placement creates the actual pieces and the king scan establishes side references. The declarations `K`, `Q`, `k`, and `q` select a color, offset, and actual standard-position rook; `"-"` grants no partnerships. Construction asserts that declared participants have the expected king/rook types, color, and starting positions. The remaining fields are accepted but not yet applied, and full-FEN formatting remains pending.
+Each king initializes its own empty dictionary. `Position(forsyth_edwards)` accepts a full six-field FEN and reads its third field after placement creates the actual pieces and the king scan establishes side references. The declarations `K`, `Q`, `k`, and `q` select a color, offset, and actual standard-position rook; `"-"` grants no partnerships. Construction asserts that declared participants have the expected king/rook types, color, and starting positions. The remaining fields are accepted but not yet applied, and full-FEN export from engine state remains pending.
 
 Entries remain unchanged during play, validation, and simulation. Moving a recorded rook changes its `index` and `moved`; capturing it leaves the same partner reference with `index = None`. Replacing the corner occupant never automatically rebinds that reference, even if the replacement is a fresh unmoved rook. The dictionary is a castling partnership map, not the side's full rook roster; promotions may add unrelated rooks. No `departed` hook, rights mutation, or saved rights snapshot is needed. `Position.binding` remains a placement primitive, and `Piece.__call__` continues to assign the movement flag.
 
@@ -397,12 +400,12 @@ Do not treat `Board.__setitem__` alone as that API. Do not assume a destination-
 
 ### O09. Where do full FEN and validation belong?
 
-**Status: Placement layering and full-FEN position input implemented; remaining state fields, full-FEN export, and validation deferred.**
+**Status: Placement layering and full-FEN notation codec implemented; engine integration, remaining state fields, position export, and validation deferred.**
 
 `Board(forsyth_edwards)` consumes only the placement rows and exports that same field. `Position(forsyth_edwards)` intentionally accepts a full six-field FEN instead: it extracts placement for the base constructor and uses the third field to bind the partners described in O04. The active-color, en passant, and counter fields are accepted but not yet applied. Castling rights and those remaining fields belong to the complete current position and cannot be reconstructed from placement alone. Full-FEN export remains unimplemented; `Position` currently inherits placement-only representation.
 
-- [ ] Complete `notation.game` to parse/format the remaining fields and wire them into position context.
-- [ ] Use another small explicit full-FEN representation if the current placeholder proves unsuitable.
+- [x] Implement `notation.position` as a six-field named tuple with full-FEN construction, named access, and formatting.
+- [ ] Wire the codec into `engine.Position` and apply the remaining fields to position context.
 
 Rank widths, total dimensions, accepted symbols, malformed input behavior, and the relationship between setup validation and playable-game validation need deliberate coverage when implemented. Full FEN import cannot truthfully reconstruct every piece's complete movement history; use the fields that actually exist rather than inventing provenance.
 
