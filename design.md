@@ -23,7 +23,7 @@ The historical starting point is `develop` at `7fb69e20e4a0df819a4adc37039c78548
 | `pair`, `seq`, `switch`, `collection` | Reusable tuple aliases, parity-based pair selection, and set operations preserving the concrete collection type | [structs.py](src/goochess/structs.py), [structure tests](tests/test_structs.py) |
 | `array`, `index`, mathematical collections, `fraction` | Reusable mathematics without chess knowledge | [mathematics.py](src/goochess/mathematics.py), [mathematics tests](tests/test_mathematics.py) |
 | `Index`, `Compass` | Standard chess board geometry and directions | [geometry.py](src/goochess/geometry.py), [geometry tests](tests/test_geometry.py) |
-| `rank`, `board`, `serial` | Placement notation and its decoded representations | [notation.py](src/goochess/notation.py), [notation tests](tests/test_notation.py) |
+| `rank`, `board`, `serial`, FEN field types, `position` | Placement notation, validated FEN fields, and their decoded representations | [notation.py](src/goochess/notation.py), [notation tests](tests/test_notation.py) |
 | `Piece` and its subclasses | Piece identity, location/context references, and movement patterns | [material.py](src/goochess/material.py), [material tests](tests/test_material.py) |
 | `Move`, `Capt`, and related classes | Move targets, records, predicates, notation, ordinary execution, and temporary placement contexts | [algebra.py](src/goochess/algebra.py), [algebra tests](tests/test_algebra.py) |
 | `Board` | Square occupancy, piece locations, and placement notation without participant ownership | [engine.py](src/goochess/engine.py), [engine tests](tests/test_engine.py) |
@@ -210,22 +210,29 @@ Pawn diagonal search emits `EnPassant` when the target contains a `Ghost`, and `
 
 ### D13. Placement notation has explicit decoded layers
 
-**Status: Placement layers and full-FEN notation codec implemented; engine integration, remaining state fields, position export, and validation deferred.**
+**Status: Placement layers, full-FEN notation codec, and local field validation implemented; engine integration, remaining position state, and position export deferred.**
 
 | Type | Stored representation | Construction and output |
 | --- | --- | --- |
-| `notation.rank` | Expanded rank string, using `-` for empty squares | Constructor expands each empty-square digit; `str` compresses empty runs |
-| `notation.board` | Tuple of expanded rank objects | Constructor accepts placement text or rank objects; `str` joins compressed ranks with `/` |
-| `notation.serial` | Flat expanded board string | Constructor normalizes placement text or an already flat string; `str` uses rank/board conversion to emit placement text |
-| `notation.position` | Named tuple with `board`, `bool`, `str`, `str`, `int`, `int` fields | Constructor decodes all six FEN fields; `str` reconstructs the full FEN |
+| `notation.rank` | Expanded rank string, using `-` for empty squares | Constructor expands digits and validates eight cells; `str` compresses empty runs |
+| `notation.board` | Tuple of eight expanded rank objects | Constructor accepts placement text or an iterable of rank strings, coercing each through `rank`; `str` joins compressed ranks with `/` |
+| `notation.serial` | Flat expanded 64-cell board string | Constructor validates placement text or an already flat string; `str` uses rank/board conversion to emit placement text |
+| `notation.color` | Integer `0` for white or `1` for black | Constructor accepts `w`/`b` or `0`/`1`, including booleans; `str` emits `w` or `b` |
+| `notation.castling` | Castling declaration string | Constructor accepts `-` or an ordered, nonempty selection of `KQkq`, without repetition |
+| `notation.en_passant` | En passant target string | Constructor accepts `-` or a lowercase file `a`–`h` followed by `3` or `6` |
+| `notation.halfmove` | Nonnegative integer count | Constructor accepts an integer or ASCII decimal string; `str` emits its decimal value |
+| `notation.fullmove` | Positive integer count | Constructor accepts an integer or ASCII decimal string; `str` emits its decimal value |
+| `notation.position` | Named tuple with `board`, `color`, `castling`, `en_passant`, `halfmove`, and `fullmove` fields | Constructor decodes and validates each FEN field through its corresponding type; `str` reconstructs the full FEN |
 
-`notation.position` exposes `placement`, `color` (black is true), `castling`, `en_passant`, `halfmove`, and `fullmove` properties. Castling declarations and the en passant target remain notation strings, including `"-"`; counters are integers. This codec owns no pieces or position bindings and adds no broader validation policy.
+`notation.position` exposes `placement`, `color` (black is true), `castling`, `en_passant`, `halfmove`, and `fullmove` properties. Its constructor validates each field through its corresponding type. Counter string inputs contain ASCII decimal digits only; leading zeros are accepted and normalize on output. This codec owns no pieces or position bindings. Inherited namedtuple `_make` and `_replace` bypass the FEN constructor and expect already validated field values; they do not establish the same validation guarantee.
+
+Placement constructors accept only `PNBRQKpnbrqk-` after expansion. `rank` retains compact and expanded input; `board` requires eight valid ranks; `serial` accepts a valid flat 64-cell string or placement text through `board`. Invalid text, dimensions, or field ranges raise `ValueError`. These are local notation checks, not playable-position validation or cross-field consistency checks. An en passant target does not require an available capturing pawn; active color, occupancy, and castling participants are not checked against other fields here. Field syntax follows [FEN, section 16.1.3](https://www.saremba.de/chessgml/standards/pgn/pgn-complete.htm#c16.1.3).
 
 `Board` uses the flat representation to enumerate squares and delegates formatting back through these notation objects. Symbol-to-piece conversion belongs to the material/board boundary, not to the rank codec. `Piece.fromnotation(symbol)` resolves the type and boolean color without requiring a board or position. Normal assignment then supplies the location; a position's assignment additionally binds context and roster membership.
 
 The `forsyth_edwards` argument intentionally differs between constructors: `Board` accepts only placement rows, while `Position` accepts a full six-field FEN. `Position` extracts the placement and castling fields, installs its side pair before passing placement to the base constructor, and binds declared partners after placement and king registration. The other input fields are not yet applied. Plain boards require no sides. The current APIs intentionally avoid requiring callers to assemble a second collection of `from_fen`/`from_flat` factories.
 
-Only the placement field is currently supported by `Board`. `notation.position` replaces the earlier `notation.game` placeholder; `engine.Position` still splits its FEN directly and has not yet been wired to the codec. Runtime shape/symbol validation and the remaining position fields are O09. The direct placement order follows [FEN, section 16.1.3.1](https://www.saremba.de/chessgml/standards/pgn/pgn-complete.htm).
+Only the placement field is currently supported by `Board`. `notation.position` replaces the earlier `notation.game` placeholder; `engine.Position` still splits its FEN directly and has not yet been wired to the codec. Remaining position state and export are O09. The direct placement order follows [FEN, section 16.1.3.1](https://www.saremba.de/chessgml/standards/pgn/pgn-complete.htm).
 
 ### D14. Package and import boundaries
 
@@ -400,14 +407,16 @@ Do not treat `Board.__setitem__` alone as that API. Do not assume a destination-
 
 ### O09. Where do full FEN and validation belong?
 
-**Status: Placement layering and full-FEN notation codec implemented; engine integration, remaining state fields, position export, and validation deferred.**
+**Status: Placement layering, full-FEN notation codec, and local field validation implemented; engine integration, remaining position state, and position export deferred.**
 
 `Board(forsyth_edwards)` consumes only the placement rows and exports that same field. `Position(forsyth_edwards)` intentionally accepts a full six-field FEN instead: it extracts placement for the base constructor and uses the third field to bind the partners described in O04. The active-color, en passant, and counter fields are accepted but not yet applied. Castling rights and those remaining fields belong to the complete current position and cannot be reconstructed from placement alone. Full-FEN export remains unimplemented; `Position` currently inherits placement-only representation.
 
 - [x] Implement `notation.position` as a six-field named tuple with full-FEN construction, named access, and formatting.
+- [x] Validate placement symbols and dimensions in `rank`, `board`, and `serial`, and active color through `notation.color`.
+- [x] Validate castling/en passant field syntax and counter ranges through dedicated field types.
 - [ ] Wire the codec into `engine.Position` and apply the remaining fields to position context.
 
-Rank widths, total dimensions, accepted symbols, malformed input behavior, and the relationship between setup validation and playable-game validation need deliberate coverage when implemented. Full FEN import cannot truthfully reconstruct every piece's complete movement history; use the fields that actually exist rather than inventing provenance.
+Rank widths, total dimensions, accepted symbols, active color, castling and en passant syntax, and counter ranges now have local constructor checks. The relationship between setup validation and playable-game validation remains open; these checks do not enforce king counts, cross-field consistency, or complete position legality. Full FEN import cannot truthfully reconstruct every piece's complete movement history; use the fields that actually exist rather than inventing provenance.
 
 ### O10. When are special move choices and final notation attached?
 
