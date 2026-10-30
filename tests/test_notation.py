@@ -3,7 +3,7 @@ from __future__ import annotations
 
 import pytest
 
-from goochess.notation import board, rank, serial
+from goochess import notation
 
 
 class NotationSetup:
@@ -40,13 +40,13 @@ class TestRank:
 
 	@pytest.mark.parametrize("source, expanded, compact", cases)
 	def test_expansion_and_compaction(self, source, expanded, compact) -> None:
-		value = rank(source)
-		assert type(value) is rank
+		value = notation.rank(source)
+		assert type(value) is notation.rank
 		assert len(value) == 8
 		assert value[:] == expanded
 		assert str(value) == compact
-		assert rank(str(value)) == value
-		assert rank(value) == value
+		assert notation.rank(str(value)) == value
+		assert notation.rank(value) == value
 
 
 class TestBoard(NotationSetup):
@@ -55,26 +55,26 @@ class TestBoard(NotationSetup):
 
 	@pytest.mark.parametrize("compact, expanded", NotationSetup.positions)
 	def test_rank_structure(self, compact, expanded) -> None:
-		value = board(compact)
-		assert type(value) is board
+		value = notation.board(compact)
+		assert type(value) is notation.board
 		assert isinstance(value, tuple)
 		assert len(value) == 8
-		assert all(type(row) is rank for row in value)
+		assert all(type(row) is notation.rank for row in value)
 		assert tuple(row[:] for row in value) == expanded
 		assert str(value) == compact
 
 	@pytest.mark.parametrize("compact, expanded", NotationSetup.positions)
 	@pytest.mark.parametrize("iterable", iterables)
 	def test_iterable_ranks(self, compact, expanded, iterable) -> None:
-		rows = tuple(rank(row) for row in expanded)
-		value = board(iterable(rows))
+		rows = tuple(notation.rank(row) for row in expanded)
+		value = notation.board(iterable(rows))
 		assert tuple(value) == rows
-		assert all(type(row) is rank for row in value)
+		assert all(type(row) is notation.rank for row in value)
 		assert str(value) == compact
 
 	@pytest.mark.parametrize("compact, expanded", NotationSetup.positions)
 	def test_serial_projection(self, compact, expanded) -> None:
-		value = board(compact)
+		value = notation.board(compact)
 		assert type(value.serial) is str
 		assert len(value.serial) == 64
 		assert value.serial == "".join(expanded)
@@ -86,39 +86,39 @@ class TestSerial(NotationSetup):
 	@pytest.mark.parametrize("use_fen", (True, False))
 	def test_fen_and_flat_construction(self, compact, expanded, use_fen) -> None:
 		flat = "".join(expanded)
-		value = serial(compact if use_fen else flat)
-		assert type(value) is serial
+		value = notation.serial(compact if use_fen else flat)
+		assert type(value) is notation.serial
 		assert len(value) == 64
 		assert value[:] == flat
 		assert str(value) == compact
 
 	@pytest.mark.parametrize("compact, expanded", NotationSetup.positions)
 	def test_idempotent_construction(self, compact, expanded) -> None:
-		value = serial(compact)
-		repeated = serial(value)
-		assert type(repeated) is serial
+		value = notation.serial(compact)
+		repeated = notation.serial(value)
+		assert type(repeated) is notation.serial
 		assert repeated == value
 		assert repeated[:] == "".join(expanded)
 		assert str(repeated) == compact
 
 	@pytest.mark.parametrize("compact, expanded", NotationSetup.positions)
 	def test_independent_rank_views(self, compact, expanded) -> None:
-		value = serial(compact)
+		value = notation.serial(compact)
 		first = iter(value.ranks)
 		second = iter(value.ranks)
 		assert first is not second
 		assert next(first) == expanded[0]
 		rows = tuple(second)
-		assert all(type(row) is rank for row in rows)
+		assert all(type(row) is notation.rank for row in rows)
 		assert tuple(row[:] for row in rows) == expanded
 		assert tuple(row[:] for row in first) == expanded[1:]
 		assert tuple(value.ranks) == rows
 
 	@pytest.mark.parametrize("compact, expanded", NotationSetup.positions)
 	def test_round_trip(self, compact, expanded) -> None:
-		value = serial(compact)
-		rows = board(value.ranks)
+		value = notation.serial(compact)
+		rows = notation.board(value.ranks)
 		assert str(rows) == compact
 		assert rows.serial == "".join(expanded)
-		assert serial(rows.serial) == value
-		assert board(str(value)).serial == value[:]
+		assert notation.serial(rows.serial) == value
+		assert notation.board(str(value)).serial == value[:]

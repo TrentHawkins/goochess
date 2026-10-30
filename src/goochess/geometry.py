@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+
 import enum
 
 from . import mathematics
@@ -19,16 +20,6 @@ class Compass(mathematics.arrays):
 		east,
 		west,
 	)
-
-
-class Color(int, enum.Enum):
-
-	WHITE =  1
-	BLACK = -1
-
-
-	def __bool__(self) -> bool:
-		return self == Color.WHITE
 
 
 class Index(mathematics.index[2, 8], enum.Enum):
@@ -51,7 +42,7 @@ class Index(mathematics.index[2, 8], enum.Enum):
 		return repr(self)
 
 	def __bool__(self) -> bool:
-		return not sum(self.array) & 1
+		return bool(sum(self.array) & 1)
 
 	@property
 	def rank(self) -> int:
@@ -60,7 +51,3 @@ class Index(mathematics.index[2, 8], enum.Enum):
 	@property
 	def file(self) -> str:
 		return self.name[0].lower()
-
-	@property
-	def color(self) -> Color:
-		return Color.WHITE if self else Color.BLACK

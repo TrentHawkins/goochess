@@ -2,68 +2,109 @@ from __future__ import annotations
 
 
 import pickle
+import typing
 
 import pytest
 
-from goochess.algebra import Capt, Check, Checkmate, EnPassant, Move, Promotion, PromotionCapt, PromotionMove, Rush
-from goochess.engine import Game
-from goochess.geometry import Color, Index
-from goochess.material import Ghost, Knight, Officer, Pawn, Piece
+from goochess import algebra
+from goochess import engine
+from goochess import geometry
+from goochess import material
 
 
 class AlgebraSetup:
 
-	choices = tuple(Officer)
+	colors = (False, True)
+	choices = tuple(material.Officer)
 	quiet_cases = (
-		(Color.WHITE, Index.A7, Index.A8, "a8"),
-		(Color.BLACK, Index.H2, Index.H1, "h1"),
+		(False, geometry.Index.A7, geometry.Index.A8, "a8"),
+		(True, geometry.Index.H2, geometry.Index.H1, "h1"),
 	)
 	capture_cases = (
-		(Color.WHITE, Index.B7, Index.A8, "bxa8"),
-		(Color.BLACK, Index.G2, Index.H1, "gxh1"),
+		(False, geometry.Index.B7, geometry.Index.A8, "bxa8"),
+		(True, geometry.Index.G2, geometry.Index.H1, "gxh1"),
 	)
 	other_ranks = (
-		(Color.WHITE, Index.A6, Index.A7),
-		(Color.BLACK, Index.H3, Index.H2),
-		(Color.WHITE, Index.A2, Index.A1),
-		(Color.BLACK, Index.H7, Index.H8),
+		(False, geometry.Index.A6, geometry.Index.A7),
+		(True, geometry.Index.H3, geometry.Index.H2),
+		(False, geometry.Index.A2, geometry.Index.A1),
+		(True, geometry.Index.H7, geometry.Index.H8),
 	)
 
 	@staticmethod
-	def board() -> Game:
-		return Game("8/8/8/8/8/8/8/8")
+	def position() -> engine.Position:
+		return engine.Position("8/8/8/8/8/8/8/8 w - - 0 1")
 
 	@staticmethod
-	def place[T: Piece](game: Game, kind: type[T], square: Index,
-		color: Color,
+	def place[T: material.Piece](position: engine.Position, kind: type[T], square: geometry.Index,
+		color: bool,
 	) -> T:
-		side = game.white if color is Color.WHITE else game.black
 		piece = kind(color)
-		game[square] = piece
-		side.add(piece)
+		position[square] = piece
 
 		return piece
 
 	@staticmethod
-	def opponent(color: Color) -> Color:
-		return Color.BLACK if color is Color.WHITE else Color.WHITE
+	def place_ghost(position: engine.Position, square: geometry.Index, pawn: material.Pawn) -> material.Ghost:
+		ghost = material.Ghost(pawn)
+		position[square] = ghost
+
+		return ghost
+
+	@staticmethod
+	def partners(position: engine.Position):
+		return tuple(frozenset(side.king.rooks.items()) if side.king is not None else None for side in position.side)
+
+	@staticmethod
+	def state(position: engine.Position):
+		pieces = position.white | position.black
+
+		return (
+			tuple(position), frozenset(position.white), frozenset(position.black),
+			frozenset((piece, piece.index, piece.moved) for piece in pieces),
+			AlgebraSetup.partners(position),
+		)
 
 
 class TestMove(AlgebraSetup):
 
+	class RecordedMove(algebra.Move):
+
+		def __init__(self, target: int, piece: material.Piece) -> None:
+			super().__init__(target, piece)
+			self.events: list[str] = []
+
+		def apply(self) -> typing.Self:
+			self.events.append("apply")
+
+			return super().apply()
+
+		def undo(self, *, moved: bool) -> typing.Self:
+			self.events.append("undo")
+
+			return super().undo(moved = moved)
+
 	notations = (
-		(Pawn, Color.WHITE, Index.E2, Index.E3, "e3"),
-		(Pawn, Color.BLACK, Index.E7, Index.E6, "e6"),
-		(Knight, Color.WHITE, Index.B1, Index.C3, "Nc3"),
-		(Knight, Color.BLACK, Index.B8, Index.C6, "Nc6"),
+		(material.Pawn, False, geometry.Index.E2, geometry.Index.E3, "e3"),
+		(material.Pawn, True, geometry.Index.E7, geometry.Index.E6, "e6"),
+		(material.Knight, False, geometry.Index.B1, geometry.Index.C3, "Nc3"),
+		(material.Knight, True, geometry.Index.B8, geometry.Index.C6, "Nc6"),
 	)
 	invalid_targets = (-1, 64)
+	moved_states = (False, True)
+	changed_sources = (None, geometry.Index.E3)
+	castling_moves = (
+		(geometry.Index.E1, geometry.Index.E2),
+		(geometry.Index.A1, geometry.Index.A2),
+		(geometry.Index.H1, geometry.Index.H2),
+	)
 
 	@pytest.mark.parametrize("kind, color, source, target, notation", notations)
 	def test_source_target_and_notation(self, kind, color, source, target, notation) -> None:
-		piece = self.place(self.board(), kind, source, color)
-		move = Move(target, piece)
+		piece = self.place(self.position(), kind, source, color)
+		move = algebra.Move(target, piece)
 		assert move.piece is piece
+		assert move.position is piece.position
 		assert move.source is source
 		assert move.target is target
 		assert move.other is None
@@ -71,64 +112,272 @@ class TestMove(AlgebraSetup):
 		assert bool(move)
 
 	def test_requires_placed_piece(self) -> None:
-		piece = Pawn(Color.WHITE)
+		piece = material.Pawn(False)
 
-		with pytest.raises(ValueError, match = "valid index"):
-			Move(Index.E3, piece)
+		with pytest.raises(AssertionError):
+			algebra.Move(geometry.Index.E3, piece)
 
 	@pytest.mark.parametrize("target", invalid_targets)
 	def test_target_bounds(self, target) -> None:
-		piece = self.place(self.board(), Pawn, Index.E2, Color.WHITE)
+		piece = self.place(self.position(), material.Pawn, geometry.Index.E2, False)
 
 		with pytest.raises(ValueError):
-			Move(target, piece)
+			algebra.Move(target, piece)
 
 	def test_source_is_snapshot(self) -> None:
-		game = self.board()
-		piece = self.place(game, Pawn, Index.E2, Color.WHITE)
-		move = Move(Index.E4, piece)
-		del game[Index.E2]
-		game[Index.E3] = piece
-		assert piece.index is Index.E3
-		assert move.source is Index.E2
+		position = self.position()
+		piece = self.place(position, material.Pawn, geometry.Index.E2, False)
+		move = algebra.Move(geometry.Index.E4, piece)
+		del position[geometry.Index.E2]
+		position[geometry.Index.E3] = piece
+		assert piece.index is geometry.Index.E3
+		assert move.source is geometry.Index.E2
 
 	def test_destination_occupancy_is_live(self) -> None:
-		game = self.board()
-		piece = self.place(game, Pawn, Index.E2, Color.WHITE)
-		move = Move(Index.E3, piece)
+		position = self.position()
+		piece = self.place(position, material.Pawn, geometry.Index.E2, False)
+		move = algebra.Move(geometry.Index.E3, piece)
 		assert bool(move)
-		self.place(game, Knight, Index.E3, Color.BLACK)
+		self.place(position, material.Knight, geometry.Index.E3, not piece.color)
 		assert not move
 		assert move.other is None
-		del game[Index.E3]
+		del position[geometry.Index.E3]
 		assert bool(move)
 
+	@pytest.mark.parametrize("color", AlgebraSetup.colors)
+	@pytest.mark.parametrize("ghost_color", AlgebraSetup.colors)
+	def test_ghost_is_transparent_and_restored(self, color, ghost_color) -> None:
+		position = self.position()
+		piece = self.place(position, material.Pawn, geometry.Index.E2, color)
+		rusher = self.place(position, material.Pawn, geometry.Index.H5, ghost_color)
+		ghost = self.place_ghost(position, geometry.Index.E3, rusher)
+		move = algebra.Move(geometry.Index.E3, piece)
+		before = self.state(position)
+		assert bool(move)
+		assert move.other is ghost
+
+		with move.simulated:
+			assert position[move.target] is piece
+			assert ghost.index is None
+			assert ghost not in ghost.side
+			assert rusher.index is geometry.Index.H5
+
+		assert self.state(position) == before
+		assert position[move.target] is ghost
+		assert move.other is ghost
+
 	def test_equality_and_hash_use_target(self) -> None:
-		first = self.place(self.board(), Pawn, Index.E2, Color.WHITE)
-		second = self.place(self.board(), Knight, Index.F6, Color.BLACK)
-		move = Move(Index.E4, first)
-		capture = Capt(Index.E4, second)
-		assert move == capture == Index.E4
-		assert hash(move) == hash(capture) == hash(Index.E4)
+		position = self.position()
+		first = self.place(position, material.Pawn, geometry.Index.E2, False)
+		second = self.place(position, material.Knight, geometry.Index.F6, not first.color)
+		move = algebra.Move(geometry.Index.E4, first)
+		capture = algebra.Capt(geometry.Index.E4, second)
+		assert move == capture == geometry.Index.E4
+		assert hash(move) == hash(capture) == hash(geometry.Index.E4)
 		assert len({move, capture}) == 1
-		assert move != Move(Index.E3, first)
+		assert move != algebra.Move(geometry.Index.E3, first)
+
+	@pytest.mark.parametrize("color", AlgebraSetup.colors)
+	@pytest.mark.parametrize("moved", moved_states)
+	def test_execution_updates_placement_and_moved_flag(self, color, moved) -> None:
+		position = self.position()
+		piece = self.place(position, material.Pawn, geometry.Index.E2, color)
+		piece.moved = moved
+		move = algebra.Move(geometry.Index.E3, piece)
+		assert move.apply() is move
+		assert position[move.source] is None
+		assert position[move.target] is piece
+		assert piece.index is move.target
+		assert piece in piece.side
+		assert piece.moved
+		assert move.source is geometry.Index.E2
+		assert move.other is None
+
+	@pytest.mark.parametrize("moved", moved_states)
+	def test_apply_and_undo_hooks_restore_state(self, moved) -> None:
+		position = self.position()
+		piece = self.place(position, material.Pawn, geometry.Index.E2, False)
+		piece.moved = moved
+		move = self.RecordedMove(geometry.Index.E3, piece)
+		before = self.state(position)
+		assert move.apply() is move
+		assert move.events == ["apply"]
+		assert piece.index is move.target
+		assert piece.moved
+		assert move.undo(moved = moved) is move
+		assert move.events == ["apply", "undo"]
+		assert self.state(position) == before
+
+	@pytest.mark.parametrize("color", AlgebraSetup.colors)
+	@pytest.mark.parametrize("source, target", castling_moves)
+	def test_simulation_and_apply_preserve_castling_partners(self, color, source, target) -> None:
+		position = engine.Position("r3k2r/8/8/8/8/8/8/R3K2R w KQkq - 0 1")
+		source = geometry.Index(int(source) ^ (56 if color else 0))
+		target = geometry.Index(int(target) ^ (56 if color else 0))
+		piece = position[source]
+		assert piece is not None
+		move = algebra.Move(target, piece)
+		before = self.state(position)
+		partners = self.partners(position)
+
+		with move.simulated:
+			assert self.partners(position) == partners
+
+		assert self.state(position) == before
+		move.apply()
+		assert self.partners(position) == partners
+
+	@pytest.mark.parametrize("moved", moved_states)
+	def test_simulation_uses_hooks_once_and_restores_after_exception(self, moved) -> None:
+		position = self.position()
+		piece = self.place(position, material.Pawn, geometry.Index.E2, False)
+		piece.moved = moved
+		move = self.RecordedMove(geometry.Index.E3, piece)
+		before = self.state(position)
+
+		with pytest.raises(LookupError, match = "simulation failed"):
+			with move.simulated as active:
+				assert active is move
+				assert move.events == ["apply"]
+				assert piece.index is move.target
+				assert piece.moved
+
+				raise LookupError("simulation failed")
+
+		assert move.events == ["apply", "undo"]
+		assert self.state(position) == before
+
+	@pytest.mark.parametrize("color", AlgebraSetup.colors)
+	@pytest.mark.parametrize("moved", moved_states)
+	def test_context_marks_moved_and_restores_flag(self, color, moved) -> None:
+		position = self.position()
+		piece = self.place(position, material.Pawn, geometry.Index.E2, color)
+		move = algebra.Move(geometry.Index.E3, piece)
+		piece.moved = moved
+		before = self.state(position)
+
+		with move.simulated as active:
+			assert active is move
+			assert position[move.source] is None
+			assert position[move.target] is piece
+			assert piece.index is move.target
+			assert piece in piece.side
+			assert piece.moved
+
+		assert self.state(position) == before
+
+	def test_context_restores_after_exception(self) -> None:
+		position = self.position()
+		piece = self.place(position, material.Pawn, geometry.Index.E2, False)
+		move = algebra.Move(geometry.Index.E3, piece)
+		before = self.state(position)
+
+		with pytest.raises(LookupError, match = "simulation failed"):
+			with move.simulated as active:
+				assert active is move
+				assert piece.index is move.target
+				assert piece.moved
+
+				raise LookupError("simulation failed")
+
+		assert self.state(position) == before
+
+	def test_context_cannot_overlap_itself(self) -> None:
+		position = self.position()
+		piece = self.place(position, material.Pawn, geometry.Index.E2, False)
+		move = algebra.Move(geometry.Index.E3, piece)
+		before = self.state(position)
+
+		with move.simulated:
+			active = self.state(position)
+
+			with pytest.raises(AssertionError):
+				with move.simulated:
+					...
+
+			assert self.state(position) == active
+
+		assert self.state(position) == before
+
+	@pytest.mark.parametrize("source", changed_sources)
+	def test_rejects_changed_source_without_mutation(self, source) -> None:
+		position = self.position()
+		piece = self.place(position, material.Pawn, geometry.Index.E2, False)
+		move = algebra.Move(geometry.Index.E4, piece)
+		del position[move.source]
+
+		if source is not None:
+			position[source] = piece
+
+		before = self.state(position)
+
+		with pytest.raises(AssertionError):
+			with move.simulated:
+				...
+
+		assert self.state(position) == before
+		assert piece.index is source
+		assert not piece.moved
+
+	def test_rejects_changed_destination_without_mutation(self) -> None:
+		position = self.position()
+		piece = self.place(position, material.Pawn, geometry.Index.E2, False)
+		move = algebra.Move(geometry.Index.E3, piece)
+		self.place(position, material.Knight, move.target, True)
+		before = self.state(position)
+
+		with pytest.raises(AssertionError):
+			with move.simulated:
+				...
+
+		assert self.state(position) == before
+		assert move.other is None
+
+
+class TestPawn(AlgebraSetup):
+
+	@pytest.mark.parametrize("color", AlgebraSetup.colors)
+	def test_accepts_placed_pawn_without_mutation(self, color) -> None:
+		position = self.position()
+		pawn = self.place(position, material.Pawn, geometry.Index.E2, color)
+		before = self.state(position)
+		move = algebra.Pawn(geometry.Index.E3, pawn)
+		assert move.piece is pawn
+		assert move.source is geometry.Index.E2
+		assert move.target is geometry.Index.E3
+		assert self.state(position) == before
+
+	def test_rejects_other_piece_without_mutation(self) -> None:
+		position = self.position()
+		knight = self.place(position, material.Knight, geometry.Index.B1, False)
+		before = self.state(position)
+
+		with pytest.raises(AssertionError):
+			algebra.Pawn(geometry.Index.C3, knight)  # pyright: ignore[reportArgumentType]
+
+		assert self.state(position) == before
 
 
 class TestCapt(AlgebraSetup):
 
 	notations = (
-		(Pawn, Color.WHITE, Index.E4, Index.D5, "exd5"),
-		(Pawn, Color.BLACK, Index.E5, Index.D4, "exd4"),
-		(Knight, Color.WHITE, Index.B1, Index.C3, "Nxc3"),
-		(Knight, Color.BLACK, Index.B8, Index.C6, "Nxc6"),
+		(material.Pawn, False, geometry.Index.E4, geometry.Index.D5, "exd5"),
+		(material.Pawn, True, geometry.Index.E5, geometry.Index.D4, "exd4"),
+		(material.Knight, False, geometry.Index.B1, geometry.Index.C3, "Nxc3"),
+		(material.Knight, True, geometry.Index.B8, geometry.Index.C6, "Nxc6"),
+	)
+	moved_states = (False, True)
+	castling_captures = (
+		(geometry.Index.A1, geometry.Index.A8),
+		(geometry.Index.H1, geometry.Index.H8),
 	)
 
 	@pytest.mark.parametrize("kind, color, source, target, notation", notations)
 	def test_enemy_capture_and_notation(self, kind, color, source, target, notation) -> None:
-		game = self.board()
-		piece = self.place(game, kind, source, color)
-		enemy = self.place(game, Knight, target, self.opponent(color))
-		capture = Capt(target, piece)
+		position = self.position()
+		piece = self.place(position, kind, source, color)
+		enemy = self.place(position, material.Knight, target, not piece.color)
+		capture = algebra.Capt(target, piece)
 		assert bool(capture)
 		assert capture.piece is piece
 		assert capture.source is source
@@ -136,98 +385,593 @@ class TestCapt(AlgebraSetup):
 		assert capture.other is enemy
 		assert repr(capture) == notation
 
-	def test_requires_enemy_and_preserves_other_snapshot(self) -> None:
-		game = self.board()
-		piece = self.place(game, Pawn, Index.E4, Color.WHITE)
-		enemy = self.place(game, Knight, Index.D5, Color.BLACK)
-		capture = Capt(Index.D5, piece)
+	@pytest.mark.parametrize("color", AlgebraSetup.colors)
+	def test_requires_enemy_and_preserves_other_snapshot(self, color) -> None:
+		position = self.position()
+		piece = self.place(position, material.Pawn, geometry.Index.E4, color)
+		enemy = self.place(position, material.Knight, geometry.Index.D5, not piece.color)
+		assert enemy.color is not piece.color
+		capture = algebra.Capt(geometry.Index.D5, piece)
 		assert bool(capture)
-		del game[Index.D5]
+		del position[geometry.Index.D5]
 		assert not capture
-		self.place(game, Knight, Index.D5, Color.WHITE)
+		friendly = self.place(position, material.Knight, geometry.Index.D5, piece.color)
+		assert friendly.color is piece.color
 		assert not capture
-		self.place(game, Knight, Index.D5, Color.BLACK)
+		self.place(position, material.Knight, geometry.Index.D5, not piece.color)
 		assert bool(capture)
 		assert capture.other is enemy
+
+	@pytest.mark.parametrize("color", AlgebraSetup.colors)
+	@pytest.mark.parametrize("ghost_color", AlgebraSetup.colors)
+	def test_ghost_cannot_be_captured_normally(self, color, ghost_color) -> None:
+		position = self.position()
+		piece = self.place(position, material.Pawn, geometry.Index.E4, color)
+		rusher = self.place(position, material.Pawn, geometry.Index.D4, ghost_color)
+		ghost = self.place_ghost(position, geometry.Index.D5, rusher)
+		capture = algebra.Capt(geometry.Index.D5, piece)
+		before = self.state(position)
+		assert not capture
+		assert capture.other is ghost
+		assert self.state(position) == before
+
+	@pytest.mark.parametrize("color", AlgebraSetup.colors)
+	@pytest.mark.parametrize("moved", moved_states)
+	def test_capture_context_is_reusable(self, color, moved) -> None:
+		position = self.position()
+		piece = self.place(position, material.Pawn, geometry.Index.E4, color)
+		piece.moved = moved
+		enemy = self.place(position, material.Knight, geometry.Index.D5, not color)
+		capture = algebra.Capt(geometry.Index.D5, piece)
+		before = self.state(position)
+
+		for _ in range(2):
+			with capture.simulated as active:
+				assert active is capture
+				assert position[capture.source] is None
+				assert position[capture.target] is piece
+				assert piece.index is capture.target
+				assert piece.moved
+				assert enemy.index is None
+				assert enemy not in enemy.side
+				assert capture.other is enemy
+
+			assert self.state(position) == before
+			assert capture.source is geometry.Index.E4
+			assert capture.other is enemy
+
+	def test_rejects_replacement_of_captured_piece(self) -> None:
+		position = self.position()
+		piece = self.place(position, material.Pawn, geometry.Index.E4, False)
+		enemy = self.place(position, material.Knight, geometry.Index.D5, True)
+		capture = algebra.Capt(geometry.Index.D5, piece)
+		self.place(position, material.Knight, capture.target, True)
+		before = self.state(position)
+
+		with pytest.raises(AssertionError):
+			with capture.simulated:
+				...
+
+		assert self.state(position) == before
+		assert capture.other is enemy
+
+	@pytest.mark.parametrize("color", AlgebraSetup.colors)
+	@pytest.mark.parametrize("source, target", castling_captures)
+	def test_capture_preserves_both_sides_castling_partners(self, color, source, target) -> None:
+		position = engine.Position("r3k2r/8/8/8/8/8/8/R3K2R w KQkq - 0 1")
+		source = geometry.Index(int(source) ^ (56 if color else 0))
+		target = geometry.Index(int(target) ^ (56 if color else 0))
+		rook = position[source]
+		other = position[target]
+		assert isinstance(rook, material.Rook) and isinstance(other, material.Rook)
+		capture = algebra.Capt(target, rook)
+		before = self.state(position)
+		partners = self.partners(position)
+
+		with capture.simulated:
+			assert position[target] is rook
+			assert other.index is None
+			assert self.partners(position) == partners
+
+		assert self.state(position) == before
+		capture.apply()
+		assert self.partners(position) == partners
+
+
+class TestJump(AlgebraSetup):
+
+	cases = (
+		(False, geometry.Index.B1, geometry.Index.C1, geometry.Index.D1),
+		(True, geometry.Index.B8, geometry.Index.C8, geometry.Index.D8),
+	)
+	states = tuple((moved, middle, target) for moved in (False, True) for middle in (False, True) for target in (False, True))
+
+	@pytest.mark.parametrize("color, source, middle, target", cases)
+	@pytest.mark.parametrize("moved, middle_occupied, target_occupied", states)
+	def test_requires_unmoved_piece_and_clear_middle_and_target(self, color, source, middle, target,
+		moved, middle_occupied, target_occupied,
+	) -> None:
+		position = self.position()
+		piece = self.place(position, material.Knight, source, color)
+		piece.moved = moved
+
+		if middle_occupied:
+			self.place(position, material.Knight, middle, not color)
+
+		if target_occupied:
+			self.place(position, material.Knight, target, not color)
+
+		jump = algebra.Jump(target, piece)
+		before = self.state(position)
+		assert jump.middle is middle
+		assert bool(jump) is (not moved and not middle_occupied and not target_occupied)
+		assert self.state(position) == before
+
+
+class TestCastle(AlgebraSetup):
+
+	cases = (
+		(False, geometry.Index.G1, geometry.Index.H1, geometry.Index.F1, "O-O"),
+		(False, geometry.Index.C1, geometry.Index.A1, geometry.Index.D1, "O-O-O"),
+		(True, geometry.Index.G8, geometry.Index.H8, geometry.Index.F8, "O-O"),
+		(True, geometry.Index.C8, geometry.Index.A8, geometry.Index.D8, "O-O-O"),
+	)
+	faults = ("missing", "wrong_type", "wrong_color", "not_eligible", "rook_moved", "king_moved")
+	movers = ("king", "rook")
+	temporary_restrictions = ("obstruction", "check")
+	blockers = (
+		(geometry.Index.G1, geometry.Index.H1, geometry.Index.F1),
+		(geometry.Index.G1, geometry.Index.H1, geometry.Index.G1),
+		(geometry.Index.C1, geometry.Index.A1, geometry.Index.B1),
+		(geometry.Index.C1, geometry.Index.A1, geometry.Index.C1),
+		(geometry.Index.C1, geometry.Index.A1, geometry.Index.D1),
+	)
+	attacks = (
+		(material.Rook, geometry.Index.E8),
+		(material.Rook, geometry.Index.F8),
+		(material.Rook, geometry.Index.G8),
+		(material.Pawn, geometry.Index.D2),
+		(material.Pawn, geometry.Index.G2),
+		(material.Pawn, geometry.Index.H2),
+		(material.Knight, geometry.Index.E2),
+	)
+	allowed_attacks = (
+		(geometry.Index.G1, geometry.Index.H1, geometry.Index.H8),
+		(geometry.Index.C1, geometry.Index.A1, geometry.Index.A8),
+		(geometry.Index.C1, geometry.Index.A1, geometry.Index.B8),
+	)
+
+	@staticmethod
+	def unexpected_occupant(move: algebra.Castle, square: geometry.Index, /) -> material.Piece | None:
+		raise AssertionError("occupancy checked without a castling partner")
+
+	@staticmethod
+	def mirror(square: geometry.Index, color: bool) -> geometry.Index:
+		return geometry.Index(int(square) ^ (56 if color else 0))
+
+	@classmethod
+	def prepare(cls, color: bool, target: geometry.Index, rook_source: geometry.Index):
+		position = cls.position()
+		king = cls.place(position, material.King, geometry.Index.E8 if color else geometry.Index.E1, color)
+		rook = cls.place(position, material.Rook, rook_source, color)
+		king.side.king = king
+		king.rooks[king.ᐊ if rook_source[0] == 0 else king.ᐅ] = rook
+		castle = algebra.Castle(target, king)
+
+		return position, king, rook, castle
+
+	@pytest.mark.parametrize("color, target, rook_source, rook_target, notation", cases)
+	def test_valid_castle_and_notation(self, color, target, rook_source, rook_target, notation) -> None:
+		position, king, rook, castle = self.prepare(color, target, rook_source)
+		before = self.state(position)
+		assert castle.piece is king
+		assert castle.rook is rook
+		assert castle.rook_source is rook_source
+		assert castle.middle is rook_target
+		assert castle.target is target
+		assert castle.long is (rook_source[0] == 0)
+		direction = king.ᐊ if castle.long else king.ᐅ
+		assert king.rooks == {direction: rook}
+		assert castle.rook_source == castle.source + direction
+		assert repr(castle) == notation
+		assert bool(castle)
+		assert bool(castle)
+		assert self.state(position) == before
+
+	def test_requires_king(self) -> None:
+		position = self.position()
+		rook = self.place(position, material.Rook, geometry.Index.E1, False)
+		before = self.state(position)
+
+		with pytest.raises(AssertionError):
+			algebra.Castle(geometry.Index.G1, rook)  # pyright: ignore[reportArgumentType]
+
+		assert self.state(position) == before
+
+	@pytest.mark.parametrize("color, target, rook_source, rook_target, notation", cases)
+	def test_unbound_wing_skips_remaining_validation(self, color, target, rook_source, rook_target, notation,
+		monkeypatch: pytest.MonkeyPatch,
+	) -> None:
+		position, king, _, _ = self.prepare(color, target, rook_source)
+		king.rooks.clear()
+		other_source = self.mirror(geometry.Index.H1 if rook_source[0] == 0 else geometry.Index.A1, color)
+		other = self.place(position, material.Rook, other_source, color)
+		king.rooks[king.ᐅ if rook_source[0] == 0 else king.ᐊ] = other
+		castle = algebra.Castle(target, king)
+		before = self.state(position)
+		monkeypatch.setattr(algebra.Castle, "occupant", self.unexpected_occupant)
+		assert castle.rook is None
+		assert not castle
+		assert self.state(position) == before
+
+	@pytest.mark.parametrize("color, target, rook_source, rook_target, notation", cases)
+	@pytest.mark.parametrize("fault", faults)
+	def test_requires_eligible_unmoved_king_and_rook(self, color, target, rook_source, rook_target, notation, fault) -> None:
+		position, king, rook, _ = self.prepare(color, target, rook_source)
+
+		if fault == "missing":
+			del position[rook_source]
+
+		elif fault == "wrong_type":
+			self.place(position, material.Knight, rook_source, color)
+
+		elif fault == "wrong_color":
+			self.place(position, material.Rook, rook_source, not color)
+
+		elif fault == "not_eligible":
+			king.rooks.clear()
+
+		elif fault == "rook_moved":
+			algebra.Move(rook_source + (geometry.Compass.south if color else geometry.Compass.north), rook).apply()
+			algebra.Move(rook_source, rook).apply()
+
+		else:
+			king.moved = True
+
+		castle = algebra.Castle(target, king)
+		before = self.state(position)
+
+		if fault == "not_eligible":
+			assert castle.rook is None
+
+		else:
+			assert castle.rook is rook
+
+		assert not castle
+		assert self.state(position) == before
+
+	@pytest.mark.parametrize("color, target, rook_source, rook_target, notation", cases)
+	@pytest.mark.parametrize("mover", movers)
+	def test_moving_and_returning_does_not_restore_castling(self, color, target, rook_source, rook_target, notation, mover) -> None:
+		position, king, rook, _ = self.prepare(color, target, rook_source)
+		piece = king if mover == "king" else rook
+		source = piece.index
+		assert source is not None
+		partners = self.partners(position)
+		algebra.Move(source + (geometry.Compass.south if color else geometry.Compass.north), piece).apply()
+		algebra.Move(source, piece).apply()
+		before = self.state(position)
+		assert target not in king.squares
+		assert self.partners(position) == partners
+		assert self.state(position) == before
+
+	@pytest.mark.parametrize("color, target, rook_source, rook_target, notation", cases)
+	def test_captured_rook_replacement_does_not_regain_castling(self, color, target, rook_source, rook_target, notation) -> None:
+		position, king, rook, _ = self.prepare(color, target, rook_source)
+		forward = geometry.Compass.south if color else geometry.Compass.north
+		attacker = self.place(position, material.Rook, rook_source + forward, not color)
+		replacement = self.place(position, material.Rook, rook_source + forward * 2, color)
+		partners = self.partners(position)
+		algebra.Capt(rook_source, attacker).apply()
+		assert rook.index is None
+		algebra.Capt(rook_source, replacement).apply()
+		before = self.state(position)
+		assert replacement.moved
+		assert replacement.index is rook_source
+		assert self.partners(position) == partners
+		assert target not in king.squares
+		assert self.state(position) == before
+
+	@pytest.mark.parametrize("color, target, rook_source, rook_target, notation", cases)
+	def test_retained_castle_rejects_captured_rook_without_mutation(self, color, target, rook_source,
+		rook_target, notation,
+	) -> None:
+		position, king, rook, castle = self.prepare(color, target, rook_source)
+		knight_source = self.mirror(geometry.Index.B3 if castle.long else geometry.Index.F2, color)
+		knight = self.place(position, material.Knight, knight_source, not color)
+		partners = self.partners(position)
+		algebra.Capt(rook_source, knight).apply()
+		before = self.state(position)
+		assert rook.index is None
+		assert not rook.moved
+		assert king.safe
+		assert not castle
+		assert self.partners(position) == partners
+		assert self.state(position) == before
+
+	@pytest.mark.parametrize("color, target, rook_source, rook_target, notation", cases)
+	def test_unmoved_replacement_does_not_replace_captured_partner(self, color, target, rook_source,
+		rook_target, notation,
+	) -> None:
+		position, king, rook, castle = self.prepare(color, target, rook_source)
+		knight_source = self.mirror(geometry.Index.B3 if castle.long else geometry.Index.F2, color)
+		knight = self.place(position, material.Knight, knight_source, not color)
+		partners = self.partners(position)
+		algebra.Capt(rook_source, knight).apply()
+		replacement = self.place(position, material.Rook, rook_source, color)
+		candidate = algebra.Castle(target, king)
+		before = self.state(position)
+		assert rook.index is None
+		assert not rook.moved and not replacement.moved
+		assert castle.rook is candidate.rook is rook
+		assert not castle and not candidate
+		assert self.partners(position) == partners
+		assert self.state(position) == before
+
+	@pytest.mark.parametrize("color", AlgebraSetup.colors)
+	@pytest.mark.parametrize("target, rook_source, blocker", blockers)
+	@pytest.mark.parametrize("friendly", (False, True))
+	def test_requires_clear_path_for_both_pieces(self, color, target, rook_source, blocker, friendly) -> None:
+		position, king, _, _ = self.prepare(color, self.mirror(target, color), self.mirror(rook_source, color))
+		self.place(position, material.Knight, self.mirror(blocker, color), color if friendly else not color)
+		castle = algebra.Castle(self.mirror(target, color), king)
+		before = self.state(position)
+		assert not castle
+		assert self.state(position) == before
+
+	@pytest.mark.parametrize("color, target, rook_source, rook_target, notation", cases)
+	@pytest.mark.parametrize("restriction", temporary_restrictions)
+	def test_temporary_obstruction_or_check_preserves_partnership(self, color, target, rook_source,
+		rook_target, notation, restriction,
+	) -> None:
+		position, _, _, castle = self.prepare(color, target, rook_source)
+		before = self.state(position)
+		square = castle.middle if restriction == "obstruction" else (geometry.Index.E1 if color else geometry.Index.E8)
+		kind = material.Knight if restriction == "obstruction" else material.Rook
+		self.place(position, kind, square, not color)
+		blocked = self.state(position)
+		assert not castle
+		assert self.state(position) == blocked
+		del position[square]
+		assert bool(castle)
+		assert self.state(position) == before
+
+	@pytest.mark.parametrize("color", AlgebraSetup.colors)
+	@pytest.mark.parametrize("kind, square", attacks)
+	def test_king_cannot_start_in_cross_or_finish_in_check(self, color, kind, square) -> None:
+		position, _, _, castle = self.prepare(color, self.mirror(geometry.Index.G1, color), self.mirror(geometry.Index.H1, color))
+		self.place(position, kind, self.mirror(square, color), not color)
+		before = self.state(position)
+		assert not castle
+		assert self.state(position) == before
+
+	def test_pinned_attacker_still_prevents_crossing_check(self) -> None:
+		position, _, _, castle = self.prepare(False, geometry.Index.G1, geometry.Index.H1)
+		self.place(position, material.Rook, geometry.Index.A8, False)
+		attacker = self.place(position, material.Rook, geometry.Index.F8, True)
+		opponent = self.place(position, material.King, geometry.Index.H8, True)
+		opponent.side.king = opponent
+		before = self.state(position)
+		assert geometry.Index.F1 in attacker.targets
+		assert not castle
+		assert self.state(position) == before
+
+	@pytest.mark.parametrize("color", AlgebraSetup.colors)
+	@pytest.mark.parametrize("target, rook_source, attacker", allowed_attacks)
+	def test_attacks_on_rook_and_unused_queenside_square_are_allowed(self, color, target, rook_source, attacker) -> None:
+		position, _, _, castle = self.prepare(color, self.mirror(target, color), self.mirror(rook_source, color))
+		self.place(position, material.Rook, self.mirror(attacker, color), not color)
+		before = self.state(position)
+		assert bool(castle)
+		assert self.state(position) == before
+
+	@pytest.mark.parametrize("color, target, rook_source, rook_target, notation", cases)
+	def test_simulation_moves_both_pieces_and_restores_complete_state(self, color, target, rook_source, rook_target, notation) -> None:
+		position, king, rook, castle = self.prepare(color, target, rook_source)
+		before = self.state(position)
+		partners = self.partners(position)
+
+		for _ in range(2):
+			with castle.simulated as active:
+				assert active is castle
+				assert position[castle.source] is position[rook_source] is None
+				assert position[target] is king
+				assert position[rook_target] is rook
+				assert king.index is target
+				assert rook.index is rook_target
+				assert king.moved and rook.moved
+				assert king.side == {king, rook}
+				assert self.partners(position) == partners
+
+			assert self.state(position) == before
+
+	@pytest.mark.parametrize("color, target, rook_source, rook_target, notation", cases)
+	def test_simulation_restores_after_exception(self, color, target, rook_source, rook_target, notation) -> None:
+		position, _, _, castle = self.prepare(color, target, rook_source)
+		before = self.state(position)
+
+		with pytest.raises(LookupError, match = "simulation failed"):
+			with castle.simulated:
+				raise LookupError("simulation failed")
+
+		assert self.state(position) == before
+
+	@pytest.mark.parametrize("color, target, rook_source, rook_target, notation", cases)
+	def test_apply_commits_both_pieces_and_undo_restores(self, color, target, rook_source, rook_target, notation) -> None:
+		position, king, rook, castle = self.prepare(color, target, rook_source)
+		before = self.state(position)
+		partners = self.partners(position)
+		assert castle.apply() is castle
+		assert position[castle.source] is position[rook_source] is None
+		assert position[target] is king
+		assert position[rook_target] is rook
+		assert king.index is target
+		assert rook.index is rook_target
+		assert king.moved and rook.moved
+		assert self.partners(position) == partners
+		assert castle.undo(moved = False) is castle
+		assert self.state(position) == before
 
 
 class TestRush(AlgebraSetup):
 
 	cases = (
-		(Color.WHITE, Index.A2, Index.A3, Index.A4),
-		(Color.BLACK, Index.H7, Index.H6, Index.H5),
+		(False, geometry.Index.A2, geometry.Index.A3, geometry.Index.A4),
+		(True, geometry.Index.H7, geometry.Index.H6, geometry.Index.H5),
 	)
 	states = tuple((moved, middle, target) for moved in (False, True) for middle in (False, True) for target in (False, True))
+
+	def test_requires_pawn_before_execution(self) -> None:
+		position = self.position()
+		knight = self.place(position, material.Knight, geometry.Index.E2, False)
+		before = self.state(position)
+
+		with pytest.raises(AssertionError):
+			algebra.Rush(geometry.Index.E4, knight)  # pyright: ignore[reportArgumentType]
+
+		assert self.state(position) == before
 
 	@pytest.mark.parametrize("color, source, middle, target", cases)
 	@pytest.mark.parametrize("moved, middle_occupied, target_occupied", states)
 	def test_requires_unmoved_piece_and_clear_path(self, color, source, middle, target,
 		moved, middle_occupied, target_occupied,
 	) -> None:
-		game = self.board()
-		piece = self.place(game, Pawn, source, color)
+		position = self.position()
+		piece = self.place(position, material.Pawn, source, color)
 		piece.moved = moved
 
 		if middle_occupied:
-			self.place(game, Knight, middle, self.opponent(color))
+			self.place(position, material.Knight, middle, not piece.color)
 
 		if target_occupied:
-			self.place(game, Knight, target, self.opponent(color))
+			self.place(position, material.Knight, target, not piece.color)
 
-		rush = Rush(target, piece)
+		rush = algebra.Rush(target, piece)
 		assert rush.middle is middle
 		assert bool(rush) is (not moved and not middle_occupied and not target_occupied)
+
+	@pytest.mark.parametrize("color, source, middle, target", cases)
+	def test_simulation_creates_and_cleans_up_ghost(self, color, source, middle, target) -> None:
+		position = self.position()
+		pawn = self.place(position, material.Pawn, source, color)
+		rush = algebra.Rush(target, pawn)
+		before = self.state(position)
+
+		for _ in range(2):
+			with rush.simulated as active:
+				assert active is rush
+				assert position[source] is None
+				assert position[target] is pawn
+				assert pawn.index is target
+				assert pawn.moved
+				ghost = position[middle]
+				assert isinstance(ghost, material.Ghost)
+				assert ghost.rusher is pawn
+				assert ghost.color is color
+				assert ghost.index is middle
+				assert ghost in pawn.side
+
+			assert self.state(position) == before
+			assert ghost.index is None
+			assert ghost not in pawn.side
+
+	@pytest.mark.parametrize("color, source, middle, target", cases)
+	def test_simulation_cleans_up_ghost_after_exception(self, color, source, middle, target) -> None:
+		position = self.position()
+		pawn = self.place(position, material.Pawn, source, color)
+		rush = algebra.Rush(target, pawn)
+		before = self.state(position)
+
+		with pytest.raises(LookupError, match = "simulation failed"):
+			with rush.simulated:
+				assert isinstance(position[middle], material.Ghost)
+
+				raise LookupError("simulation failed")
+
+		assert self.state(position) == before
+
+	@pytest.mark.parametrize("color, source, middle, target", cases)
+	def test_execution_keeps_ghost(self, color, source, middle, target) -> None:
+		position = self.position()
+		pawn = self.place(position, material.Pawn, source, color)
+		rush = algebra.Rush(target, pawn)
+		assert rush.apply() is rush
+		assert position[source] is None
+		assert position[target] is pawn
+		assert pawn.index is target
+		assert pawn.moved
+		ghost = position[middle]
+		assert isinstance(ghost, material.Ghost)
+		assert ghost.rusher is pawn
+		assert ghost.color is color
+		assert ghost.index is middle
+		assert ghost in pawn.side
+
+	@pytest.mark.parametrize("color, source, middle, target", cases)
+	def test_rejected_simulation_does_not_create_ghost(self, color, source, middle, target) -> None:
+		position = self.position()
+		pawn = self.place(position, material.Pawn, source, color)
+		rush = algebra.Rush(target, pawn)
+		self.place(position, material.Knight, target, not color)
+		before = self.state(position)
+
+		with pytest.raises(AssertionError):
+			with rush.simulated:
+				...
+
+		assert self.state(position) == before
+		assert position[middle] is None
 
 
 class TestCheck(AlgebraSetup):
 
 	def test_notation(self) -> None:
-		piece = self.place(self.board(), Knight, Index.B1, Color.WHITE)
-		check = Check(Index.C3, piece)
+		piece = self.place(self.position(), material.Knight, geometry.Index.B1, False)
+		check = algebra.Check(geometry.Index.C3, piece)
 		assert repr(check) == "Nc3+"
-		assert check.source is Index.B1
-		assert check.target is Index.C3
+		assert check.source is geometry.Index.B1
+		assert check.target is geometry.Index.C3
 		assert bool(check)
 
 
 class TestCheckmate(AlgebraSetup):
 
 	def test_notation(self) -> None:
-		piece = self.place(self.board(), Knight, Index.B1, Color.WHITE)
-		checkmate = Checkmate(Index.C3, piece)
+		piece = self.place(self.position(), material.Knight, geometry.Index.B1, False)
+		checkmate = algebra.Checkmate(geometry.Index.C3, piece)
 		assert repr(checkmate) == "Nc3#"
-		assert checkmate.source is Index.B1
-		assert checkmate.target is Index.C3
+		assert checkmate.source is geometry.Index.B1
+		assert checkmate.target is geometry.Index.C3
 		assert bool(checkmate)
 
 
 class TestPromotion(AlgebraSetup):
 
-	variants = ((Move, PromotionMove), (Capt, PromotionCapt))
-	unsupported = (Check, (2, 8))
+	variants = ((algebra.Move, algebra.PromotionMove), (algebra.Capt, algebra.PromotionCapt))
+	unsupported = (algebra.Check, (2, 8))
 	pickle_protocols = tuple(range(pickle.HIGHEST_PROTOCOL + 1))
 
 	@pytest.mark.parametrize("base, expected", variants)
 	def test_subscription_selects_named_variant(self, base, expected) -> None:
-		assert Promotion[base] is expected
-		assert Promotion[base] is Promotion[base]
-		assert issubclass(expected, Promotion)
+		assert algebra.Promotion[base] is expected
+		assert algebra.Promotion[base] is algebra.Promotion[base]
+		assert issubclass(expected, algebra.Promotion)
 		assert issubclass(expected, base)
 
 	@pytest.mark.parametrize("base, expected", variants)
 	def test_named_variant_class_serialization(self, base, expected) -> None:
 		for protocol in self.pickle_protocols:
-			assert pickle.loads(pickle.dumps(Promotion[base], protocol = protocol)) is expected
+			assert pickle.loads(pickle.dumps(algebra.Promotion[base], protocol = protocol)) is expected
 
 	@pytest.mark.parametrize("item", unsupported)
 	def test_unsupported_subscription(self, item) -> None:
 		with pytest.raises(TypeError):
-			_ = Promotion[item]
+			_ = algebra.Promotion[item]
 
 	@pytest.mark.parametrize("color, source, target, notation", AlgebraSetup.quiet_cases)
 	def test_validity_before_selection(self, color, source, target, notation) -> None:
-		pawn = self.place(self.board(), Pawn, source, color)
-		promotion = Promotion[Move](target, pawn)
+		pawn = self.place(self.position(), material.Pawn, source, color)
+		promotion = algebra.Promotion[algebra.Move](target, pawn)
 		assert bool(promotion)
 		assert promotion.source is source
 		assert promotion.target is target
@@ -236,8 +980,8 @@ class TestPromotion(AlgebraSetup):
 	@pytest.mark.parametrize("color, source, target, notation", AlgebraSetup.quiet_cases)
 	@pytest.mark.parametrize("choice", AlgebraSetup.choices)
 	def test_selected_choice(self, color, source, target, notation, choice) -> None:
-		pawn = self.place(self.board(), Pawn, source, color)
-		promotion = Promotion(target, pawn)
+		pawn = self.place(self.position(), material.Pawn, source, color)
+		promotion = algebra.Promotion(target, pawn)
 		promotion.to = choice
 		assert promotion.to is choice
 		assert repr(promotion) == notation + "=" + choice.name
@@ -245,74 +989,75 @@ class TestPromotion(AlgebraSetup):
 
 	@pytest.mark.parametrize("color, source, target", AlgebraSetup.other_ranks)
 	def test_requires_penultimate_source_rank(self, color, source, target) -> None:
-		pawn = self.place(self.board(), Pawn, source, color)
-		promotion = Promotion(target, pawn)
+		pawn = self.place(self.position(), material.Pawn, source, color)
+		promotion = algebra.Promotion(target, pawn)
 		assert not promotion
-		promotion.to = Officer.N
+		promotion.to = material.Officer.N
 		assert not promotion
 
 	def test_requires_pawn(self) -> None:
-		knight = self.place(self.board(), Knight, Index.C7, Color.WHITE)
-		promotion = Promotion(Index.A8, knight)
-		assert not promotion
+		knight = self.place(self.position(), material.Knight, geometry.Index.C7, False)
+
+		with pytest.raises(AssertionError):
+			algebra.Promotion(geometry.Index.A8, knight)  # pyright: ignore[reportArgumentType]
 
 	@pytest.mark.parametrize("color, source, target, notation", AlgebraSetup.quiet_cases)
 	@pytest.mark.parametrize("friendly", (True, False))
 	def test_requires_empty_destination(self, color, source, target, notation, friendly) -> None:
-		game = self.board()
-		pawn = self.place(game, Pawn, source, color)
-		self.place(game, Knight, target, color if friendly else self.opponent(color))
-		promotion = Promotion(target, pawn)
-		promotion.to = Officer.N
+		position = self.position()
+		pawn = self.place(position, material.Pawn, source, color)
+		self.place(position, material.Knight, target, pawn.color if friendly else not pawn.color)
+		promotion = algebra.Promotion(target, pawn)
+		promotion.to = material.Officer.N
 		assert not promotion
 		assert repr(promotion) == notation + "=N"
 
 	def test_reading_preserves_choice(self) -> None:
-		pawn = self.place(self.board(), Pawn, Index.A7, Color.WHITE)
-		promotion = Promotion(Index.A8, pawn)
-		promotion.to = Officer.N
+		pawn = self.place(self.position(), material.Pawn, geometry.Index.A7, False)
+		promotion = algebra.Promotion(geometry.Index.A8, pawn)
+		promotion.to = material.Officer.N
 		assert bool(promotion)
-		assert promotion.to is Officer.N
+		assert promotion.to is material.Officer.N
 		assert repr(promotion) == "a8=N"
-		assert promotion.to is Officer.N
+		assert promotion.to is material.Officer.N
 
 	def test_choice_resolves_to_officer(self) -> None:
-		pawn = self.place(self.board(), Pawn, Index.A7, Color.WHITE)
-		promotion = Promotion(Index.A8, pawn)
-		promotion.to = Officer.N
-		assert promotion.to.value is Knight
+		pawn = self.place(self.position(), material.Pawn, geometry.Index.A7, False)
+		promotion = algebra.Promotion(geometry.Index.A8, pawn)
+		promotion.to = material.Officer.N
+		assert promotion.to.value is material.Knight
 
 
 class TestPromotionCapt(AlgebraSetup):
 
-	CapturePromotion = Promotion[Capt]
+	CapturePromotion = algebra.Promotion[algebra.Capt]
 
 	illegal_ranks = (
-		(Color.WHITE, Index.B6, Index.A7),
-		(Color.BLACK, Index.G3, Index.H2),
+		(False, geometry.Index.B6, geometry.Index.A7),
+		(True, geometry.Index.G3, geometry.Index.H2),
 	)
 
 	def test_choices_are_independent(self) -> None:
-		game = self.board()
-		pawn = self.place(game, Pawn, Index.B7, Color.WHITE)
-		self.place(game, Knight, Index.A8, Color.BLACK)
-		first = self.CapturePromotion(Index.A8, pawn)
-		second = self.CapturePromotion(Index.A8, pawn)
-		first.to = Officer.N
-		second.to = Officer.Q
+		position = self.position()
+		pawn = self.place(position, material.Pawn, geometry.Index.B7, False)
+		self.place(position, material.Knight, geometry.Index.A8, not pawn.color)
+		first = self.CapturePromotion(geometry.Index.A8, pawn)
+		second = self.CapturePromotion(geometry.Index.A8, pawn)
+		first.to = material.Officer.N
+		second.to = material.Officer.Q
 		assert repr(first) == "bxa8=N"
 		assert repr(second) == "bxa8=Q"
-		first.to = Officer.R
+		first.to = material.Officer.R
 		assert repr(first) == "bxa8=R"
-		assert second.to is Officer.Q
+		assert second.to is material.Officer.Q
 		assert bool(first) and bool(second)
 
 	@pytest.mark.parametrize("color, source, target, notation", AlgebraSetup.capture_cases)
 	@pytest.mark.parametrize("choice", AlgebraSetup.choices)
 	def test_capture_with_selected_choice(self, color, source, target, notation, choice) -> None:
-		game = self.board()
-		pawn = self.place(game, Pawn, source, color)
-		enemy = self.place(game, Knight, target, self.opponent(color))
+		position = self.position()
+		pawn = self.place(position, material.Pawn, source, color)
+		enemy = self.place(position, material.Knight, target, not pawn.color)
 		promotion = self.CapturePromotion(target, pawn)
 		promotion.to = choice
 		assert bool(promotion)
@@ -321,22 +1066,22 @@ class TestPromotionCapt(AlgebraSetup):
 
 	@pytest.mark.parametrize("color, source, target, notation", AlgebraSetup.capture_cases)
 	def test_capture_requires_enemy(self, color, source, target, notation) -> None:
-		game = self.board()
-		pawn = self.place(game, Pawn, source, color)
+		position = self.position()
+		pawn = self.place(position, material.Pawn, source, color)
 		promotion = self.CapturePromotion(target, pawn)
 		assert not promotion
-		self.place(game, Knight, target, color)
+		self.place(position, material.Knight, target, pawn.color)
 		assert not promotion
-		self.place(game, Knight, target, self.opponent(color))
+		self.place(position, material.Knight, target, not pawn.color)
 		assert bool(promotion)
-		promotion.to = Officer.Q
+		promotion.to = material.Officer.Q
 		assert repr(promotion) == notation + "=Q"
 
 	@pytest.mark.parametrize("color, source, target", illegal_ranks)
 	def test_capture_requires_penultimate_source_rank(self, color, source, target) -> None:
-		game = self.board()
-		pawn = self.place(game, Pawn, source, color)
-		self.place(game, Knight, target, self.opponent(color))
+		position = self.position()
+		pawn = self.place(position, material.Pawn, source, color)
+		self.place(position, material.Knight, target, not pawn.color)
 		promotion = self.CapturePromotion(target, pawn)
 		assert not promotion
 
@@ -344,50 +1089,191 @@ class TestPromotionCapt(AlgebraSetup):
 class TestEnPassant(AlgebraSetup):
 
 	valid_moves = (
-		(Color.WHITE, Index.E5, Index.D6),
-		(Color.BLACK, Index.E4, Index.D3),
+		(False, geometry.Index.E5, geometry.Index.D5, geometry.Index.D6),
+		(True, geometry.Index.E4, geometry.Index.D4, geometry.Index.D3),
 	)
 	other_ranks = (
-		(Color.WHITE, Index.E1, Index.D2),
-		(Color.WHITE, Index.E2, Index.D3),
-		(Color.WHITE, Index.E4, Index.D5),
-		(Color.BLACK, Index.E7, Index.D6),
-		(Color.BLACK, Index.E6, Index.D5),
-		(Color.BLACK, Index.E5, Index.D4),
+		(False, geometry.Index.E1, geometry.Index.D2),
+		(False, geometry.Index.E2, geometry.Index.D3),
+		(False, geometry.Index.E4, geometry.Index.D5),
+		(True, geometry.Index.E7, geometry.Index.D6),
+		(True, geometry.Index.E6, geometry.Index.D5),
+		(True, geometry.Index.E5, geometry.Index.D4),
 	)
 	occupants = (
 		(None, False, False),
-		(Ghost, True, False),
-		(Pawn, False, False),
-		(Knight, False, False),
-		(Ghost, False, True),
+		(material.Ghost, True, False),
+		(material.Pawn, False, False),
+		(material.Knight, False, False),
+		(material.Ghost, False, True),
 	)
+	victims = (
+		(None, False, False),
+		(material.Pawn, True, False),
+		(material.Knight, False, False),
+		(material.Pawn, False, True),
+	)
+	wrong_targets = (
+		(False, geometry.Index.E5, geometry.Index.D5, geometry.Index.E6),
+		(False, geometry.Index.E5, geometry.Index.D5, geometry.Index.C6),
+		(False, geometry.Index.E5, geometry.Index.D5, geometry.Index.D7),
+		(True, geometry.Index.E4, geometry.Index.D4, geometry.Index.E3),
+		(True, geometry.Index.E4, geometry.Index.D4, geometry.Index.C3),
+		(True, geometry.Index.E4, geometry.Index.D4, geometry.Index.D2),
+	)
+	moved_states = (False, True)
 
-	@pytest.mark.parametrize("color, source, target", valid_moves)
-	def test_en_passant_rank(self, color, source, target) -> None:
-		game = self.board()
-		pawn = self.place(game, Pawn, source, color)
-		ghost = self.place(game, Ghost, target, self.opponent(color))
-		capture = EnPassant(target, pawn)
+	@pytest.mark.parametrize("color, source, middle, target", valid_moves)
+	def test_en_passant_rank(self, color, source, middle, target) -> None:
+		position = self.position()
+		pawn = self.place(position, material.Pawn, source, color)
+		victim = self.place(position, material.Pawn, middle, not color)
+		ghost = self.place_ghost(position, target, victim)
+		capture = algebra.EnPassant(target, pawn)
 		assert bool(capture)
 		assert capture.source is source
 		assert capture.target is target
 		assert capture.other is ghost
+		assert capture.middle is middle
+		assert capture.other.rusher is victim
 
 	@pytest.mark.parametrize("color, source, target", other_ranks)
 	def test_requires_en_passant_rank(self, color, source, target) -> None:
-		game = self.board()
-		pawn = self.place(game, Pawn, source, color)
-		self.place(game, Ghost, target, self.opponent(color))
-		assert not EnPassant(target, pawn)
+		position = self.position()
+		pawn = self.place(position, material.Pawn, source, color)
+		self.place_ghost(position, target, material.Pawn(not pawn.color))
+		assert not algebra.EnPassant(target, pawn)
 
-	@pytest.mark.parametrize("color, source, target", valid_moves)
+	@pytest.mark.parametrize("color, source, middle, target", valid_moves)
 	@pytest.mark.parametrize("kind, friendly, expected", occupants)
-	def test_requires_enemy_ghost(self, color, source, target, kind, friendly, expected) -> None:
-		game = self.board()
-		pawn = self.place(game, Pawn, source, color)
+	def test_requires_enemy_ghost(self, color, source, middle, target, kind, friendly, expected) -> None:
+		position = self.position()
+		pawn = self.place(position, material.Pawn, source, color)
+		victim = self.place(position, material.Pawn, middle, not color)
+
+		if kind is material.Ghost:
+			self.place_ghost(position, target, material.Pawn(pawn.color) if friendly else victim)
+
+		elif kind is not None:
+			self.place(position, kind, target, pawn.color if friendly else not pawn.color)
+
+		if kind is material.Ghost:
+			assert bool(algebra.EnPassant(target, pawn)) is expected
+
+		else:
+			with pytest.raises(AssertionError):
+				algebra.EnPassant(target, pawn)
+
+	@pytest.mark.parametrize("color, source, middle, target", valid_moves)
+	@pytest.mark.parametrize("kind, friendly, expected", victims)
+	def test_requires_enemy_pawn_beside_source(self, color, source, middle, target, kind, friendly, expected) -> None:
+		position = self.position()
+		pawn = self.place(position, material.Pawn, source, color)
+		victim = None
 
 		if kind is not None:
-			self.place(game, kind, target, color if friendly else self.opponent(color))
+			victim = self.place(position, kind, middle, color if friendly else not color)
 
-		assert bool(EnPassant(target, pawn)) is expected
+		self.place_ghost(position, target, victim if isinstance(victim, material.Pawn) and not friendly else material.Pawn(not color))
+
+		assert bool(algebra.EnPassant(target, pawn)) is expected
+
+	@pytest.mark.parametrize("color, source, middle, target", wrong_targets)
+	def test_requires_one_forward_diagonal(self, color, source, middle, target) -> None:
+		position = self.position()
+		pawn = self.place(position, material.Pawn, source, color)
+		victim = self.place(position, material.Pawn, middle, not color)
+		self.place_ghost(position, target, victim)
+		assert not algebra.EnPassant(target, pawn)
+
+	@pytest.mark.parametrize("color, source, middle, target", valid_moves)
+	def test_requires_capturing_pawn(self, color, source, middle, target) -> None:
+		position = self.position()
+		knight = self.place(position, material.Knight, source, color)
+		victim = self.place(position, material.Pawn, middle, not color)
+		self.place_ghost(position, target, victim)
+
+		with pytest.raises(AssertionError):
+			algebra.EnPassant(target, knight)  # pyright: ignore[reportArgumentType]
+
+	@pytest.mark.parametrize("color, source, middle, target", valid_moves)
+	@pytest.mark.parametrize("moved", moved_states)
+	def test_context_restores_all_three_squares_and_is_reusable(self, color, source, middle, target, moved) -> None:
+		position = self.position()
+		pawn = self.place(position, material.Pawn, source, color)
+		pawn.moved = moved
+		victim = self.place(position, material.Pawn, middle, not color)
+		victim.moved = True
+		ghost = self.place_ghost(position, target, victim)
+		capture = algebra.EnPassant(target, pawn)
+		before = self.state(position)
+
+		for _ in range(2):
+			with capture.simulated as active:
+				assert active is capture
+				assert position[source] is position[middle] is None
+				assert position[target] is pawn
+				assert pawn.index is target
+				assert pawn.moved
+				assert victim.index is ghost.index is None
+				assert victim not in position.side[not color]
+				assert ghost not in position.side[not color]
+				assert victim.moved
+
+			assert self.state(position) == before
+			assert capture.other is ghost
+			assert capture.other.rusher is victim
+
+	@pytest.mark.parametrize("color, source, middle, target", valid_moves)
+	def test_context_restores_after_exception(self, color, source, middle, target) -> None:
+		position = self.position()
+		pawn = self.place(position, material.Pawn, source, color)
+		victim = self.place(position, material.Pawn, middle, not color)
+		self.place_ghost(position, target, victim)
+		capture = algebra.EnPassant(target, pawn)
+		before = self.state(position)
+
+		with pytest.raises(LookupError, match = "simulation failed"):
+			with capture.simulated:
+				assert position[middle] is None
+
+				raise LookupError("simulation failed")
+
+		assert self.state(position) == before
+
+	@pytest.mark.parametrize("color, source, middle, target", valid_moves)
+	def test_execution_removes_victim_and_ghost(self, color, source, middle, target) -> None:
+		position = self.position()
+		pawn = self.place(position, material.Pawn, source, color)
+		victim = self.place(position, material.Pawn, middle, not color)
+		ghost = self.place_ghost(position, target, victim)
+		capture = algebra.EnPassant(target, pawn)
+		assert capture.apply() is capture
+		assert position[source] is position[middle] is None
+		assert position[target] is pawn
+		assert pawn.index is target
+		assert pawn in position.side[color]
+		assert pawn.moved
+		assert victim.index is ghost.index is None
+		assert victim not in position.side[not color]
+		assert ghost not in position.side[not color]
+
+	@pytest.mark.parametrize("color, source, middle, target", valid_moves)
+	def test_requires_linked_rusher_beside_source(self, color, source, middle, target) -> None:
+		position = self.position()
+		pawn = self.place(position, material.Pawn, source, color)
+		victim = self.place(position, material.Pawn, middle, not color)
+		self.place_ghost(position, target, victim)
+		capture = algebra.EnPassant(target, pawn)
+		del position[middle]
+		assert not capture
+		self.place(position, material.Pawn, middle, not color)
+		assert not capture
+		assert capture.other.rusher is victim
+		before = self.state(position)
+
+		with pytest.raises(AssertionError):
+			with capture.simulated:
+				...
+
+		assert self.state(position) == before
